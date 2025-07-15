@@ -3,16 +3,33 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search, Edit, Trash2, Package, Shield } from "lucide-react";
 import { useEquipment } from "@/hooks/useEquipment";
 import { usePermissions } from "@/hooks/usePermissions";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Equipment = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const { equipment, loading } = useEquipment();
+  const { equipment, loading, fetchEquipment } = useEquipment();
   const { hasPermission } = usePermissions();
+  const { toast } = useToast();
+  const { user } = useAuth();
   const [canViewPrices, setCanViewPrices] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
+  const [equipmentDialog, setEquipmentDialog] = useState(false);
+  const [newEquipment, setNewEquipment] = useState({
+    name: '',
+    category: '',
+    description: '',
+    total_stock: 0,
+    price_per_day: 0
+  });
 
   // Check permissions on mount
   useEffect(() => {
@@ -51,6 +68,63 @@ export const Equipment = () => {
     }
   };
 
+  // Add new equipment
+  const addEquipment = async () => {
+    if (!newEquipment.name || !newEquipment.category || !user) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha nome e categoria do equipamento.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('equipment')
+        .insert({
+          name: newEquipment.name,
+          category: newEquipment.category,
+          description: newEquipment.description || '',
+          total_stock: newEquipment.total_stock || 0,
+          available: newEquipment.total_stock || 0,
+          rented: 0,
+          price_per_day: newEquipment.price_per_day || 0,
+          status: 'available'
+        });
+
+      if (error) throw error;
+
+      await fetchEquipment();
+      setNewEquipment({
+        name: '',
+        category: '',
+        description: '',
+        total_stock: 0,
+        price_per_day: 0
+      });
+      setEquipmentDialog(false);
+
+      toast({
+        title: "Equipamento criado",
+        description: "O equipamento foi criado com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error adding equipment:', error);
+      toast({
+        title: "Erro ao criar equipamento",
+        description: "Não foi possível criar o equipamento.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const categories = [
+    { value: "equipamento", label: "Equipamento" },
+    { value: "cabeamento", label: "Cabeamento" },
+    { value: "insumos", label: "Insumos" }
+  ];
+
   const filteredEquipment = equipment.filter(item =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.category.toLowerCase().includes(searchTerm.toLowerCase())
@@ -85,10 +159,95 @@ export const Equipment = () => {
           <p className="text-muted-foreground">Gerencie todos os equipamentos do almoxarifado</p>
         </div>
         {canEdit && (
-          <Button className="gap-2">
-            <Plus className="w-4 h-4" />
-            Novo Equipamento
-          </Button>
+          <Dialog open={equipmentDialog} onOpenChange={setEquipmentDialog}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="w-4 h-4" />
+                Novo Equipamento
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Novo Equipamento</DialogTitle>
+                <DialogDescription>
+                  Cadastre um novo equipamento no almoxarifado
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="name">Nome do Equipamento *</Label>
+                    <Input
+                      id="name"
+                      value={newEquipment.name}
+                      onChange={(e) => setNewEquipment(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Ex: Mesa de Som"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="category">Categoria *</Label>
+                    <Select value={newEquipment.category} onValueChange={(value) => setNewEquipment(prev => ({ ...prev, category: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a categoria" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border shadow-md z-50">
+                        {categories.map((category) => (
+                          <SelectItem key={category.value} value={category.value}>
+                            {category.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="description">Descrição</Label>
+                  <Textarea
+                    id="description"
+                    value={newEquipment.description}
+                    onChange={(e) => setNewEquipment(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Descrição detalhada do equipamento"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="total_stock">Quantidade em Estoque</Label>
+                    <Input
+                      id="total_stock"
+                      type="number"
+                      min="0"
+                      value={newEquipment.total_stock}
+                      onChange={(e) => setNewEquipment(prev => ({ ...prev, total_stock: parseInt(e.target.value) || 0 }))}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="price_per_day">Preço por Dia (R$)</Label>
+                    <Input
+                      id="price_per_day"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={newEquipment.price_per_day}
+                      onChange={(e) => setNewEquipment(prev => ({ ...prev, price_per_day: parseFloat(e.target.value) || 0 }))}
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setEquipmentDialog(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={addEquipment}>
+                    Cadastrar Equipamento
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         )}
       </div>
 
