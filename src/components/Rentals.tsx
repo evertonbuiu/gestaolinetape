@@ -50,6 +50,16 @@ interface EventExpense {
   receipt_url: string;
 }
 
+interface Collaborator {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: string;
+  status: 'active' | 'inactive';
+  createdAt: string;
+}
+
 export const Rentals = () => {
   const { userRole, user } = useAuth();
   const { hasPermission } = usePermissions();
@@ -57,6 +67,7 @@ export const Rentals = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [expenses, setExpenses] = useState<EventExpense[]>([]);
   const [clients, setClients] = useState<any[]>([]);
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
@@ -91,6 +102,7 @@ export const Rentals = () => {
     supplier: '',
     notes: ''
   });
+  const [selectedCollaborator, setSelectedCollaborator] = useState<string>('');
   // Check permissions on mount
   useEffect(() => {
     const checkPermissions = async () => {
@@ -139,6 +151,44 @@ export const Rentals = () => {
     } catch (error) {
       console.error('Error fetching clients:', error);
       // Silently fail for clients, as it's optional
+    }
+  };
+
+  // Fetch collaborators
+  const fetchCollaborators = async () => {
+    try {
+      const mockCollaborators = [
+        {
+          id: "1",
+          name: "João Silva",
+          email: "joao@empresa.com",
+          phone: "(11) 99999-9999",
+          role: "Funcionário",
+          status: "active" as const,
+          createdAt: "2024-01-15"
+        },
+        {
+          id: "2",
+          name: "Maria Santos",
+          email: "maria@empresa.com",
+          phone: "(11) 88888-8888",
+          role: "Técnico",
+          status: "active" as const,
+          createdAt: "2024-01-10"
+        },
+        {
+          id: "3",
+          name: "Carlos Oliveira",
+          email: "carlos@empresa.com",
+          phone: "(11) 77777-7777",
+          role: "Motorista",
+          status: "active" as const,
+          createdAt: "2024-01-05"
+        }
+      ];
+      setCollaborators(mockCollaborators);
+    } catch (error) {
+      console.error('Error fetching collaborators:', error);
     }
   };
 
@@ -263,6 +313,7 @@ export const Rentals = () => {
         supplier: '',
         notes: ''
       });
+      setSelectedCollaborator('');
       setExpenseDialog(false);
 
       toast({
@@ -425,6 +476,7 @@ export const Rentals = () => {
   useEffect(() => {
     fetchEvents();
     fetchClients();
+    fetchCollaborators();
   }, []);
 
   const yearsAndMonths = generateYearsAndMonths();
@@ -701,44 +753,84 @@ export const Rentals = () => {
                     </DialogHeader>
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="category">Categoria</Label>
-                          <Select value={newExpense.category} onValueChange={(value) => setNewExpense(prev => ({ ...prev, category: value }))}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione a categoria" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Iluminação">Iluminação</SelectItem>
-                              <SelectItem value="Som">Som</SelectItem>
-                              <SelectItem value="Estrutura">Estrutura</SelectItem>
-                              <SelectItem value="Transporte">Transporte</SelectItem>
-                              <SelectItem value="Pessoal">Pessoal</SelectItem>
-                              <SelectItem value="Material">Material</SelectItem>
-                              <SelectItem value="Outros">Outros</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div>
-                          <Label htmlFor="supplier">Fornecedor</Label>
-                          <Input
-                            id="supplier"
-                            value={newExpense.supplier || ''}
-                            onChange={(e) => setNewExpense(prev => ({ ...prev, supplier: e.target.value }))}
-                            placeholder="Nome do fornecedor"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="description">Descrição</Label>
-                        <Input
-                          id="description"
-                          value={newExpense.description || ''}
-                          onChange={(e) => setNewExpense(prev => ({ ...prev, description: e.target.value }))}
-                          placeholder="Descrição do item/serviço"
-                        />
-                      </div>
+                         <div>
+                           <Label htmlFor="category">Categoria</Label>
+                            <Select value={newExpense.category} onValueChange={(value) => {
+                              setNewExpense(prev => ({ ...prev, category: value }));
+                              if (value !== 'Colaborador') {
+                                setSelectedCollaborator('');
+                              }
+                            }}>
+                             <SelectTrigger>
+                               <SelectValue placeholder="Selecione a categoria" />
+                             </SelectTrigger>
+                             <SelectContent>
+                               <SelectItem value="Iluminação">Iluminação</SelectItem>
+                               <SelectItem value="Som">Som</SelectItem>
+                               <SelectItem value="Estrutura">Estrutura</SelectItem>
+                               <SelectItem value="Transporte">Transporte</SelectItem>
+                               <SelectItem value="Pessoal">Pessoal</SelectItem>
+                               <SelectItem value="Colaborador">Colaborador</SelectItem>
+                               <SelectItem value="Material">Material</SelectItem>
+                               <SelectItem value="Outros">Outros</SelectItem>
+                             </SelectContent>
+                           </Select>
+                         </div>
+                         
+                         <div>
+                           <Label htmlFor="supplier">Fornecedor</Label>
+                           <Input
+                             id="supplier"
+                             value={newExpense.supplier || ''}
+                             onChange={(e) => setNewExpense(prev => ({ ...prev, supplier: e.target.value }))}
+                             placeholder="Nome do fornecedor"
+                             disabled={newExpense.category === 'Colaborador'}
+                           />
+                         </div>
+                       </div>
+                       
+                       {/* Collaborator Selection - only shown when category is "Colaborador" */}
+                       {newExpense.category === 'Colaborador' && (
+                         <div>
+                           <Label htmlFor="collaborator">Colaborador</Label>
+                           <Select 
+                             value={selectedCollaborator} 
+                             onValueChange={(value) => {
+                               setSelectedCollaborator(value);
+                               const selected = collaborators.find(c => c.id === value);
+                               if (selected) {
+                                 setNewExpense(prev => ({ 
+                                   ...prev, 
+                                   supplier: selected.name,
+                                   description: `Serviço - ${selected.name} (${selected.role})`
+                                 }));
+                               }
+                             }}
+                           >
+                             <SelectTrigger>
+                               <SelectValue placeholder="Selecione um colaborador" />
+                             </SelectTrigger>
+                             <SelectContent>
+                               {collaborators.map((collaborator) => (
+                                 <SelectItem key={collaborator.id} value={collaborator.id}>
+                                   {collaborator.name} - {collaborator.role}
+                                 </SelectItem>
+                               ))}
+                             </SelectContent>
+                           </Select>
+                         </div>
+                       )}
+                       
+                       <div>
+                         <Label htmlFor="description">Descrição</Label>
+                         <Input
+                           id="description"
+                           value={newExpense.description || ''}
+                           onChange={(e) => setNewExpense(prev => ({ ...prev, description: e.target.value }))}
+                           placeholder="Descrição do item/serviço"
+                           disabled={newExpense.category === 'Colaborador'}
+                         />
+                       </div>
                       
                       <div className="grid grid-cols-3 gap-4">
                         <div>
@@ -785,14 +877,17 @@ export const Rentals = () => {
                         />
                       </div>
                       
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" onClick={() => setExpenseDialog(false)}>
-                          Cancelar
-                        </Button>
-                        <Button onClick={addExpense}>
-                          Adicionar Despesa
-                        </Button>
-                      </div>
+                       <div className="flex justify-end gap-2">
+                         <Button variant="outline" onClick={() => {
+                           setExpenseDialog(false);
+                           setSelectedCollaborator('');
+                         }}>
+                           Cancelar
+                         </Button>
+                         <Button onClick={addExpense}>
+                           Adicionar Despesa
+                         </Button>
+                       </div>
                     </div>
                   </DialogContent>
                 </Dialog>
