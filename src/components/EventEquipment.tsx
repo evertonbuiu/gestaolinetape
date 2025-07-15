@@ -67,6 +67,7 @@ export const EventEquipment = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [equipmentDialog, setEquipmentDialog] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string>('/logo-empresa.png');
   const [newEquipment, setNewEquipment] = useState<Partial<EventEquipment>>({
     equipment_name: '',
     quantity: 1,
@@ -248,6 +249,30 @@ export const EventEquipment = () => {
     }
   };
 
+  // Fetch logo from storage
+  const fetchLogo = async () => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('logos')
+        .list('', { limit: 1 });
+
+      if (error) {
+        console.error('Error fetching logo:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const { data: publicUrl } = supabase.storage
+          .from('logos')
+          .getPublicUrl(data[0].name);
+        
+        setLogoUrl(publicUrl.publicUrl);
+      }
+    } catch (error) {
+      console.error('Error fetching logo:', error);
+    }
+  };
+
   // Generate years and months for tabs
   const generateYearsAndMonths = () => {
     const currentYear = new Date().getFullYear();
@@ -284,21 +309,16 @@ export const EventEquipment = () => {
             body { 
               font-family: Arial, sans-serif; 
               margin: 20px; 
-              background-image: url('/logo-empresa.png');
-              background-repeat: no-repeat;
-              background-position: center center;
-              background-size: 40%;
-              background-attachment: fixed;
-              opacity: 1;
+              position: relative;
             }
             body::before {
               content: '';
-              position: absolute;
+              position: fixed;
               top: 0;
               left: 0;
               width: 100%;
               height: 100%;
-              background-image: url('/logo-empresa.png');
+              background-image: url('${logoUrl}');
               background-repeat: no-repeat;
               background-position: center center;
               background-size: 40%;
@@ -327,7 +347,7 @@ export const EventEquipment = () => {
         </head>
         <body>
           <div class="header">
-            <img src="/logo-empresa.png" alt="Logo da Empresa" style="height: 60px; margin-bottom: 15px;" />
+            <img src="${logoUrl}" alt="Logo da Empresa" style="height: 60px; margin-bottom: 15px;" />
             <h1>LISTA DE MATERIAIS</h1>
             <p>Sistema de Controle de Almoxarifado</p>
           </div>
@@ -397,6 +417,7 @@ export const EventEquipment = () => {
   useEffect(() => {
     fetchEvents();
     fetchAvailableEquipment();
+    fetchLogo();
   }, []);
 
   if (loading) {
