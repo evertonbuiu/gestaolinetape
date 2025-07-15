@@ -79,11 +79,13 @@ export const Rentals = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [expenseDialog, setExpenseDialog] = useState(false);
+  const [editExpenseDialog, setEditExpenseDialog] = useState(false);
   const [eventDialog, setEventDialog] = useState(false);
   const [editEventDialog, setEditEventDialog] = useState(false);
   const [statusDialog, setStatusDialog] = useState(false);
   const [selectedEventForStatus, setSelectedEventForStatus] = useState<Event | null>(null);
   const [selectedEventForEdit, setSelectedEventForEdit] = useState<Event | null>(null);
+  const [selectedExpenseForEdit, setSelectedExpenseForEdit] = useState<EventExpense | null>(null);
   const [newStatus, setNewStatus] = useState('');
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
   const [canViewRentals, setCanViewRentals] = useState(false);
@@ -457,6 +459,69 @@ export const Rentals = () => {
       toast({
         title: "Erro ao adicionar despesa",
         description: "Não foi possível adicionar a despesa.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Edit expense
+  const updateExpense = async () => {
+    if (!selectedExpenseForEdit || !newExpense.category || !newExpense.description || !user) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha categoria e descrição.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const expenseData: any = {
+        category: newExpense.category,
+        description: newExpense.description,
+        quantity: newExpense.quantity || 1,
+        unit_price: newExpense.unit_price || 0,
+        total_price: (newExpense.quantity || 1) * (newExpense.unit_price || 0),
+        supplier: newExpense.supplier || '',
+        notes: newExpense.notes || ''
+      };
+
+      // Add bank account if selected
+      if (newExpense.expense_bank_account) {
+        expenseData.expense_bank_account = newExpense.expense_bank_account;
+      }
+
+      const { error } = await supabase
+        .from('event_expenses')
+        .update(expenseData)
+        .eq('id', selectedExpenseForEdit.id);
+
+      if (error) throw error;
+
+      await fetchExpenses(selectedEvent!.id);
+      await fetchEvents(); // Refresh to update totals
+      setNewExpense({
+        category: '',
+        description: '',
+        quantity: 1,
+        unit_price: 0,
+        total_price: 0,
+        supplier: '',
+        notes: ''
+      });
+      setSelectedCollaborator('');
+      setEditExpenseDialog(false);
+      setSelectedExpenseForEdit(null);
+
+      toast({
+        title: "Despesa atualizada",
+        description: "A despesa foi atualizada com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error updating expense:', error);
+      toast({
+        title: "Erro ao atualizar despesa",
+        description: "Não foi possível atualizar a despesa.",
         variant: "destructive"
       });
     }
@@ -1092,14 +1157,37 @@ export const Rentals = () => {
                         </TableCell>
                         <TableCell>{expense.supplier || '-'}</TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deleteExpense(expense.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedExpenseForEdit(expense);
+                                setNewExpense({
+                                  category: expense.category,
+                                  description: expense.description,
+                                  quantity: expense.quantity,
+                                  unit_price: expense.unit_price,
+                                  total_price: expense.total_price,
+                                  supplier: expense.supplier,
+                                  notes: expense.notes,
+                                  expense_bank_account: expense.expense_bank_account
+                                });
+                                setEditExpenseDialog(true);
+                              }}
+                              className="text-blue-600 hover:text-blue-700"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => deleteExpense(expense.id)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -1457,6 +1545,168 @@ export const Rentals = () => {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Edit Expense Dialog */}
+      <Dialog open={editExpenseDialog} onOpenChange={setEditExpenseDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Despesa</DialogTitle>
+            <DialogDescription>
+              Edite as informações da despesa
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+               <div>
+                 <Label htmlFor="edit_category">Categoria</Label>
+                  <Select value={newExpense.category} onValueChange={(value) => {
+                    setNewExpense(prev => ({ ...prev, category: value }));
+                    if (value !== 'Colaborador') {
+                      setSelectedCollaborator('');
+                    }
+                  }}>
+                   <SelectTrigger>
+                     <SelectValue placeholder="Selecione a categoria" />
+                   </SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="Iluminação">Iluminação</SelectItem>
+                     <SelectItem value="Som">Som</SelectItem>
+                     <SelectItem value="Estrutura">Estrutura</SelectItem>
+                     <SelectItem value="Transporte">Transporte</SelectItem>
+                     <SelectItem value="Pessoal">Pessoal</SelectItem>
+                     <SelectItem value="Colaborador">Colaborador</SelectItem>
+                     <SelectItem value="Material">Material</SelectItem>
+                     <SelectItem value="Outros">Outros</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
+               
+               <div>
+                 <Label htmlFor="edit_supplier">Fornecedor</Label>
+                 <Input
+                   id="edit_supplier"
+                   value={newExpense.supplier || ''}
+                   onChange={(e) => setNewExpense(prev => ({ ...prev, supplier: e.target.value }))}
+                   placeholder="Nome do fornecedor"
+                   disabled={newExpense.category === 'Colaborador'}
+                 />
+               </div>
+             </div>
+             
+             {/* Collaborator Selection - only shown when category is "Colaborador" */}
+             {newExpense.category === 'Colaborador' && (
+               <div>
+                 <Label htmlFor="edit_collaborator">Colaborador</Label>
+                 <Select 
+                   value={selectedCollaborator} 
+                   onValueChange={(value) => {
+                     setSelectedCollaborator(value);
+                     const selected = collaborators.find(c => c.id === value);
+                     if (selected) {
+                       setNewExpense(prev => ({ 
+                         ...prev, 
+                         supplier: selected.name,
+                         description: `Serviço - ${selected.name} (${selected.role})`
+                       }));
+                     }
+                   }}
+                 >
+                   <SelectTrigger>
+                     <SelectValue placeholder="Selecione um colaborador" />
+                   </SelectTrigger>
+                   <SelectContent>
+                     {collaborators.map((collaborator) => (
+                       <SelectItem key={collaborator.id} value={collaborator.id}>
+                         {collaborator.name} - {collaborator.role}
+                       </SelectItem>
+                     ))}
+                   </SelectContent>
+                 </Select>
+               </div>
+             )}
+             
+             <div>
+               <Label htmlFor="edit_description">Descrição</Label>
+               <Input
+                 id="edit_description"
+                 value={newExpense.description || ''}
+                 onChange={(e) => setNewExpense(prev => ({ ...prev, description: e.target.value }))}
+                 placeholder="Descrição do item/serviço"
+                 disabled={newExpense.category === 'Colaborador'}
+               />
+             </div>
+            
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="edit_quantity">Quantidade</Label>
+                <Input
+                  id="edit_quantity"
+                  type="number"
+                  min="1"
+                  value={newExpense.quantity || 1}
+                  onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 1)}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="edit_unit_price">Preço Unitário</Label>
+                <Input
+                  id="edit_unit_price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={newExpense.unit_price || 0}
+                  onChange={(e) => handleUnitPriceChange(parseFloat(e.target.value) || 0)}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="edit_total_price">Total</Label>
+                <Input
+                  id="edit_total_price"
+                  type="number"
+                  value={newExpense.total_price || 0}
+                  disabled
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="edit_notes">Observações</Label>
+              <Textarea
+                id="edit_notes"
+                value={newExpense.notes || ''}
+                onChange={(e) => setNewExpense(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Observações adicionais"
+              />
+             </div>
+             
+             <div>
+               <Label htmlFor="edit_expense_bank_account">Conta Bancária</Label>
+               <Select value={newExpense.expense_bank_account || ''} onValueChange={(value) => setNewExpense(prev => ({ ...prev, expense_bank_account: value }))}>
+                 <SelectTrigger>
+                   <SelectValue placeholder="Selecione a conta bancária" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   {bankAccounts.map((account) => (
+                     <SelectItem key={account.id} value={account.name}>
+                       {account.name} - {account.account_type}
+                     </SelectItem>
+                   ))}
+                 </SelectContent>
+               </Select>
+             </div>
+             
+             <div className="flex justify-end gap-2">
+               <Button variant="outline" onClick={() => setEditExpenseDialog(false)}>
+                 Cancelar
+               </Button>
+               <Button onClick={updateExpense}>
+                 Salvar Alterações
+               </Button>
+             </div>
+           </div>
+         </DialogContent>
+       </Dialog>
     </div>
   );
 };
