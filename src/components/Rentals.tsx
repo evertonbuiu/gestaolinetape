@@ -22,6 +22,7 @@ interface Event {
   client_name: string;
   client_email: string;
   client_phone: string;
+  setup_start_date: string;
   event_date: string;
   event_time: string;
   location: string;
@@ -60,6 +61,7 @@ export const Rentals = () => {
     client_name: '',
     client_email: '',
     client_phone: '',
+    setup_start_date: '',
     event_date: '',
     event_time: '',
     location: '',
@@ -118,6 +120,7 @@ export const Rentals = () => {
           client_name: newEvent.client_name,
           client_email: newEvent.client_email || '',
           client_phone: newEvent.client_phone || '',
+          setup_start_date: newEvent.setup_start_date || null,
           event_date: newEvent.event_date,
           event_time: newEvent.event_time || '',
           location: newEvent.location || '',
@@ -135,6 +138,7 @@ export const Rentals = () => {
         client_name: '',
         client_email: '',
         client_phone: '',
+        setup_start_date: '',
         event_date: '',
         event_time: '',
         location: '',
@@ -342,10 +346,18 @@ export const Rentals = () => {
                         <span className="text-muted-foreground">• {event.client_email}</span>
                       )}
                     </div>
+                    {event.setup_start_date && (
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        <span>
+                          Montagem: {format(new Date(event.setup_start_date), 'dd/MM/yyyy', { locale: ptBR })}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4" />
                       <span>
-                        {format(new Date(event.event_date), 'dd/MM/yyyy', { locale: ptBR })}
+                        Evento: {format(new Date(event.event_date), 'dd/MM/yyyy', { locale: ptBR })}
                         {event.event_time && ` às ${event.event_time}`}
                       </span>
                     </div>
@@ -674,6 +686,15 @@ export const Rentals = () => {
             
             <div className="grid grid-cols-2 gap-4">
               <div>
+                <Label htmlFor="setup_start_date">Data de Início de Montagem</Label>
+                <Input
+                  id="setup_start_date"
+                  type="date"
+                  value={newEvent.setup_start_date || ''}
+                  onChange={(e) => setNewEvent(prev => ({ ...prev, setup_start_date: e.target.value }))}
+                />
+              </div>
+              <div>
                 <Label htmlFor="event_date">Data do Evento *</Label>
                 <Input
                   id="event_date"
@@ -682,15 +703,16 @@ export const Rentals = () => {
                   onChange={(e) => setNewEvent(prev => ({ ...prev, event_date: e.target.value }))}
                 />
               </div>
-              <div>
-                <Label htmlFor="event_time">Horário</Label>
-                <Input
-                  id="event_time"
-                  type="time"
-                  value={newEvent.event_time || ''}
-                  onChange={(e) => setNewEvent(prev => ({ ...prev, event_time: e.target.value }))}
-                />
-              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="event_time">Horário</Label>
+              <Input
+                id="event_time"
+                type="time"
+                value={newEvent.event_time || ''}
+                onChange={(e) => setNewEvent(prev => ({ ...prev, event_time: e.target.value }))}
+              />
             </div>
             
             <div>

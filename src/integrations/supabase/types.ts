@@ -84,6 +84,7 @@ export type Database = {
           location: string | null
           name: string
           profit_margin: number | null
+          setup_start_date: string | null
           status: string
           total_budget: number | null
           total_expenses: number | null
@@ -102,6 +103,7 @@ export type Database = {
           location?: string | null
           name: string
           profit_margin?: number | null
+          setup_start_date?: string | null
           status?: string
           total_budget?: number | null
           total_expenses?: number | null
@@ -120,6 +122,7 @@ export type Database = {
           location?: string | null
           name?: string
           profit_margin?: number | null
+          setup_start_date?: string | null
           status?: string
           total_budget?: number | null
           total_expenses?: number | null
