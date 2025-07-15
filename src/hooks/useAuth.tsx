@@ -10,6 +10,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, name: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  hasPermission: (permissionName: string, accessType?: 'view' | 'edit') => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -120,6 +121,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Check if user has specific permission
+  const hasPermission = async (permissionName: string, accessType: 'view' | 'edit' = 'view') => {
+    if (!user) return false;
+    
+    // Admins have all permissions
+    if (userRole === 'admin') return true;
+    
+    try {
+      const { data, error } = await supabase
+        .rpc('has_permission', {
+          _user_id: user.id,
+          _permission_name: permissionName,
+          _access_type: accessType
+        });
+
+      if (error) throw error;
+      return data || false;
+    } catch (error) {
+      console.error('Error checking permission:', error);
+      return false;
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -128,7 +152,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isLoading,
       signIn,
       signUp,
-      signOut
+      signOut,
+      hasPermission
     }}>
       {children}
     </AuthContext.Provider>

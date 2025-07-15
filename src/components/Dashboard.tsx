@@ -1,9 +1,20 @@
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, Package, Calendar, TrendingUp } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export const Dashboard = () => {
-  const { userRole } = useAuth();
+  const { hasPermission } = useAuth();
+  const [showRevenue, setShowRevenue] = useState(false);
+
+  useEffect(() => {
+    const checkPermission = async () => {
+      const canViewRevenue = await hasPermission('dashboard_revenue', 'view');
+      setShowRevenue(canViewRevenue);
+    };
+    
+    checkPermission();
+  }, [hasPermission]);
   
   const stats = [
     {
@@ -27,8 +38,8 @@ export const Dashboard = () => {
       icon: AlertTriangle,
       color: "text-red-600"
     },
-    // Ocultar receita para funcionários
-    ...(userRole === 'admin' ? [{
+    // Mostrar receita apenas se tiver permissão
+    ...(showRevenue ? [{
       title: "Receita do Mês",
       value: "R$ 45.230",
       description: "Faturamento atual",

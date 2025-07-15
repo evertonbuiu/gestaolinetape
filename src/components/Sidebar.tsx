@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Package, Settings, BarChart3, Calendar, Home, Users, Wrench, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -10,7 +11,17 @@ interface SidebarProps {
 }
 
 export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
-  const { signOut, userRole } = useAuth();
+  const { signOut, userRole, hasPermission } = useAuth();
+  const [canAccessSettings, setCanAccessSettings] = useState(false);
+  
+  useEffect(() => {
+    const checkSettingsPermission = async () => {
+      const canAccess = await hasPermission('settings_access', 'view');
+      setCanAccessSettings(canAccess);
+    };
+    
+    checkSettingsPermission();
+  }, [hasPermission]);
   
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: Home },
@@ -19,7 +30,7 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
     { id: "rentals", label: "Locações", icon: Calendar },
     { id: "clients", label: "Clientes", icon: Users },
     { id: "maintenance", label: "Manutenção", icon: Wrench },
-    { id: "settings", label: "Configurações", icon: Settings },
+    ...(canAccessSettings ? [{ id: "settings", label: "Configurações", icon: Settings }] : []),
   ];
 
   return (

@@ -4,6 +4,7 @@ import { Dashboard } from "@/components/Dashboard";
 import { Equipment } from "@/components/Equipment";
 import { Inventory } from "@/components/Inventory";
 import { Rentals } from "@/components/Rentals";
+import { SettingsPage } from "@/components/Settings";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -23,7 +24,7 @@ const Index = () => {
       case "maintenance":
         return <div className="p-6"><h2 className="text-2xl font-bold">Manutenção - Em Desenvolvimento</h2></div>;
       case "settings":
-        return <div className="p-6"><h2 className="text-2xl font-bold">Configurações - Em Desenvolvimento</h2></div>;
+        return <SettingsPage />;
       default:
         return <Dashboard />;
     }
