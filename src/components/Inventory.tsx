@@ -4,18 +4,31 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { AlertTriangle, Package, TrendingDown, TrendingUp, Shield, Filter } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { AlertTriangle, Package, TrendingDown, TrendingUp, Shield, Filter, Plus, Minus } from "lucide-react";
 import { useEquipment } from "@/hooks/useEquipment";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export const Inventory = () => {
-  const { equipment, loading, totals } = useEquipment();
+  const { equipment, loading, totals, fetchEquipment } = useEquipment();
   const { hasPermission } = usePermissions();
   const { userRole } = useAuth();
+  const { toast } = useToast();
   const [canViewInventory, setCanViewInventory] = useState(false);
   const [canViewPrices, setCanViewPrices] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [showMovementDialog, setShowMovementDialog] = useState(false);
+  const [movementForm, setMovementForm] = useState({
+    equipment_id: "",
+    type: "entrada", // entrada or saida
+    quantity: "",
+    description: ""
+  });
 
   // Check permissions on mount
   useEffect(() => {
@@ -60,6 +73,82 @@ export const Inventory = () => {
 
   const getMovementColor = (available: number, rented: number) => {
     return rented > available ? "text-red-600" : "text-green-600";
+  };
+
+  // Register movement function
+  const registerMovement = async () => {
+    if (!movementForm.equipment_id || !movementForm.quantity) {
+      toast({
+        title: "Erro",
+        description: "Por favor, selecione um equipamento e informe a quantidade.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const selectedEquipment = equipment.find(item => item.id === movementForm.equipment_id);
+      if (!selectedEquipment) {
+        toast({
+          title: "Erro",
+          description: "Equipamento não encontrado.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const quantity = parseInt(movementForm.quantity);
+      let newTotalStock = selectedEquipment.total_stock;
+      
+      if (movementForm.type === "entrada") {
+        newTotalStock += quantity;
+      } else {
+        newTotalStock -= quantity;
+        if (newTotalStock < 0) {
+          toast({
+            title: "Erro",
+            description: "Quantidade insuficiente em estoque.",
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+
+      const { error } = await supabase
+        .from('equipment')
+        .update({ 
+          total_stock: newTotalStock,
+          available: newTotalStock - selectedEquipment.rented,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', movementForm.equipment_id);
+
+      if (error) throw error;
+
+      // Reset form and close dialog
+      setMovementForm({
+        equipment_id: "",
+        type: "entrada",
+        quantity: "",
+        description: ""
+      });
+      setShowMovementDialog(false);
+      
+      // Refresh equipment data
+      fetchEquipment();
+
+      toast({
+        title: "Movimento registrado",
+        description: `${movementForm.type === "entrada" ? "Entrada" : "Saída"} de ${quantity} ${selectedEquipment.name} registrada com sucesso.`,
+      });
+    } catch (error) {
+      console.error('Error registering movement:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível registrar o movimento.",
+        variant: "destructive"
+      });
+    }
   };
 
   // Filter equipment by category
@@ -128,10 +217,103 @@ export const Inventory = () => {
               </SelectContent>
             </Select>
           </div>
-          <Button className="gap-2">
-            <Package className="w-4 h-4" />
-            Registrar Movimento
-          </Button>
+          <Dialog open={showMovementDialog} onOpenChange={setShowMovementDialog}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Package className="w-4 h-4" />
+                Registrar Movimento
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Registrar Movimento de Estoque</DialogTitle>
+                <DialogDescription>
+                  Registre entrada ou saída de equipamentos do estoque
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="equipment">Equipamento</Label>
+                  <Select 
+                    value={movementForm.equipment_id} 
+                    onValueChange={(value) => setMovementForm({...movementForm, equipment_id: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o equipamento" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border shadow-md z-50">
+                      {equipment.map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {item.name} - Estoque: {item.total_stock}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="type">Tipo de Movimento</Label>
+                  <Select 
+                    value={movementForm.type} 
+                    onValueChange={(value) => setMovementForm({...movementForm, type: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border shadow-md z-50">
+                      <SelectItem value="entrada">
+                        <div className="flex items-center gap-2">
+                          <Plus className="w-4 h-4 text-green-600" />
+                          Entrada
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="saida">
+                        <div className="flex items-center gap-2">
+                          <Minus className="w-4 h-4 text-red-600" />
+                          Saída
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="quantity">Quantidade</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    min="1"
+                    value={movementForm.quantity}
+                    onChange={(e) => setMovementForm({...movementForm, quantity: e.target.value})}
+                    placeholder="Digite a quantidade"
+                  />
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="description">Observações (opcional)</Label>
+                  <Textarea
+                    id="description"
+                    value={movementForm.description}
+                    onChange={(e) => setMovementForm({...movementForm, description: e.target.value})}
+                    placeholder="Adicione observações sobre o movimento..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowMovementDialog(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button onClick={registerMovement}>
+                  Registrar
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
