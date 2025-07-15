@@ -8,10 +8,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Calculator, Plus, Download, Upload, TrendingUp, TrendingDown, DollarSign, FileText, Search, Edit, Trash2, Eye } from "lucide-react";
+import { Calculator, Plus, Download, Upload, TrendingUp, TrendingDown, DollarSign, FileText, Search, Edit, Trash2, Eye, CalendarIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface CashFlowEntry {
   id: string;
@@ -63,6 +67,10 @@ export const FinancialManagement = () => {
     name: "",
     type: "checking" as 'checking' | 'savings' | 'cash',
     balance: 0
+  });
+  const [dateFilter, setDateFilter] = useState({
+    startDate: null as Date | null,
+    endDate: null as Date | null
   });
   const { toast } = useToast();
 
@@ -410,7 +418,25 @@ export const FinancialManagement = () => {
   };
 
   const getAccountTransactions = (accountName: string) => {
-    return cashFlow.filter(entry => entry.account === accountName);
+    return cashFlow.filter(entry => {
+      const entryMatches = entry.account === accountName;
+      
+      if (!dateFilter.startDate && !dateFilter.endDate) {
+        return entryMatches;
+      }
+      
+      const entryDate = new Date(entry.date);
+      
+      if (dateFilter.startDate && dateFilter.endDate) {
+        return entryMatches && entryDate >= dateFilter.startDate && entryDate <= dateFilter.endDate;
+      } else if (dateFilter.startDate) {
+        return entryMatches && entryDate >= dateFilter.startDate;
+      } else if (dateFilter.endDate) {
+        return entryMatches && entryDate <= dateFilter.endDate;
+      }
+      
+      return entryMatches;
+    });
   };
 
   if (loading) {
@@ -948,7 +974,65 @@ export const FinancialManagement = () => {
             </div>
             
             <div className="space-y-4">
-              <h3 className="font-medium">Movimentações</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">Movimentações</h3>
+                <div className="flex items-center gap-2">
+                  <div className="text-sm text-muted-foreground">Filtrar por data:</div>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-[140px] justify-start text-left font-normal",
+                          !dateFilter.startDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateFilter.startDate ? format(dateFilter.startDate, "dd/MM/yyyy") : "Data inicial"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dateFilter.startDate}
+                        onSelect={(date) => setDateFilter({...dateFilter, startDate: date})}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-[140px] justify-start text-left font-normal",
+                          !dateFilter.endDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateFilter.endDate ? format(dateFilter.endDate, "dd/MM/yyyy") : "Data final"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dateFilter.endDate}
+                        onSelect={(date) => setDateFilter({...dateFilter, endDate: date})}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setDateFilter({startDate: null, endDate: null})}
+                  >
+                    Limpar
+                  </Button>
+                </div>
+              </div>
               <Table>
                 <TableHeader>
                   <TableRow>
