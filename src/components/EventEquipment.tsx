@@ -330,7 +330,7 @@ export const EventEquipment = () => {
                 height: 100%;
                 background-image: url('${logoUrl}');
                 background-repeat: no-repeat;
-                background-position: center center;
+                background-position: center calc(50% + 200px);
                 background-size: 150%;
                 opacity: 0.15;
                 z-index: -1;
