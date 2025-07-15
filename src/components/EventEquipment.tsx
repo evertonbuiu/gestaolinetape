@@ -281,7 +281,31 @@ export const EventEquipment = () => {
         <head>
           <title>Lista de Materiais - ${selectedEvent.name}</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
+            body { 
+              font-family: Arial, sans-serif; 
+              margin: 20px; 
+              background-image: url('/logo-empresa.png');
+              background-repeat: no-repeat;
+              background-position: center center;
+              background-size: 40%;
+              background-attachment: fixed;
+              opacity: 1;
+            }
+            body::before {
+              content: '';
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              background-image: url('/logo-empresa.png');
+              background-repeat: no-repeat;
+              background-position: center center;
+              background-size: 40%;
+              opacity: 0.1;
+              z-index: -1;
+              pointer-events: none;
+            }
             .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
             .event-info { margin-bottom: 20px; }
             .event-info h2 { color: #333; margin-bottom: 10px; }
