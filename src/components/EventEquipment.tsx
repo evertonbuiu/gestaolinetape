@@ -331,7 +331,7 @@ export const EventEquipment = () => {
                 background-image: url('${logoUrl}');
                 background-repeat: no-repeat;
                 background-position: center center;
-                background-size: 70%;
+                background-size: 150%;
                 opacity: 0.15;
                 z-index: -1;
                 pointer-events: none;
@@ -357,7 +357,7 @@ export const EventEquipment = () => {
           </head>
           <body>
             <div class="header">
-              <img src="${logoUrl}" alt="Logo da Empresa" style="height: 100px; margin-bottom: 15px;" />
+              <img src="${logoUrl}" alt="Logo da Empresa" style="height: 150px; margin-bottom: 15px;" />
               <h1>LISTA DE MATERIAIS</h1>
               <p>Sistema de Controle de Almoxarifado</p>
             </div>
