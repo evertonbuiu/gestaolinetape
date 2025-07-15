@@ -446,7 +446,7 @@ export const Rentals = () => {
       const paymentAmount = event.payment_amount || event.total_budget || 0;
       const paymentAccount = event.payment_bank_account || "Conta Corrente Principal";
 
-      // Update event payment status
+      // Update event payment status first
       const { error } = await supabase
         .from('events')
         .update({ 
@@ -459,27 +459,40 @@ export const Rentals = () => {
 
       // Update bank account balance if there's a payment amount
       if (paymentAmount > 0 && paymentAccount) {
-        // Find the bank account
+        // Find the bank account by name
         const { data: bankAccount, error: bankFetchError } = await supabase
           .from('bank_accounts')
           .select('*')
           .eq('name', paymentAccount)
-          .single();
+          .maybeSingle();
 
         if (!bankFetchError && bankAccount) {
-          const currentBalance = bankAccount.balance || 0;
+          const currentBalance = Number(bankAccount.balance) || 0;
+          const adjustmentAmount = Number(paymentAmount);
+          
+          // Calculate new balance based on payment status
           const newBalance = newPaidStatus 
-            ? currentBalance + paymentAmount  // Add money when marking as paid
-            : currentBalance - paymentAmount; // Subtract money when marking as unpaid
+            ? currentBalance + adjustmentAmount  // Add money when marking as paid
+            : currentBalance - adjustmentAmount; // Subtract money when marking as unpaid
+          
+          console.log(`Updating bank account ${paymentAccount}: ${currentBalance} -> ${newBalance} (${newPaidStatus ? '+' : '-'}${adjustmentAmount})`);
           
           const { error: bankUpdateError } = await supabase
             .from('bank_accounts')
-            .update({ balance: newBalance })
+            .update({ 
+              balance: newBalance,
+              updated_at: new Date().toISOString()
+            })
             .eq('id', bankAccount.id);
 
           if (bankUpdateError) {
             console.error('Error updating bank account balance:', bankUpdateError);
+            throw bankUpdateError;
           }
+        } else if (bankFetchError) {
+          console.error('Error finding bank account:', bankFetchError);
+        } else {
+          console.warn(`Bank account "${paymentAccount}" not found`);
         }
       }
 
@@ -793,6 +806,41 @@ export const Rentals = () => {
     fetchClients();
     fetchCollaborators();
     fetchBankAccounts();
+
+    // Set up real-time subscription for bank accounts
+    const channel = supabase
+      .channel('rentals-bank-accounts')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bank_accounts'
+        },
+        (payload) => {
+          console.log('Bank account change detected in Rentals:', payload);
+          // Refresh bank accounts when changes are detected
+          fetchBankAccounts();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'events'
+        },
+        (payload) => {
+          console.log('Event change detected in Rentals:', payload);
+          // Refresh events when changes are detected
+          fetchEvents();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const yearsAndMonths = generateYearsAndMonths();
