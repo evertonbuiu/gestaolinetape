@@ -14,6 +14,119 @@ export type Database = {
   }
   public: {
     Tables: {
+      event_expenses: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string
+          description: string
+          event_id: string
+          id: string
+          notes: string | null
+          quantity: number
+          receipt_url: string | null
+          supplier: string | null
+          total_price: number
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by: string
+          description: string
+          event_id: string
+          id?: string
+          notes?: string | null
+          quantity?: number
+          receipt_url?: string | null
+          supplier?: string | null
+          total_price: number
+          unit_price: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string
+          event_id?: string
+          id?: string
+          notes?: string | null
+          quantity?: number
+          receipt_url?: string | null
+          supplier?: string | null
+          total_price?: number
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_expenses_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          client_email: string | null
+          client_name: string
+          client_phone: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          event_date: string
+          event_time: string | null
+          id: string
+          location: string | null
+          name: string
+          profit_margin: number | null
+          status: string
+          total_budget: number | null
+          total_expenses: number | null
+          updated_at: string
+        }
+        Insert: {
+          client_email?: string | null
+          client_name: string
+          client_phone?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          event_date: string
+          event_time?: string | null
+          id?: string
+          location?: string | null
+          name: string
+          profit_margin?: number | null
+          status?: string
+          total_budget?: number | null
+          total_expenses?: number | null
+          updated_at?: string
+        }
+        Update: {
+          client_email?: string | null
+          client_name?: string
+          client_phone?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          event_date?: string
+          event_time?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+          profit_margin?: number | null
+          status?: string
+          total_budget?: number | null
+          total_expenses?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       permissions: {
         Row: {
           category: string
