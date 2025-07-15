@@ -1,11 +1,39 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { Sidebar } from "@/components/Sidebar";
+import { Dashboard } from "@/components/Dashboard";
+import { Equipment } from "@/components/Equipment";
+import { Inventory } from "@/components/Inventory";
+import { Rentals } from "@/components/Rentals";
 
 const Index = () => {
+  const [activeTab, setActiveTab] = useState("dashboard");
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "dashboard":
+        return <Dashboard />;
+      case "equipment":
+        return <Equipment />;
+      case "inventory":
+        return <Inventory />;
+      case "rentals":
+        return <Rentals />;
+      case "clients":
+        return <div className="p-6"><h2 className="text-2xl font-bold">Clientes - Em Desenvolvimento</h2></div>;
+      case "maintenance":
+        return <div className="p-6"><h2 className="text-2xl font-bold">Manutenção - Em Desenvolvimento</h2></div>;
+      case "settings":
+        return <div className="p-6"><h2 className="text-2xl font-bold">Configurações - Em Desenvolvimento</h2></div>;
+      default:
+        return <Dashboard />;
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-background flex w-full">
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <div className="flex-1 overflow-auto">
+        {renderContent()}
       </div>
     </div>
   );
