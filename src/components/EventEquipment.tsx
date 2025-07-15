@@ -265,6 +265,7 @@ export const EventEquipment = () => {
         selectedCollaboratorId: ''
       });
       setCollaboratorDialog(false);
+      setIsNewCollaborator(false);
 
       toast({
         title: "Colaborador adicionado",
@@ -1074,7 +1075,16 @@ export const EventEquipment = () => {
                         </div>
 
                         <div className="flex justify-end gap-3">
-                          <Button variant="outline" onClick={() => setCollaboratorDialog(false)}>
+                          <Button variant="outline" onClick={() => {
+                            setCollaboratorDialog(false);
+                            setNewCollaborator({
+                              collaborator_name: '',
+                              collaborator_email: '',
+                              role: 'funcionario',
+                              selectedCollaboratorId: ''
+                            });
+                            setIsNewCollaborator(false);
+                          }}>
                             Cancelar
                           </Button>
                           <Button onClick={addCollaborator}>
