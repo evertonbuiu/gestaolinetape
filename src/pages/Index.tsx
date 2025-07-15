@@ -6,6 +6,7 @@ import { Inventory } from "@/components/Inventory";
 import { Rentals } from "@/components/Rentals";
 import { EventEquipment } from "@/components/EventEquipment";
 import { Clients } from "@/components/Clients";
+import { Collaborators } from "@/components/Collaborators";
 import { SettingsPage } from "@/components/Settings";
 
 const Index = () => {
@@ -25,6 +26,8 @@ const Index = () => {
         return <EventEquipment />;
       case "clients":
         return <Clients />;
+      case "collaborators":
+        return <Collaborators />;
       case "maintenance":
         return <div className="p-6"><h2 className="text-2xl font-bold">Manutenção - Em Desenvolvimento</h2></div>;
       case "settings":
