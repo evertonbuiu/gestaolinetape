@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useOnlineUsers } from '@/hooks/useOnlineUsers';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,12 +12,13 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Settings2, Shield, Eye, Edit3, Save, UserPlus, Mail, Lock, User } from 'lucide-react';
+import { Loader2, Settings2, Shield, Eye, Edit3, Save, UserPlus, Mail, Lock, User, Users, Circle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export const SettingsPage = () => {
   const { userRole } = useAuth();
   const { rolePermissions, loading, updateRolePermission } = usePermissions();
+  const { onlineUsers, loading: loadingOnlineUsers } = useOnlineUsers();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [changes, setChanges] = useState<Record<string, { can_view: boolean; can_edit: boolean }>>({});
@@ -280,6 +282,63 @@ export const SettingsPage = () => {
             <p>• Por padrão, funcionários têm papel de "funcionario" no sistema</p>
             <p>• As permissões podem ser ajustadas na seção abaixo</p>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Funcionários Online
+          </CardTitle>
+          <CardDescription>
+            Veja quais funcionários estão conectados ao sistema
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loadingOnlineUsers ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {onlineUsers.length === 0 ? (
+                <p className="text-center text-muted-foreground p-8">
+                  Nenhum funcionário online no momento
+                </p>
+              ) : (
+                <div className="grid gap-3">
+                  {onlineUsers.map((user) => (
+                    <div key={user.user_id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <User className="h-5 w-5 text-primary" />
+                          </div>
+                          <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                        </div>
+                        <div>
+                          <p className="font-medium">{user.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {user.role === 'admin' ? 'Administrador' : 'Funcionário'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Circle className="h-2 w-2 fill-green-500 text-green-500" />
+                        <span className="text-sm text-muted-foreground">
+                          Online desde {new Date(user.online_at).toLocaleTimeString('pt-BR', { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

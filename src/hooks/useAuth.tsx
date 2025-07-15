@@ -20,6 +20,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<'admin' | 'funcionario' | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [presenceChannel, setPresenceChannel] = useState<any>(null);
 
   useEffect(() => {
     // Set up auth state listener
@@ -35,6 +36,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }, 0);
         } else {
           setUserRole(null);
+          // Cleanup presence channel on logout
+          if (presenceChannel) {
+            presenceChannel.unsubscribe();
+            setPresenceChannel(null);
+          }
         }
         
         setIsLoading(false);
@@ -70,9 +76,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       
       setUserRole(data?.role || 'funcionario');
+      
+      // Setup presence tracking after getting role
+      setTimeout(() => {
+        setupPresence(userId, data?.role || 'funcionario');
+      }, 0);
     } catch (error) {
       console.error('Error fetching user role:', error);
       setUserRole('funcionario');
+    }
+  };
+
+  const setupPresence = async (userId: string, role: string) => {
+    try {
+      // Get user profile for name
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('user_id', userId)
+        .single();
+
+      const channel = supabase.channel('online-users');
+      
+      channel.subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({
+            user_id: userId,
+            name: profile?.name || 'Usuário',
+            role: role,
+            online_at: new Date().toISOString()
+          });
+        }
+      });
+      
+      setPresenceChannel(channel);
+    } catch (error) {
+      console.error('Error setting up presence:', error);
     }
   };
 
@@ -112,6 +151,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
+      // Cleanup presence channel before signing out
+      if (presenceChannel) {
+        presenceChannel.unsubscribe();
+        setPresenceChannel(null);
+      }
+      
       await supabase.auth.signOut();
       setUser(null);
       setSession(null);
