@@ -56,6 +56,7 @@ export const Rentals = () => {
   const { toast } = useToast();
   const [events, setEvents] = useState<Event[]>([]);
   const [expenses, setExpenses] = useState<EventExpense[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
@@ -122,6 +123,22 @@ export const Rentals = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch clients
+  const fetchClients = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      setClients(data || []);
+    } catch (error) {
+      console.error('Error fetching clients:', error);
+      // Silently fail for clients, as it's optional
     }
   };
 
@@ -369,6 +386,19 @@ export const Rentals = () => {
     }));
   };
 
+  // Handle client selection
+  const handleClientSelect = (clientId: string) => {
+    const selectedClient = clients.find(client => client.id === clientId);
+    if (selectedClient) {
+      setNewEvent(prev => ({
+        ...prev,
+        client_name: selectedClient.name,
+        client_email: selectedClient.email || '',
+        client_phone: selectedClient.phone || ''
+      }));
+    }
+  };
+
   // Generate years and months for tabs
   const generateYearsAndMonths = () => {
     const currentYear = new Date().getFullYear();
@@ -394,6 +424,7 @@ export const Rentals = () => {
 
   useEffect(() => {
     fetchEvents();
+    fetchClients();
   }, []);
 
   const yearsAndMonths = generateYearsAndMonths();
@@ -844,6 +875,24 @@ export const Rentals = () => {
                 />
               </div>
               <div>
+                <Label htmlFor="client_select">Selecionar Cliente</Label>
+                <Select onValueChange={handleClientSelect}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um cliente cadastrado" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border shadow-md z-50">
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
                 <Label htmlFor="client_name">Cliente *</Label>
                 <Input
                   id="client_name"
@@ -852,9 +901,6 @@ export const Rentals = () => {
                   placeholder="Nome do cliente"
                 />
               </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="client_email">Email do Cliente</Label>
                 <Input
@@ -865,6 +911,9 @@ export const Rentals = () => {
                   placeholder="cliente@email.com"
                 />
               </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="client_phone">Telefone do Cliente</Label>
                 <Input
