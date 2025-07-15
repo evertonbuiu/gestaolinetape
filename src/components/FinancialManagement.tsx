@@ -72,6 +72,9 @@ export const FinancialManagement = () => {
     startDate: null as Date | null,
     endDate: null as Date | null
   });
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [reportData, setReportData] = useState<any>(null);
+  const [activeReport, setActiveReport] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -562,6 +565,433 @@ export const FinancialManagement = () => {
     });
   };
 
+  // Generate financial reports
+  const generateReport = async (reportType: string) => {
+    setIsGeneratingReport(true);
+    setActiveReport(reportType);
+    
+    try {
+      let generatedData = null;
+      
+      switch (reportType) {
+        case 'income-statement':
+          generatedData = generateIncomeStatement();
+          break;
+        case 'cash-flow-projection':
+          generatedData = generateCashFlowProjection();
+          break;
+        case 'profitability-analysis':
+          generatedData = generateProfitabilityAnalysis();
+          break;
+        case 'tax-report':
+          generatedData = generateTaxReport();
+          break;
+        default:
+          throw new Error('Tipo de relatório não suportado');
+      }
+      
+      setReportData(generatedData);
+      
+      toast({
+        title: "Relatório gerado",
+        description: "O relatório foi gerado com sucesso!",
+      });
+    } catch (error) {
+      console.error('Error generating report:', error);
+      toast({
+        title: "Erro ao gerar relatório",
+        description: "Não foi possível gerar o relatório.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
+  // Generate Income Statement (DRE)
+  const generateIncomeStatement = () => {
+    const totalRevenue = getTotalIncome();
+    const totalExpenses = getTotalExpenses();
+    const netIncome = totalRevenue - totalExpenses;
+    
+    // Group expenses by category
+    const expensesByCategory = cashFlow
+      .filter(entry => entry.type === 'expense' && entry.status === 'confirmed')
+      .reduce((acc, entry) => {
+        acc[entry.category] = (acc[entry.category] || 0) + entry.amount;
+        return acc;
+      }, {} as Record<string, number>);
+
+    return {
+      type: 'income-statement',
+      title: 'Demonstrativo de Resultados (DRE)',
+      period: new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
+      data: {
+        revenue: {
+          total: totalRevenue,
+          events: cashFlow
+            .filter(entry => entry.type === 'income' && entry.status === 'confirmed')
+            .reduce((acc, entry) => acc + entry.amount, 0)
+        },
+        expenses: {
+          total: totalExpenses,
+          byCategory: expensesByCategory
+        },
+        netIncome,
+        netMargin: totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0
+      }
+    };
+  };
+
+  // Generate Cash Flow Projection
+  const generateCashFlowProjection = () => {
+    const currentMonth = new Date();
+    const projections = [];
+    
+    for (let i = 0; i < 6; i++) {
+      const monthDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + i, 1);
+      const monthKey = format(monthDate, 'yyyy-MM');
+      
+      // Filter transactions for this month
+      const monthTransactions = cashFlow.filter(entry => 
+        entry.date.startsWith(monthKey) && entry.status === 'confirmed'
+      );
+      
+      const monthIncome = monthTransactions
+        .filter(entry => entry.type === 'income')
+        .reduce((sum, entry) => sum + entry.amount, 0);
+      
+      const monthExpenses = monthTransactions
+        .filter(entry => entry.type === 'expense')
+        .reduce((sum, entry) => sum + entry.amount, 0);
+      
+      projections.push({
+        month: monthDate.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }),
+        income: monthIncome,
+        expenses: monthExpenses,
+        netFlow: monthIncome - monthExpenses
+      });
+    }
+    
+    return {
+      type: 'cash-flow-projection',
+      title: 'Projeção de Fluxo de Caixa',
+      period: 'Próximos 6 meses',
+      data: projections
+    };
+  };
+
+  // Generate Profitability Analysis
+  const generateProfitabilityAnalysis = () => {
+    const events = cashFlow.filter(entry => 
+      entry.type === 'income' && 
+      entry.status === 'confirmed' && 
+      entry.category === 'Receita de Eventos'
+    );
+    
+    const totalEventRevenue = events.reduce((sum, event) => sum + event.amount, 0);
+    const totalEventExpenses = cashFlow
+      .filter(entry => entry.type === 'expense' && entry.status === 'confirmed')
+      .reduce((sum, expense) => sum + expense.amount, 0);
+    
+    const profitMargin = totalEventRevenue > 0 ? 
+      ((totalEventRevenue - totalEventExpenses) / totalEventRevenue) * 100 : 0;
+    
+    // Analyze by category
+    const categoryAnalysis = Object.entries(
+      cashFlow
+        .filter(entry => entry.type === 'expense' && entry.status === 'confirmed')
+        .reduce((acc, entry) => {
+          acc[entry.category] = (acc[entry.category] || 0) + entry.amount;
+          return acc;
+        }, {} as Record<string, number>)
+    ).map(([category, amount]) => ({
+      category,
+      amount,
+      percentage: totalEventExpenses > 0 ? (amount / totalEventExpenses) * 100 : 0
+    }));
+    
+    return {
+      type: 'profitability-analysis',
+      title: 'Análise de Lucratividade',
+      period: new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
+      data: {
+        revenue: totalEventRevenue,
+        expenses: totalEventExpenses,
+        profit: totalEventRevenue - totalEventExpenses,
+        profitMargin,
+        categoryAnalysis
+      }
+    };
+  };
+
+  // Render report content based on type
+  const renderReportContent = () => {
+    if (!reportData) return null;
+
+    switch (reportData.type) {
+      case 'income-statement':
+        return (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Receita Total</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">
+                    {formatCurrency(reportData.data.revenue.total)}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Despesas Totais</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">
+                    {formatCurrency(reportData.data.expenses.total)}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Lucro Líquido</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-2xl font-bold ${reportData.data.netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatCurrency(reportData.data.netIncome)}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Margem: {reportData.data.netMargin.toFixed(1)}%
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <div>
+              <h4 className="text-lg font-semibold mb-4">Despesas por Categoria</h4>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead className="text-right">% do Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Object.entries(reportData.data.expenses.byCategory).map(([category, amount]) => (
+                    <TableRow key={category}>
+                      <TableCell>{category}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(amount as number)}</TableCell>
+                      <TableCell className="text-right">
+                        {((amount as number / reportData.data.expenses.total) * 100).toFixed(1)}%
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        );
+
+      case 'cash-flow-projection':
+        return (
+          <div className="space-y-6">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Mês</TableHead>
+                  <TableHead className="text-right">Receitas</TableHead>
+                  <TableHead className="text-right">Despesas</TableHead>
+                  <TableHead className="text-right">Fluxo Líquido</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {reportData.data.map((month: any, index: number) => (
+                  <TableRow key={index}>
+                    <TableCell className="font-medium">{month.month}</TableCell>
+                    <TableCell className="text-right text-green-600">
+                      {formatCurrency(month.income)}
+                    </TableCell>
+                    <TableCell className="text-right text-red-600">
+                      {formatCurrency(month.expenses)}
+                    </TableCell>
+                    <TableCell className={`text-right font-medium ${month.netFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {formatCurrency(month.netFlow)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        );
+
+      case 'profitability-analysis':
+        return (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="text-lg font-semibold mb-4">Resumo Financeiro</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span>Receita Total:</span>
+                    <span className="font-semibold text-green-600">
+                      {formatCurrency(reportData.data.revenue)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Despesas Totais:</span>
+                    <span className="font-semibold text-red-600">
+                      {formatCurrency(reportData.data.expenses)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2">
+                    <span>Lucro:</span>
+                    <span className={`font-bold ${reportData.data.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {formatCurrency(reportData.data.profit)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Margem de Lucro:</span>
+                    <span className="font-semibold">
+                      {reportData.data.profitMargin.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="text-lg font-semibold mb-4">Distribuição de Despesas</h4>
+                <div className="space-y-2">
+                  {reportData.data.categoryAnalysis.map((item: any) => (
+                    <div key={item.category} className="flex justify-between">
+                      <span className="text-sm">{item.category}:</span>
+                      <div className="text-right">
+                        <span className="text-sm font-medium">{formatCurrency(item.amount)}</span>
+                        <div className="text-xs text-muted-foreground">
+                          {item.percentage.toFixed(1)}%
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'tax-report':
+        return (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Receita Bruta</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {formatCurrency(reportData.data.totalIncome)}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Despesas Dedutíveis</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-600">
+                    {formatCurrency(reportData.data.deductibleExpenses)}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Base de Cálculo</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {formatCurrency(reportData.data.taxableIncome)}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Imposto Estimado</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">
+                    {formatCurrency(reportData.data.estimatedTax)}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Taxa: {reportData.data.effectiveRate.toFixed(1)}%
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-sm text-yellow-800">
+                <strong>Aviso:</strong> Este é um cálculo estimativo. Consulte um contador para 
+                informações fiscais precisas e atualizadas.
+              </p>
+            </div>
+          </div>
+        );
+
+      default:
+        return <div>Tipo de relatório não reconhecido.</div>;
+    }
+  };
+
+  // Generate Tax Report
+  const generateTaxReport = () => {
+    const currentMonth = new Date();
+    const startOfYear = new Date(currentMonth.getFullYear(), 0, 1);
+    const endOfYear = new Date(currentMonth.getFullYear(), 11, 31);
+    
+    const yearTransactions = cashFlow.filter(entry => {
+      const entryDate = new Date(entry.date);
+      return entryDate >= startOfYear && entryDate <= endOfYear && entry.status === 'confirmed';
+    });
+    
+    const totalIncome = yearTransactions
+      .filter(entry => entry.type === 'income')
+      .reduce((sum, entry) => sum + entry.amount, 0);
+    
+    const deductibleExpenses = yearTransactions
+      .filter(entry => entry.type === 'expense' && 
+        ['Equipamentos', 'Despesas Operacionais', 'Marketing', 'Transporte'].includes(entry.category))
+      .reduce((sum, entry) => sum + entry.amount, 0);
+    
+    const taxableIncome = totalIncome - deductibleExpenses;
+    const estimatedTax = taxableIncome * 0.15; // Simplified 15% tax rate
+    
+    return {
+      type: 'tax-report',
+      title: 'Relatório Fiscal',
+      period: `Ano ${currentMonth.getFullYear()}`,
+      data: {
+        totalIncome,
+        deductibleExpenses,
+        taxableIncome,
+        estimatedTax,
+        effectiveRate: totalIncome > 0 ? (estimatedTax / totalIncome) * 100 : 0
+      }
+    };
+  };
+
+  // Download report as PDF/Excel (placeholder function)
+  const downloadReport = (format: 'pdf' | 'excel') => {
+    if (!reportData) return;
+    
+    // This would integrate with a PDF/Excel generation library
+    toast({
+      title: `Download ${format.toUpperCase()}`,
+      description: `Relatório baixado em formato ${format.toUpperCase()}`,
+    });
+  };
+
   if (loading) {
     return (
       <div className="p-6">
@@ -987,28 +1417,96 @@ export const FinancialManagement = () => {
         <TabsContent value="reports" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Relatórios Financeiros</CardTitle>
-              <CardDescription>Análises e relatórios detalhados</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Relatórios Financeiros</CardTitle>
+                  <CardDescription>Análises e relatórios detalhados</CardDescription>
+                </div>
+                {reportData && (
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => downloadReport('pdf')}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      PDF
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => downloadReport('excel')}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Excel
+                    </Button>
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Button variant="outline" className="h-24 flex flex-col items-center justify-center">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <Button 
+                  variant="outline" 
+                  className="h-24 flex flex-col items-center justify-center"
+                  onClick={() => generateReport('income-statement')}
+                  disabled={isGeneratingReport}
+                >
                   <FileText className="h-8 w-8 mb-2" />
                   <span>Demonstrativo de Resultados</span>
                 </Button>
-                <Button variant="outline" className="h-24 flex flex-col items-center justify-center">
+                <Button 
+                  variant="outline" 
+                  className="h-24 flex flex-col items-center justify-center"
+                  onClick={() => generateReport('cash-flow-projection')}
+                  disabled={isGeneratingReport}
+                >
                   <Calculator className="h-8 w-8 mb-2" />
                   <span>Fluxo de Caixa Projetado</span>
                 </Button>
-                <Button variant="outline" className="h-24 flex flex-col items-center justify-center">
+                <Button 
+                  variant="outline" 
+                  className="h-24 flex flex-col items-center justify-center"
+                  onClick={() => generateReport('profitability-analysis')}
+                  disabled={isGeneratingReport}
+                >
                   <TrendingUp className="h-8 w-8 mb-2" />
                   <span>Análise de Lucratividade</span>
                 </Button>
-                <Button variant="outline" className="h-24 flex flex-col items-center justify-center">
-                  <Download className="h-8 w-8 mb-2" />
+                <Button 
+                  variant="outline" 
+                  className="h-24 flex flex-col items-center justify-center"
+                  onClick={() => generateReport('tax-report')}
+                  disabled={isGeneratingReport}
+                >
+                  <FileText className="h-8 w-8 mb-2" />
                   <span>Relatório Fiscal</span>
                 </Button>
               </div>
+              
+              {isGeneratingReport && (
+                <div className="text-center py-8">
+                  <div className="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-primary bg-muted">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Gerando relatório...
+                  </div>
+                </div>
+              )}
+
+              {reportData && (
+                <Card className="mt-6">
+                  <CardHeader>
+                    <CardTitle>{reportData.title}</CardTitle>
+                    <CardDescription>Período: {reportData.period}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {renderReportContent()}
+                  </CardContent>
+                </Card>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
