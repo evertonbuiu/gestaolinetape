@@ -303,6 +303,7 @@ export const EventEquipment = () => {
         </head>
         <body>
           <div class="header">
+            <img src="/logo-empresa.png" alt="Logo da Empresa" style="height: 60px; margin-bottom: 15px;" />
             <h1>LISTA DE MATERIAIS</h1>
             <p>Sistema de Controle de Almoxarifado</p>
           </div>
