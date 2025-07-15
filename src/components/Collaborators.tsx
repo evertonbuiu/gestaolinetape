@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, Edit, Trash2, UserCheck } from "lucide-react";
+import { Search, Plus, Edit, Trash2, UserCheck, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Collaborator {
   id: string;
@@ -19,9 +20,21 @@ interface Collaborator {
   createdAt: string;
 }
 
+interface Event {
+  id: string;
+  name: string;
+  client_name: string;
+  event_date: string;
+  status: string;
+}
+
 export const Collaborators = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
+  const [selectedCollaborator, setSelectedCollaborator] = useState<Collaborator | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState("");
+  const [events, setEvents] = useState<Event[]>([]);
   const [newCollaborator, setNewCollaborator] = useState({
     name: "",
     email: "",
@@ -50,6 +63,29 @@ export const Collaborators = () => {
   ]);
 
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const fetchEvents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('id, name, client_name, event_date, status')
+        .eq('status', 'confirmed')
+        .order('event_date', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching events:', error);
+        return;
+      }
+
+      setEvents(data || []);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+    }
+  };
 
   const handleAddCollaborator = () => {
     if (!newCollaborator.name || !newCollaborator.email) {
@@ -99,6 +135,60 @@ export const Collaborators = () => {
       description: `Excluindo: ${collaborator.name}`,
       variant: "destructive",
     });
+  };
+
+  const handleAddToEvent = (collaborator: Collaborator) => {
+    setSelectedCollaborator(collaborator);
+    setIsEventDialogOpen(true);
+  };
+
+  const handleAddCollaboratorToEvent = async () => {
+    if (!selectedCollaborator || !selectedEventId) {
+      toast({
+        title: "Erro",
+        description: "Selecione um evento",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('event_collaborators')
+        .insert({
+          event_id: selectedEventId,
+          collaborator_name: selectedCollaborator.name,
+          collaborator_email: selectedCollaborator.email,
+          role: selectedCollaborator.role.toLowerCase() === 'administrador' ? 'admin' : 'funcionario',
+          assigned_by: (await supabase.auth.getUser()).data.user?.id || ''
+        });
+
+      if (error) {
+        console.error('Error adding collaborator to event:', error);
+        toast({
+          title: "Erro",
+          description: "Erro ao adicionar colaborador ao evento",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Sucesso",
+        description: `${selectedCollaborator.name} adicionado ao evento com sucesso`,
+      });
+
+      setIsEventDialogOpen(false);
+      setSelectedCollaborator(null);
+      setSelectedEventId("");
+    } catch (error) {
+      console.error('Error adding collaborator to event:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao adicionar colaborador ao evento",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -223,6 +313,14 @@ export const Collaborators = () => {
                   <Button
                     variant="ghost"
                     size="sm"
+                    onClick={() => handleAddToEvent(collaborator)}
+                    title="Adicionar ao evento"
+                  >
+                    <Calendar className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => handleEdit(collaborator)}
                   >
                     <Edit className="w-4 h-4" />
@@ -247,6 +345,51 @@ export const Collaborators = () => {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={isEventDialogOpen} onOpenChange={setIsEventDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Adicionar Colaborador ao Evento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Colaborador</Label>
+              <Input
+                value={selectedCollaborator?.name || ""}
+                disabled
+                className="bg-muted"
+              />
+            </div>
+            <div>
+              <Label htmlFor="event">Evento</Label>
+              <Select value={selectedEventId} onValueChange={setSelectedEventId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um evento" />
+                </SelectTrigger>
+                <SelectContent>
+                  {events.map((event) => (
+                    <SelectItem key={event.id} value={event.id}>
+                      {event.name} - {event.client_name} ({new Date(event.event_date).toLocaleDateString()})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => {
+                setIsEventDialogOpen(false);
+                setSelectedCollaborator(null);
+                setSelectedEventId("");
+              }}>
+                Cancelar
+              </Button>
+              <Button onClick={handleAddCollaboratorToEvent}>
+                Adicionar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
