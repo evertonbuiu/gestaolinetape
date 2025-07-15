@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useOnlineUsers } from '@/hooks/useOnlineUsers';
@@ -16,8 +16,8 @@ import { Loader2, Settings2, Shield, Eye, Edit3, Save, UserPlus, Mail, Lock, Use
 import { useToast } from '@/hooks/use-toast';
 
 export const SettingsPage = () => {
-  const { userRole, user } = useAuth();
-  const { rolePermissions, loading, updateRolePermission, hasPermission } = usePermissions();
+  const { userRole } = useAuth();
+  const { rolePermissions, loading, updateRolePermission } = usePermissions();
   const { onlineUsers, loading: loadingOnlineUsers } = useOnlineUsers();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
@@ -29,7 +29,6 @@ export const SettingsPage = () => {
     email: '',
     password: ''
   });
-  const [userPermissions, setUserPermissions] = useState<Record<string, boolean>>({});
 
   // Group permissions by category
   const groupedPermissions = rolePermissions.reduce((acc, rp) => {
@@ -139,135 +138,15 @@ export const SettingsPage = () => {
     }
   };
 
-  // Load user permissions if not admin
-  const loadUserPermissions = async () => {
-    if (!user || userRole === 'admin') return;
-    
-    const permissions = [
-      'inventory_view', 'inventory_edit',
-      'rentals_view', 'rentals_edit',
-      'event_equipment_view', 'event_equipment_edit'
-    ];
-    
-    const permissionResults: Record<string, boolean> = {};
-    
-    for (const permission of permissions) {
-      const canView = await hasPermission(permission, 'view');
-      const canEdit = await hasPermission(permission, 'edit');
-      permissionResults[`${permission}_view`] = canView;
-      permissionResults[`${permission}_edit`] = canEdit;
-    }
-    
-    setUserPermissions(permissionResults);
-  };
-
-  // Load user permissions on mount
-  useEffect(() => {
-    loadUserPermissions();
-  }, [user, userRole, hasPermission]);
-
-  // If not admin, show user's own permissions
   if (userRole !== 'admin') {
     return (
-      <div className="p-6 space-y-6">
-        <div>
-          <h2 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            <Settings2 className="h-8 w-8" />
-            Minhas Permissões
-          </h2>
-          <p className="text-muted-foreground">
-            Visualize suas permissões no sistema
-          </p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Suas Permissões Atuais</CardTitle>
-            <CardDescription>
-              Essas são as permissões que você possui no sistema
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4">
-              <div className="space-y-3">
-                <h3 className="font-medium">Inventário</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-                    <Eye className="h-4 w-4" />
-                    <span className="text-sm">Visualizar</span>
-                    <Badge variant={userPermissions['inventory_view_view'] ? 'default' : 'secondary'}>
-                      {userPermissions['inventory_view_view'] ? 'Permitido' : 'Negado'}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-                    <Edit3 className="h-4 w-4" />
-                    <span className="text-sm">Editar</span>
-                    <Badge variant={userPermissions['inventory_edit_edit'] ? 'default' : 'secondary'}>
-                      {userPermissions['inventory_edit_edit'] ? 'Permitido' : 'Negado'}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-3">
-                <h3 className="font-medium">Eventos</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-                    <Eye className="h-4 w-4" />
-                    <span className="text-sm">Visualizar</span>
-                    <Badge variant={userPermissions['rentals_view_view'] ? 'default' : 'secondary'}>
-                      {userPermissions['rentals_view_view'] ? 'Permitido' : 'Negado'}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-                    <Edit3 className="h-4 w-4" />
-                    <span className="text-sm">Editar</span>
-                    <Badge variant={userPermissions['rentals_edit_edit'] ? 'default' : 'secondary'}>
-                      {userPermissions['rentals_edit_edit'] ? 'Permitido' : 'Negado'}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-3">
-                <h3 className="font-medium">Equipamentos de Eventos</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-                    <Eye className="h-4 w-4" />
-                    <span className="text-sm">Visualizar</span>
-                    <Badge variant={userPermissions['event_equipment_view_view'] ? 'default' : 'secondary'}>
-                      {userPermissions['event_equipment_view_view'] ? 'Permitido' : 'Negado'}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-                    <Edit3 className="h-4 w-4" />
-                    <span className="text-sm">Editar</span>
-                    <Badge variant={userPermissions['event_equipment_edit_edit'] ? 'default' : 'secondary'}>
-                      {userPermissions['event_equipment_edit_edit'] ? 'Permitido' : 'Negado'}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Informações</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <p>• Apenas administradores podem alterar permissões</p>
-              <p>• Para solicitar alterações, entre em contato com um administrador</p>
-              <p>• Suas permissões são atualizadas automaticamente pelo sistema</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="p-6">
+        <Alert variant="destructive">
+          <Shield className="h-4 w-4" />
+          <AlertDescription>
+            Apenas administradores podem acessar as configurações do sistema.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
