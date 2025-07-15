@@ -131,12 +131,12 @@ export const Equipment = () => {
                   <p className="text-muted-foreground">Locado</p>
                   <p className="font-medium text-orange-600">{item.rented}</p>
                 </div>
-                <div>
-                  <p className="text-muted-foreground">Preço/Dia</p>
-                  <p className="font-medium">
-                    {canViewPrices ? `R$ ${item.price_per_day.toFixed(2)}` : "***"}
-                  </p>
-                </div>
+                {canViewPrices && (
+                  <div>
+                    <p className="text-muted-foreground">Preço/Dia</p>
+                    <p className="font-medium">R$ {item.price_per_day.toFixed(2)}</p>
+                  </div>
+                )}
               </div>
               
               {canEdit && (
