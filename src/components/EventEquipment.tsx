@@ -363,7 +363,7 @@ export const EventEquipment = () => {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'confirmed': return 'bg-blue-100 text-blue-800';
       case 'allocated': return 'bg-green-100 text-green-800';
-      case 'returned': return 'bg-gray-100 text-gray-800';
+      case 'returned': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -882,7 +882,7 @@ export const EventEquipment = () => {
             <div className="space-y-6">
               {/* Add Equipment Button */}
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">Equipamentos do Evento</h3>
+                <h3 className="text-lg font-semibold">Controle de Equipamentos</h3>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
@@ -976,70 +976,179 @@ export const EventEquipment = () => {
                 </div>
               </div>
 
-              {/* Equipment List */}
-              <div className="border rounded-lg">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Equipamento</TableHead>
-                      <TableHead>Quantidade</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Descrição</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {equipment.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground">
-                          Nenhum equipamento adicionado
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      equipment.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.equipment_name}</TableCell>
-                          <TableCell>{item.quantity}</TableCell>
-                          <TableCell>
-                            <Badge className={getStatusColor(item.status)}>
-                              {getStatusText(item.status)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{item.description || '-'}</TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedEquipmentForEdit(item);
-                                  setNewEquipment({
-                                    equipment_name: item.equipment_name,
-                                    quantity: item.quantity,
-                                    description: item.description,
-                                    status: item.status
-                                  });
-                                  setEditEquipmentDialog(true);
-                                }}
-                                className="text-blue-600 hover:text-blue-800"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => deleteEquipment(item.id)}
-                                className="text-red-600 hover:text-red-800"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
+              {/* Equipment Lists - Separate Active and Returned */}
+              <div className="space-y-6">
+                {/* Active Equipment Section */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-md font-semibold text-foreground">Equipamentos Ativos</h4>
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                      {equipment.filter(item => item.status !== 'returned').length} ativo(s)
+                    </Badge>
+                  </div>
+                  <div className="border rounded-lg">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Equipamento</TableHead>
+                          <TableHead>Quantidade</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Descrição</TableHead>
+                          <TableHead>Ações</TableHead>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {equipment.filter(item => item.status !== 'returned').length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center text-muted-foreground">
+                              Nenhum equipamento ativo
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          equipment.filter(item => item.status !== 'returned').map((item) => (
+                            <TableRow key={item.id}>
+                              <TableCell className="font-medium">{item.equipment_name}</TableCell>
+                              <TableCell>{item.quantity}</TableCell>
+                              <TableCell>
+                                <Badge className={getStatusColor(item.status)}>
+                                  {getStatusText(item.status)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{item.description || '-'}</TableCell>
+                              <TableCell>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedEquipmentForEdit(item);
+                                      setNewEquipment({
+                                        equipment_name: item.equipment_name,
+                                        quantity: item.quantity,
+                                        description: item.description,
+                                        status: item.status
+                                      });
+                                      setEditEquipmentDialog(true);
+                                    }}
+                                    className="text-blue-600 hover:text-blue-800"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => deleteEquipment(item.id)}
+                                    className="text-red-600 hover:text-red-800"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+
+                {/* Returned Equipment Section */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-md font-semibold text-foreground">Equipamentos Devolvidos ao Estoque</h4>
+                    <Badge variant="outline" className="bg-green-50 text-green-700">
+                      {equipment.filter(item => item.status === 'returned').length} devolvido(s)
+                    </Badge>
+                  </div>
+                  <div className="border rounded-lg">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Equipamento</TableHead>
+                          <TableHead>Quantidade</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Descrição</TableHead>
+                          <TableHead>Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {equipment.filter(item => item.status === 'returned').length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center text-muted-foreground">
+                              Nenhum equipamento devolvido
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          equipment.filter(item => item.status === 'returned').map((item) => (
+                            <TableRow key={item.id} className="bg-green-50/50">
+                              <TableCell className="font-medium">{item.equipment_name}</TableCell>
+                              <TableCell>{item.quantity}</TableCell>
+                              <TableCell>
+                                <Badge className={getStatusColor(item.status)}>
+                                  {getStatusText(item.status)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{item.description || '-'}</TableCell>
+                              <TableCell>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedEquipmentForEdit(item);
+                                      setNewEquipment({
+                                        equipment_name: item.equipment_name,
+                                        quantity: item.quantity,
+                                        description: item.description,
+                                        status: item.status
+                                      });
+                                      setEditEquipmentDialog(true);
+                                    }}
+                                    className="text-blue-600 hover:text-blue-800"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => deleteEquipment(item.id)}
+                                    className="text-red-600 hover:text-red-800"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+
+                {/* Summary */}
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <div className="text-2xl font-bold text-blue-600">
+                        {equipment.filter(item => item.status !== 'returned').length}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Equipamentos Pendentes</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-green-600">
+                        {equipment.filter(item => item.status === 'returned').length}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Equipamentos Devolvidos</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-gray-600">
+                        {equipment.length}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Total de Equipamentos</div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Collaborators Section */}
