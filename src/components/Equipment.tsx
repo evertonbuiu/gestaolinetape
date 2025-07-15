@@ -1,98 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Edit, Trash2, Package } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-
-interface Equipment {
-  id: string;
-  name: string;
-  category: string;
-  total_stock: number;
-  available: number;
-  rented: number;
-  price_per_day: number;
-  status: string;
-  description?: string;
-}
+import { useEquipment } from "@/hooks/useEquipment";
 
 export const Equipment = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [equipment, setEquipment] = useState<Equipment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-
-  const fetchEquipment = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('equipment')
-        .select('*')
-        .order('name');
-
-      if (error) throw error;
-      setEquipment(data || []);
-    } catch (error) {
-      console.error('Error fetching equipment:', error);
-      toast({
-        title: "Erro ao carregar equipamentos",
-        description: "Não foi possível carregar os equipamentos.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchEquipment();
-
-    // Set up real-time subscription for equipment changes
-    const channel = supabase
-      .channel('equipment-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'equipment'
-        },
-        (payload) => {
-          console.log('Equipment change detected:', payload);
-          fetchEquipment(); // Refetch data when changes occur
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  // Also listen for event_equipment changes to update stock
-  useEffect(() => {
-    const eventEquipmentChannel = supabase
-      .channel('event-equipment-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'event_equipment'
-        },
-        (payload) => {
-          console.log('Event equipment change detected:', payload);
-          fetchEquipment(); // Refetch to update available/rented counts
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(eventEquipmentChannel);
-    };
-  }, []);
+  const { equipment, loading } = useEquipment();
 
   const getStatusColor = (status: string) => {
     switch (status) {

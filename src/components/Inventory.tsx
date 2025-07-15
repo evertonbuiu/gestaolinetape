@@ -1,103 +1,11 @@
-import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Package, TrendingDown, TrendingUp } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-
-interface Equipment {
-  id: string;
-  name: string;
-  category: string;
-  total_stock: number;
-  available: number;
-  rented: number;
-  price_per_day: number;
-  status: string;
-  description?: string;
-  created_at: string;
-  updated_at: string;
-}
+import { useEquipment } from "@/hooks/useEquipment";
 
 export const Inventory = () => {
-  const [equipment, setEquipment] = useState<Equipment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-
-  const fetchEquipment = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('equipment')
-        .select('*')
-        .order('name');
-
-      if (error) throw error;
-      setEquipment(data || []);
-    } catch (error) {
-      console.error('Error fetching equipment:', error);
-      toast({
-        title: "Erro ao carregar estoque",
-        description: "Não foi possível carregar os dados do estoque.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchEquipment();
-
-    // Set up real-time subscription for equipment changes
-    const channel = supabase
-      .channel('inventory-equipment-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'equipment'
-        },
-        (payload) => {
-          console.log('Inventory equipment change detected:', payload);
-          fetchEquipment(); // Refetch data when changes occur
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  // Also listen for event_equipment changes to update stock
-  useEffect(() => {
-    const eventEquipmentChannel = supabase
-      .channel('inventory-event-equipment-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'event_equipment'
-        },
-        (payload) => {
-          console.log('Inventory event equipment change detected:', payload);
-          fetchEquipment(); // Refetch to update available/rented counts
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(eventEquipmentChannel);
-    };
-  }, []);
-
-  // Calculate totals
-  const totalItems = equipment.reduce((sum, item) => sum + item.total_stock, 0);
-  const criticalItems = equipment.filter(item => item.status === 'out_of_stock' || item.status === 'low_stock').length;
-  const totalValue = equipment.reduce((sum, item) => sum + (item.total_stock * item.price_per_day * 30), 0); // Estimated monthly value
+  const { equipment, loading, totals } = useEquipment();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -157,7 +65,7 @@ export const Inventory = () => {
             <CardDescription>Quantidade atual</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-primary">{totalItems}</div>
+            <div className="text-3xl font-bold text-primary">{totals.totalItems}</div>
             <p className="text-sm text-muted-foreground mt-1">Itens em estoque</p>
           </CardContent>
         </Card>
@@ -168,7 +76,7 @@ export const Inventory = () => {
             <CardDescription>Abaixo do mínimo</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-red-600">{criticalItems}</div>
+            <div className="text-3xl font-bold text-red-600">{totals.criticalItems}</div>
             <p className="text-sm text-muted-foreground mt-1">Itens críticos</p>
           </CardContent>
         </Card>
@@ -179,7 +87,7 @@ export const Inventory = () => {
             <CardDescription>Valor total estimado</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600">R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+            <div className="text-3xl font-bold text-green-600">R$ {totals.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
             <p className="text-sm text-muted-foreground mt-1">Valor estimado mensal</p>
           </CardContent>
         </Card>
