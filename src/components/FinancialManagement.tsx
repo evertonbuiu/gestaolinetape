@@ -118,16 +118,24 @@ export const FinancialManagement = () => {
       if (expensesError) throw expensesError;
 
       // Transformar eventos em receitas do fluxo de caixa
-      const eventEntries: CashFlowEntry[] = eventsData?.map(event => ({
-        id: event.id,
-        date: event.event_date,
-        description: `Evento: ${event.name}`,
-        category: "Receita de Eventos",
-        type: "income" as const,
-        amount: event.total_budget || 0,
-        account: "Conta Corrente Principal",
-        status: event.status === 'confirmed' ? "confirmed" as const : "pending" as const
-      })) || [];
+      const eventEntries: CashFlowEntry[] = eventsData?.map(event => {
+        // Usar payment_amount se disponível, senão usar total_budget
+        const incomeAmount = event.payment_amount > 0 ? event.payment_amount : event.total_budget || 0;
+        
+        // Determinar a conta bancária baseada no payment_bank_account
+        const account = event.payment_bank_account || "Conta Corrente Principal";
+        
+        return {
+          id: event.id,
+          date: event.payment_date || event.event_date,
+          description: `${event.payment_type === 'entrada' ? 'Entrada' : 'Pagamento'} - ${event.name}`,
+          category: "Receita de Eventos",
+          type: "income" as const,
+          amount: incomeAmount,
+          account: account,
+          status: event.is_paid ? "confirmed" as const : "pending" as const
+        };
+      }) || [];
 
       // Transformar despesas em entradas do fluxo de caixa
       const expenseEntries: CashFlowEntry[] = expensesData?.map(expense => ({
