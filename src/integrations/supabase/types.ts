@@ -271,9 +271,11 @@ export type Database = {
           event_date: string
           event_time: string | null
           id: string
+          is_paid: boolean | null
           location: string | null
           name: string
           payment_bank_account: string | null
+          payment_date: string | null
           profit_margin: number | null
           setup_start_date: string | null
           status: string
@@ -291,9 +293,11 @@ export type Database = {
           event_date: string
           event_time?: string | null
           id?: string
+          is_paid?: boolean | null
           location?: string | null
           name: string
           payment_bank_account?: string | null
+          payment_date?: string | null
           profit_margin?: number | null
           setup_start_date?: string | null
           status?: string
@@ -311,9 +315,11 @@ export type Database = {
           event_date?: string
           event_time?: string | null
           id?: string
+          is_paid?: boolean | null
           location?: string | null
           name?: string
           payment_bank_account?: string | null
+          payment_date?: string | null
           profit_margin?: number | null
           setup_start_date?: string | null
           status?: string

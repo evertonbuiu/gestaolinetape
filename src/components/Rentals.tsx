@@ -34,6 +34,8 @@ interface Event {
   total_expenses: number;
   profit_margin: number;
   status: string;
+  is_paid: boolean;
+  payment_date: string;
   payment_bank_account?: string;
   created_at: string;
 }
@@ -462,7 +464,6 @@ export const Rentals = () => {
       case 'in_progress': return 'Em Andamento';
       case 'completed': return 'Concluído';
       case 'cancelled': return 'Cancelado';
-      case 'paid': return 'Pago';
       default: return status;
     }
   };
