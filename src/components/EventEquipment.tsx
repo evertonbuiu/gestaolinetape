@@ -254,7 +254,7 @@ export const EventEquipment = () => {
     try {
       const { data, error } = await supabase.storage
         .from('logos')
-        .list('', { limit: 1 });
+        .list('', { limit: 100 });
 
       if (error) {
         console.error('Error fetching logo:', error);
@@ -262,11 +262,18 @@ export const EventEquipment = () => {
       }
 
       if (data && data.length > 0) {
+        // Get the first logo file
+        const logoFile = data[0];
         const { data: publicUrl } = supabase.storage
           .from('logos')
-          .getPublicUrl(data[0].name);
+          .getPublicUrl(logoFile.name);
         
-        setLogoUrl(publicUrl.publicUrl);
+        if (publicUrl?.publicUrl) {
+          setLogoUrl(publicUrl.publicUrl);
+          console.log('Logo URL set:', publicUrl.publicUrl);
+        }
+      } else {
+        console.log('No logos found in storage');
       }
     } catch (error) {
       console.error('Error fetching logo:', error);
@@ -301,112 +308,216 @@ export const EventEquipment = () => {
   const printEquipmentList = () => {
     if (!selectedEvent) return;
 
-    const printContent = `
-      <html>
-        <head>
-          <title>Lista de Materiais - ${selectedEvent.name}</title>
-          <style>
-            body { 
-              font-family: Arial, sans-serif; 
-              margin: 20px; 
-              position: relative;
-            }
-            body::before {
-              content: '';
-              position: fixed;
-              top: 0;
-              left: 0;
-              width: 100%;
-              height: 100%;
-              background-image: url('${logoUrl}');
-              background-repeat: no-repeat;
-              background-position: center center;
-              background-size: 40%;
-              opacity: 0.1;
-              z-index: -1;
-              pointer-events: none;
-            }
-            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
-            .event-info { margin-bottom: 20px; }
-            .event-info h2 { color: #333; margin-bottom: 10px; }
-            .event-info p { margin: 5px 0; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-            th { background-color: #f5f5f5; font-weight: bold; }
-            .status { padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-            .status-pending { background-color: #fff3cd; color: #856404; }
-            .status-confirmed { background-color: #d1ecf1; color: #0c5460; }
-            .status-allocated { background-color: #d4edda; color: #155724; }
-            .status-returned { background-color: #f8d7da; color: #721c24; }
-            .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
-            @media print {
-              body { margin: 0; }
-              .no-print { display: none; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <img src="${logoUrl}" alt="Logo da Empresa" style="height: 60px; margin-bottom: 15px;" />
-            <h1>LISTA DE MATERIAIS</h1>
-            <p>Sistema de Controle de Almoxarifado</p>
-          </div>
-          
-          <div class="event-info">
-            <h2>${selectedEvent.name}</h2>
-            <p><strong>Cliente:</strong> ${selectedEvent.client_name}</p>
-            ${selectedEvent.client_email ? `<p><strong>Email:</strong> ${selectedEvent.client_email}</p>` : ''}
-            ${selectedEvent.client_phone ? `<p><strong>Telefone:</strong> ${selectedEvent.client_phone}</p>` : ''}
-            <p><strong>Data do Evento:</strong> ${format(new Date(selectedEvent.event_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
-            ${selectedEvent.event_time ? `<p><strong>Horário:</strong> ${selectedEvent.event_time}</p>` : ''}
-            ${selectedEvent.setup_start_date ? `<p><strong>Data de Montagem:</strong> ${format(new Date(selectedEvent.setup_start_date), 'dd/MM/yyyy', { locale: ptBR })}</p>` : ''}
-            ${selectedEvent.location ? `<p><strong>Local:</strong> ${selectedEvent.location}</p>` : ''}
-            ${selectedEvent.description ? `<p><strong>Descrição:</strong> ${selectedEvent.description}</p>` : ''}
-          </div>
+    // Aguardar o carregamento da logo antes de gerar a página de impressão
+    const logoImg = new Image();
+    logoImg.onload = () => {
+      const printContent = `
+        <html>
+          <head>
+            <title>Lista de Materiais - ${selectedEvent.name}</title>
+            <style>
+              body { 
+                font-family: Arial, sans-serif; 
+                margin: 20px; 
+                position: relative;
+              }
+              body::before {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-image: url('${logoUrl}');
+                background-repeat: no-repeat;
+                background-position: center center;
+                background-size: 40%;
+                opacity: 0.1;
+                z-index: -1;
+                pointer-events: none;
+              }
+              .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+              .event-info { margin-bottom: 20px; }
+              .event-info h2 { color: #333; margin-bottom: 10px; }
+              .event-info p { margin: 5px 0; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+              th { background-color: #f5f5f5; font-weight: bold; }
+              .status { padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+              .status-pending { background-color: #fff3cd; color: #856404; }
+              .status-confirmed { background-color: #d1ecf1; color: #0c5460; }
+              .status-allocated { background-color: #d4edda; color: #155724; }
+              .status-returned { background-color: #f8d7da; color: #721c24; }
+              .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+              @media print {
+                body { margin: 0; }
+                .no-print { display: none; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <img src="${logoUrl}" alt="Logo da Empresa" style="height: 60px; margin-bottom: 15px;" />
+              <h1>LISTA DE MATERIAIS</h1>
+              <p>Sistema de Controle de Almoxarifado</p>
+            </div>
+            
+            <div class="event-info">
+              <h2>${selectedEvent.name}</h2>
+              <p><strong>Cliente:</strong> ${selectedEvent.client_name}</p>
+              ${selectedEvent.client_email ? `<p><strong>Email:</strong> ${selectedEvent.client_email}</p>` : ''}
+              ${selectedEvent.client_phone ? `<p><strong>Telefone:</strong> ${selectedEvent.client_phone}</p>` : ''}
+              <p><strong>Data do Evento:</strong> ${format(new Date(selectedEvent.event_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
+              ${selectedEvent.event_time ? `<p><strong>Horário:</strong> ${selectedEvent.event_time}</p>` : ''}
+              ${selectedEvent.setup_start_date ? `<p><strong>Data de Montagem:</strong> ${format(new Date(selectedEvent.setup_start_date), 'dd/MM/yyyy', { locale: ptBR })}</p>` : ''}
+              ${selectedEvent.location ? `<p><strong>Local:</strong> ${selectedEvent.location}</p>` : ''}
+              ${selectedEvent.description ? `<p><strong>Descrição:</strong> ${selectedEvent.description}</p>` : ''}
+            </div>
 
-          <table>
-            <thead>
-              <tr>
-                <th>Equipamento</th>
-                <th>Quantidade</th>
-                <th>Status</th>
-                <th>Descrição</th>
-                <th>Observações</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${equipment.map(item => `
+            <table>
+              <thead>
                 <tr>
-                  <td>${item.equipment_name}</td>
-                  <td>${item.quantity}</td>
-                  <td>
-                    <span class="status status-${item.status}">
-                      ${getStatusText(item.status)}
-                    </span>
-                  </td>
-                  <td>${item.description || '-'}</td>
-                  <td>_________________</td>
+                  <th>Equipamento</th>
+                  <th>Quantidade</th>
+                  <th>Status</th>
+                  <th>Descrição</th>
+                  <th>Observações</th>
                 </tr>
-              `).join('')}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                ${equipment.map(item => `
+                  <tr>
+                    <td>${item.equipment_name}</td>
+                    <td>${item.quantity}</td>
+                    <td>
+                      <span class="status status-${item.status}">
+                        ${getStatusText(item.status)}
+                      </span>
+                    </td>
+                    <td>${item.description || '-'}</td>
+                    <td>_________________</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
 
-          <div class="footer">
-            <p>Documento gerado em ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}</p>
-            <p>Total de itens: ${equipment.length}</p>
-          </div>
-        </body>
-      </html>
-    `;
+            <div class="footer">
+              <p>Documento gerado em ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}</p>
+              <p>Total de itens: ${equipment.length}</p>
+            </div>
+          </body>
+        </html>
+      `;
 
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      printWindow.focus();
-      printWindow.print();
-      printWindow.close();
-    }
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        printWindow.focus();
+        
+        // Aguardar um pouco para garantir que a logo seja carregada na página de impressão
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 500);
+      }
+    };
+
+    logoImg.onerror = () => {
+      console.error('Erro ao carregar a logo para impressão');
+      // Continuar com a impressão mesmo sem a logo
+      const printContent = `
+        <html>
+          <head>
+            <title>Lista de Materiais - ${selectedEvent.name}</title>
+            <style>
+              body { 
+                font-family: Arial, sans-serif; 
+                margin: 20px; 
+              }
+              .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+              .event-info { margin-bottom: 20px; }
+              .event-info h2 { color: #333; margin-bottom: 10px; }
+              .event-info p { margin: 5px 0; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+              th { background-color: #f5f5f5; font-weight: bold; }
+              .status { padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+              .status-pending { background-color: #fff3cd; color: #856404; }
+              .status-confirmed { background-color: #d1ecf1; color: #0c5460; }
+              .status-allocated { background-color: #d4edda; color: #155724; }
+              .status-returned { background-color: #f8d7da; color: #721c24; }
+              .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+              @media print {
+                body { margin: 0; }
+                .no-print { display: none; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>LISTA DE MATERIAIS</h1>
+              <p>Sistema de Controle de Almoxarifado</p>
+            </div>
+            
+            <div class="event-info">
+              <h2>${selectedEvent.name}</h2>
+              <p><strong>Cliente:</strong> ${selectedEvent.client_name}</p>
+              ${selectedEvent.client_email ? `<p><strong>Email:</strong> ${selectedEvent.client_email}</p>` : ''}
+              ${selectedEvent.client_phone ? `<p><strong>Telefone:</strong> ${selectedEvent.client_phone}</p>` : ''}
+              <p><strong>Data do Evento:</strong> ${format(new Date(selectedEvent.event_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
+              ${selectedEvent.event_time ? `<p><strong>Horário:</strong> ${selectedEvent.event_time}</p>` : ''}
+              ${selectedEvent.setup_start_date ? `<p><strong>Data de Montagem:</strong> ${format(new Date(selectedEvent.setup_start_date), 'dd/MM/yyyy', { locale: ptBR })}</p>` : ''}
+              ${selectedEvent.location ? `<p><strong>Local:</strong> ${selectedEvent.location}</p>` : ''}
+              ${selectedEvent.description ? `<p><strong>Descrição:</strong> ${selectedEvent.description}</p>` : ''}
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Equipamento</th>
+                  <th>Quantidade</th>
+                  <th>Status</th>
+                  <th>Descrição</th>
+                  <th>Observações</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${equipment.map(item => `
+                  <tr>
+                    <td>${item.equipment_name}</td>
+                    <td>${item.quantity}</td>
+                    <td>
+                      <span class="status status-${item.status}">
+                        ${getStatusText(item.status)}
+                      </span>
+                    </td>
+                    <td>${item.description || '-'}</td>
+                    <td>_________________</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+
+            <div class="footer">
+              <p>Documento gerado em ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}</p>
+              <p>Total de itens: ${equipment.length}</p>
+            </div>
+          </body>
+        </html>
+      `;
+
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+        printWindow.close();
+      }
+    };
+
+    logoImg.src = logoUrl;
   };
   
   // Update selectedMonth when year changes
