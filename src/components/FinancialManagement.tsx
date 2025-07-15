@@ -6,118 +6,170 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, TrendingUp, TrendingDown, DollarSign, FileText, Search, Filter } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Calculator, Plus, Download, Upload, TrendingUp, TrendingDown, DollarSign, FileText, Search, Edit, Trash2, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
 
-interface FinancialSummary {
-  totalRevenue: number;
-  totalExpenses: number;
-  profit: number;
-  pendingPayments: number;
-}
-
-interface RevenueItem {
+interface CashFlowEntry {
   id: string;
-  eventName: string;
-  clientName: string;
-  amount: number;
   date: string;
-  status: "paid" | "pending" | "overdue";
-}
-
-interface ExpenseItem {
-  id: string;
   description: string;
   category: string;
+  type: 'income' | 'expense';
   amount: number;
-  date: string;
-  supplier?: string;
-  eventName?: string;
+  account: string;
+  status: 'pending' | 'confirmed' | 'cancelled';
+}
+
+interface BudgetEntry {
+  id: string;
+  category: string;
+  budgeted: number;
+  spent: number;
+  remaining: number;
+  percentage: number;
+}
+
+interface AccountBalance {
+  id: string;
+  name: string;
+  balance: number;
+  type: 'checking' | 'savings' | 'cash';
 }
 
 export const FinancialManagement = () => {
-  const [summary, setSummary] = useState<FinancialSummary>({
-    totalRevenue: 0,
-    totalExpenses: 0,
-    profit: 0,
-    pendingPayments: 0
-  });
-  const [revenues, setRevenues] = useState<RevenueItem[]>([]);
-  const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
+  const [cashFlow, setCashFlow] = useState<CashFlowEntry[]>([]);
+  const [budget, setBudget] = useState<BudgetEntry[]>([]);
+  const [accounts, setAccounts] = useState<AccountBalance[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [dateRange, setDateRange] = useState<string>("month");
+  const [selectedPeriod, setSelectedPeriod] = useState("month");
+  const [newEntry, setNewEntry] = useState({
+    description: "",
+    category: "",
+    type: "expense" as 'income' | 'expense',
+    amount: 0,
+    account: "",
+    date: new Date().toISOString().split('T')[0]
+  });
+  const [isAddingEntry, setIsAddingEntry] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchFinancialData();
-  }, [dateRange]);
+    loadFinancialData();
+  }, [selectedPeriod]);
 
-  const fetchFinancialData = async () => {
+  const loadFinancialData = async () => {
     try {
       setLoading(true);
       
-      // Fetch events data for revenue
-      const { data: eventsData, error: eventsError } = await supabase
-        .from("events")
-        .select("*")
-        .eq("status", "confirmed");
+      // Mock data - substituir por dados reais do Supabase
+      const mockCashFlow: CashFlowEntry[] = [
+        {
+          id: "1",
+          date: "2025-01-15",
+          description: "Evento Casamento Silva",
+          category: "Receita de Eventos",
+          type: "income",
+          amount: 15000,
+          account: "Conta Corrente",
+          status: "confirmed"
+        },
+        {
+          id: "2",
+          date: "2025-01-14",
+          description: "Compra de equipamentos",
+          category: "Equipamentos",
+          type: "expense",
+          amount: 2500,
+          account: "Conta Corrente",
+          status: "confirmed"
+        },
+        {
+          id: "3",
+          date: "2025-01-13",
+          description: "Aluguel do espaço",
+          category: "Despesas Operacionais",
+          type: "expense",
+          amount: 1200,
+          account: "Conta Corrente",
+          status: "confirmed"
+        },
+        {
+          id: "4",
+          date: "2025-01-12",
+          description: "Pagamento de colaborador",
+          category: "Pessoal",
+          type: "expense",
+          amount: 800,
+          account: "Conta Corrente",
+          status: "pending"
+        }
+      ];
 
-      if (eventsError) throw eventsError;
+      const mockBudget: BudgetEntry[] = [
+        {
+          id: "1",
+          category: "Equipamentos",
+          budgeted: 5000,
+          spent: 2500,
+          remaining: 2500,
+          percentage: 50
+        },
+        {
+          id: "2",
+          category: "Despesas Operacionais",
+          budgeted: 3000,
+          spent: 1200,
+          remaining: 1800,
+          percentage: 40
+        },
+        {
+          id: "3",
+          category: "Pessoal",
+          budgeted: 2000,
+          spent: 800,
+          remaining: 1200,
+          percentage: 40
+        },
+        {
+          id: "4",
+          category: "Marketing",
+          budgeted: 1000,
+          spent: 0,
+          remaining: 1000,
+          percentage: 0
+        }
+      ];
 
-      // Fetch expenses data
-      const { data: expensesData, error: expensesError } = await supabase
-        .from("event_expenses")
-        .select(`
-          *,
-          events!inner(name, client_name)
-        `);
+      const mockAccounts: AccountBalance[] = [
+        {
+          id: "1",
+          name: "Conta Corrente Principal",
+          balance: 25300,
+          type: "checking"
+        },
+        {
+          id: "2",
+          name: "Conta Poupança",
+          balance: 15000,
+          type: "savings"
+        },
+        {
+          id: "3",
+          name: "Dinheiro em Caixa",
+          balance: 2500,
+          type: "cash"
+        }
+      ];
 
-      if (expensesError) throw expensesError;
-
-      // Process revenue data
-      const revenueItems: RevenueItem[] = eventsData?.map(event => ({
-        id: event.id,
-        eventName: event.name,
-        clientName: event.client_name,
-        amount: event.total_budget || 0,
-        date: event.event_date,
-        status: Math.random() > 0.7 ? "pending" : "paid" // Mock status for now
-      })) || [];
-
-      // Process expenses data
-      const expenseItems: ExpenseItem[] = expensesData?.map(expense => ({
-        id: expense.id,
-        description: expense.description,
-        category: expense.category,
-        amount: expense.total_price || 0,
-        date: expense.created_at,
-        supplier: expense.supplier,
-        eventName: expense.events?.name
-      })) || [];
-
-      setRevenues(revenueItems);
-      setExpenses(expenseItems);
-
-      // Calculate summary
-      const totalRevenue = revenueItems.reduce((sum, item) => sum + item.amount, 0);
-      const totalExpenses = expenseItems.reduce((sum, item) => sum + item.amount, 0);
-      const pendingPayments = revenueItems
-        .filter(item => item.status === "pending")
-        .reduce((sum, item) => sum + item.amount, 0);
-
-      setSummary({
-        totalRevenue,
-        totalExpenses,
-        profit: totalRevenue - totalExpenses,
-        pendingPayments
-      });
-
+      setCashFlow(mockCashFlow);
+      setBudget(mockBudget);
+      setAccounts(mockAccounts);
     } catch (error) {
-      console.error("Error fetching financial data:", error);
+      console.error("Error loading financial data:", error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os dados financeiros.",
@@ -128,31 +180,58 @@ export const FinancialManagement = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "paid":
-        return <Badge variant="default" className="bg-green-100 text-green-800">Pago</Badge>;
-      case "pending":
-        return <Badge variant="secondary">Pendente</Badge>;
-      case "overdue":
-        return <Badge variant="destructive">Atrasado</Badge>;
-      default:
-        return <Badge variant="outline">Desconhecido</Badge>;
+  const handleAddEntry = () => {
+    if (!newEntry.description || !newEntry.category || !newEntry.amount || !newEntry.account) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios.",
+        variant: "destructive",
+      });
+      return;
     }
+
+    const entry: CashFlowEntry = {
+      id: Date.now().toString(),
+      ...newEntry,
+      status: "pending"
+    };
+
+    setCashFlow([...cashFlow, entry]);
+    setNewEntry({
+      description: "",
+      category: "",
+      type: "expense",
+      amount: 0,
+      account: "",
+      date: new Date().toISOString().split('T')[0]
+    });
+    setIsAddingEntry(false);
+    
+    toast({
+      title: "Sucesso",
+      description: "Lançamento adicionado com sucesso!",
+    });
   };
 
-  const filteredRevenues = revenues.filter(item => {
-    const matchesSearch = item.eventName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.clientName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || item.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const getTotalBalance = () => {
+    return accounts.reduce((total, account) => total + account.balance, 0);
+  };
 
-  const filteredExpenses = expenses.filter(item => {
-    const matchesSearch = item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.category.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  });
+  const getTotalIncome = () => {
+    return cashFlow
+      .filter(entry => entry.type === 'income' && entry.status === 'confirmed')
+      .reduce((total, entry) => total + entry.amount, 0);
+  };
+
+  const getTotalExpenses = () => {
+    return cashFlow
+      .filter(entry => entry.type === 'expense' && entry.status === 'confirmed')
+      .reduce((total, entry) => total + entry.amount, 0);
+  };
+
+  const getNetResult = () => {
+    return getTotalIncome() - getTotalExpenses();
+  };
 
   if (loading) {
     return (
@@ -168,11 +247,11 @@ export const FinancialManagement = () => {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold">Gestão Financeira</h2>
-          <p className="text-muted-foreground">Controle de receitas, despesas e lucros</p>
+          <h2 className="text-3xl font-bold">Controle Financeiro</h2>
+          <p className="text-muted-foreground">Planilhas e controles financeiros completos</p>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={dateRange} onValueChange={setDateRange}>
+          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
@@ -183,246 +262,314 @@ export const FinancialManagement = () => {
               <SelectItem value="year">Este ano</SelectItem>
             </SelectContent>
           </Select>
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Exportar
+          </Button>
         </div>
       </div>
 
-      {/* Financial Summary Cards */}
+      {/* Resumo Financeiro */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
+        <Card className="hover-scale">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Saldo Total</CardTitle>
+            <Calculator className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(summary.totalRevenue)}
+            <div className="text-2xl font-bold text-blue-600">
+              {formatCurrency(getTotalBalance())}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover-scale">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Despesas Totais</CardTitle>
+            <CardTitle className="text-sm font-medium">Receitas</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {formatCurrency(getTotalIncome())}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover-scale">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Despesas</CardTitle>
             <TrendingDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {formatCurrency(summary.totalExpenses)}
+              {formatCurrency(getTotalExpenses())}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover-scale">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Lucro</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Resultado</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${summary.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {formatCurrency(summary.profit)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pagamentos Pendentes</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
-              {formatCurrency(summary.pendingPayments)}
+            <div className={`text-2xl font-bold ${getNetResult() >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {formatCurrency(getNetResult())}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Detailed Views */}
-      <Tabs defaultValue="revenue" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="revenue">Receitas</TabsTrigger>
-          <TabsTrigger value="expenses">Despesas</TabsTrigger>
-          <TabsTrigger value="warehouse">Almoxarifado</TabsTrigger>
+      {/* Tabs das Planilhas */}
+      <Tabs defaultValue="cashflow" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="cashflow">Fluxo de Caixa</TabsTrigger>
+          <TabsTrigger value="budget">Orçamento</TabsTrigger>
+          <TabsTrigger value="accounts">Contas</TabsTrigger>
           <TabsTrigger value="reports">Relatórios</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="revenue" className="space-y-4">
+        <TabsContent value="cashflow" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Receitas</CardTitle>
-              <CardDescription>Controle de pagamentos e receitas por evento</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4 mb-4">
-                <div className="flex-1">
-                  <Label htmlFor="search">Pesquisar</Label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="search"
-                      placeholder="Pesquisar por evento ou cliente..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-9"
-                    />
-                  </div>
-                </div>
+              <div className="flex items-center justify-between">
                 <div>
-                  <Label htmlFor="status-filter">Status</Label>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="paid">Pago</SelectItem>
-                      <SelectItem value="pending">Pendente</SelectItem>
-                      <SelectItem value="overdue">Atrasado</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <CardTitle>Fluxo de Caixa</CardTitle>
+                  <CardDescription>Controle detalhado de entradas e saídas</CardDescription>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                {filteredRevenues.map((revenue) => (
-                  <div
-                    key={revenue.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50"
-                  >
-                    <div className="flex-1">
-                      <div className="font-medium">{revenue.eventName}</div>
-                      <div className="text-sm text-muted-foreground">{revenue.clientName}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {new Date(revenue.date).toLocaleDateString('pt-BR')}
+                <Dialog open={isAddingEntry} onOpenChange={setIsAddingEntry}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Novo Lançamento
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Adicionar Lançamento</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="description">Descrição</Label>
+                        <Input
+                          id="description"
+                          value={newEntry.description}
+                          onChange={(e) => setNewEntry({...newEntry, description: e.target.value})}
+                          placeholder="Digite a descrição..."
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="type">Tipo</Label>
+                          <Select value={newEntry.type} onValueChange={(value: 'income' | 'expense') => setNewEntry({...newEntry, type: value})}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="income">Receita</SelectItem>
+                              <SelectItem value="expense">Despesa</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="category">Categoria</Label>
+                          <Select value={newEntry.category} onValueChange={(value) => setNewEntry({...newEntry, category: value})}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Receita de Eventos">Receita de Eventos</SelectItem>
+                              <SelectItem value="Equipamentos">Equipamentos</SelectItem>
+                              <SelectItem value="Despesas Operacionais">Despesas Operacionais</SelectItem>
+                              <SelectItem value="Pessoal">Pessoal</SelectItem>
+                              <SelectItem value="Marketing">Marketing</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="amount">Valor</Label>
+                          <Input
+                            id="amount"
+                            type="number"
+                            value={newEntry.amount}
+                            onChange={(e) => setNewEntry({...newEntry, amount: parseFloat(e.target.value) || 0})}
+                            placeholder="0,00"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="date">Data</Label>
+                          <Input
+                            id="date"
+                            type="date"
+                            value={newEntry.date}
+                            onChange={(e) => setNewEntry({...newEntry, date: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="account">Conta</Label>
+                        <Select value={newEntry.account} onValueChange={(value) => setNewEntry({...newEntry, account: value})}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Conta Corrente">Conta Corrente</SelectItem>
+                            <SelectItem value="Conta Poupança">Conta Poupança</SelectItem>
+                            <SelectItem value="Dinheiro em Caixa">Dinheiro em Caixa</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setIsAddingEntry(false)}>
+                          Cancelar
+                        </Button>
+                        <Button onClick={handleAddEntry}>
+                          Salvar
+                        </Button>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-bold text-lg">{formatCurrency(revenue.amount)}</div>
-                      <div className="mt-1">{getStatusBadge(revenue.status)}</div>
-                    </div>
-                  </div>
-                ))}
+                  </DialogContent>
+                </Dialog>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="expenses" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Despesas</CardTitle>
-              <CardDescription>Controle de todas as despesas por evento</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-4 mb-4">
-                <div className="flex-1">
-                  <Label htmlFor="expense-search">Pesquisar</Label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="expense-search"
-                      placeholder="Pesquisar por descrição ou categoria..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-9"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                {filteredExpenses.map((expense) => (
-                  <div
-                    key={expense.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50"
-                  >
-                    <div className="flex-1">
-                      <div className="font-medium">{expense.description}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {expense.category} {expense.eventName && `• ${expense.eventName}`}
-                      </div>
-                      {expense.supplier && (
-                        <div className="text-xs text-muted-foreground">
-                          Fornecedor: {expense.supplier}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead>Conta</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cashFlow.map((entry) => (
+                    <TableRow key={entry.id}>
+                      <TableCell>
+                        {new Date(entry.date).toLocaleDateString('pt-BR')}
+                      </TableCell>
+                      <TableCell>{entry.description}</TableCell>
+                      <TableCell>{entry.category}</TableCell>
+                      <TableCell>
+                        <Badge variant={entry.type === 'income' ? 'default' : 'secondary'}>
+                          {entry.type === 'income' ? 'Receita' : 'Despesa'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className={entry.type === 'income' ? 'text-green-600' : 'text-red-600'}>
+                        {entry.type === 'income' ? '+' : '-'}{formatCurrency(entry.amount)}
+                      </TableCell>
+                      <TableCell>{entry.account}</TableCell>
+                      <TableCell>
+                        <Badge variant={
+                          entry.status === 'confirmed' ? 'default' : 
+                          entry.status === 'pending' ? 'secondary' : 'destructive'
+                        }>
+                          {entry.status === 'confirmed' ? 'Confirmado' : 
+                           entry.status === 'pending' ? 'Pendente' : 'Cancelado'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="sm">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
-                      )}
-                      <div className="text-xs text-muted-foreground">
-                        {new Date(expense.date).toLocaleDateString('pt-BR')}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-lg text-red-600">
-                        -{formatCurrency(expense.amount)}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="warehouse" className="space-y-4">
+        <TabsContent value="budget" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Despesas de Almoxarifado</CardTitle>
-              <CardDescription>Controle de despesas relacionadas ao almoxarifado</CardDescription>
+              <CardTitle>Controle Orçamentário</CardTitle>
+              <CardDescription>Acompanhe o orçamento vs realizado por categoria</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {/* Warehouse Expenses Summary */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="text-sm font-medium text-muted-foreground">Total Gasto</div>
-                      <div className="text-2xl font-bold text-red-600">R$ 12.450</div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="text-sm font-medium text-muted-foreground">Este Mês</div>
-                      <div className="text-2xl font-bold text-orange-600">R$ 2.340</div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="text-sm font-medium text-muted-foreground">Últimos 30 Dias</div>
-                      <div className="text-2xl font-bold text-blue-600">R$ 1.890</div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Warehouse Expenses List */}
-                <div className="space-y-2">
-                  <h4 className="font-medium">Despesas Recentes</h4>
-                  {[
-                    { item: "Lâmpadas LED de reposição", category: "Manutenção", amount: 450, date: "2025-01-12", supplier: "Elétrica Central" },
-                    { item: "Cabo de força 10m", category: "Equipamento", amount: 120, date: "2025-01-10", supplier: "Casa dos Cabos" },
-                    { item: "Prateleiras metálicas", category: "Infraestrutura", amount: 890, date: "2025-01-08", supplier: "Organiza Tudo" },
-                    { item: "Kit de ferramentas", category: "Manutenção", amount: 320, date: "2025-01-05", supplier: "Ferramentas Silva" },
-                    { item: "Etiquetas para organização", category: "Organização", amount: 85, date: "2025-01-03", supplier: "Papelaria Express" }
-                  ].map((expense, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50"
-                    >
-                      <div className="flex-1">
-                        <div className="font-medium">{expense.item}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {expense.category} • {expense.supplier}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(expense.date).toLocaleDateString('pt-BR')}
-                        </div>
+                {budget.map((item) => (
+                  <div key={item.id} className="p-4 border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium">{item.category}</h4>
+                      <span className="text-sm text-muted-foreground">{item.percentage}% utilizado</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <div className="text-muted-foreground">Orçado</div>
+                        <div className="font-bold">{formatCurrency(item.budgeted)}</div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-bold text-lg text-red-600">
-                          -{formatCurrency(expense.amount)}
-                        </div>
+                      <div>
+                        <div className="text-muted-foreground">Gasto</div>
+                        <div className="font-bold text-red-600">{formatCurrency(item.spent)}</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">Restante</div>
+                        <div className="font-bold text-green-600">{formatCurrency(item.remaining)}</div>
                       </div>
                     </div>
-                  ))}
-                </div>
+                    <div className="mt-3">
+                      <div className="w-full bg-muted rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            item.percentage > 90 ? 'bg-red-500' : 
+                            item.percentage > 70 ? 'bg-orange-500' : 'bg-green-500'
+                          }`}
+                          style={{ width: `${Math.min(item.percentage, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="accounts" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Contas Bancárias</CardTitle>
+              <CardDescription>Saldos e movimentações das contas</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {accounts.map((account) => (
+                  <div key={account.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <div className="font-medium">{account.name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {account.type === 'checking' ? 'Conta Corrente' : 
+                         account.type === 'savings' ? 'Conta Poupança' : 'Dinheiro'}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold">{formatCurrency(account.balance)}</div>
+                      <div className="flex gap-2 mt-2">
+                        <Button variant="outline" size="sm">
+                          <Eye className="h-4 w-4 mr-1" />
+                          Extrato
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Edit className="h-4 w-4 mr-1" />
+                          Editar
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -431,16 +578,27 @@ export const FinancialManagement = () => {
         <TabsContent value="reports" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Relatórios</CardTitle>
-              <CardDescription>Análises e relatórios financeiros</CardDescription>
+              <CardTitle>Relatórios Financeiros</CardTitle>
+              <CardDescription>Análises e relatórios detalhados</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">Relatórios em Desenvolvimento</h3>
-                <p className="text-muted-foreground">
-                  Recursos de relatórios financeiros serão implementados em breve.
-                </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Button variant="outline" className="h-24 flex flex-col items-center justify-center">
+                  <FileText className="h-8 w-8 mb-2" />
+                  <span>Demonstrativo de Resultados</span>
+                </Button>
+                <Button variant="outline" className="h-24 flex flex-col items-center justify-center">
+                  <Calculator className="h-8 w-8 mb-2" />
+                  <span>Fluxo de Caixa Projetado</span>
+                </Button>
+                <Button variant="outline" className="h-24 flex flex-col items-center justify-center">
+                  <TrendingUp className="h-8 w-8 mb-2" />
+                  <span>Análise de Lucratividade</span>
+                </Button>
+                <Button variant="outline" className="h-24 flex flex-col items-center justify-center">
+                  <Download className="h-8 w-8 mb-2" />
+                  <span>Relatório Fiscal</span>
+                </Button>
               </div>
             </CardContent>
           </Card>
