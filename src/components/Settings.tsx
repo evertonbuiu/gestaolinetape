@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useOnlineUsers } from '@/hooks/useOnlineUsers';
@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Settings2, Shield, Eye, Edit3, Save, UserPlus, Mail, Lock, User, Users, Circle } from 'lucide-react';
+import { Loader2, Settings2, Shield, Eye, Edit3, Save, UserPlus, Mail, Lock, User, Users, Circle, Upload, Image, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export const SettingsPage = () => {
@@ -24,6 +24,9 @@ export const SettingsPage = () => {
   const [changes, setChanges] = useState<Record<string, { can_view: boolean; can_edit: boolean }>>({});
   const [createUserDialog, setCreateUserDialog] = useState(false);
   const [creatingUser, setCreatingUser] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logos, setLogos] = useState<any[]>([]);
+  const [loadingLogos, setLoadingLogos] = useState(false);
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
@@ -137,6 +140,100 @@ export const SettingsPage = () => {
       setCreatingUser(false);
     }
   };
+
+  // Fetch logos from storage
+  const fetchLogos = async () => {
+    setLoadingLogos(true);
+    try {
+      const { data, error } = await supabase.storage
+        .from('logos')
+        .list('', { 
+          limit: 100,
+          offset: 0,
+          sortBy: { column: 'created_at', order: 'desc' }
+        });
+
+      if (error) throw error;
+      setLogos(data || []);
+    } catch (error) {
+      console.error('Error fetching logos:', error);
+    } finally {
+      setLoadingLogos(false);
+    }
+  };
+
+  // Upload logo
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Arquivo inválido",
+        description: "Por favor, selecione um arquivo de imagem (PNG, JPG, etc.)",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const fileName = `logo-${Date.now()}.${file.name.split('.').pop()}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('logos')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      await fetchLogos();
+      
+      toast({
+        title: "Logo enviada",
+        description: "A logo foi enviada com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      toast({
+        title: "Erro ao enviar logo",
+        description: "Não foi possível enviar a logo.",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  // Delete logo
+  const deleteLogo = async (fileName: string) => {
+    try {
+      const { error } = await supabase.storage
+        .from('logos')
+        .remove([fileName]);
+
+      if (error) throw error;
+
+      await fetchLogos();
+      
+      toast({
+        title: "Logo removida",
+        description: "A logo foi removida com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error deleting logo:', error);
+      toast({
+        title: "Erro ao remover logo",
+        description: "Não foi possível remover a logo.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Load logos on component mount
+  useEffect(() => {
+    fetchLogos();
+  }, []);
 
   if (userRole !== 'admin') {
     return (
@@ -281,6 +378,119 @@ export const SettingsPage = () => {
             <p>• Eles poderão fazer login com o email e senha fornecidos</p>
             <p>• Por padrão, funcionários têm papel de "funcionario" no sistema</p>
             <p>• As permissões podem ser ajustadas na seção abaixo</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Image className="h-5 w-5" />
+            Gerenciar Logos
+          </CardTitle>
+          <CardDescription>
+            Gerencie as logos da empresa utilizadas no sistema e impressões
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div>
+            <Label htmlFor="logo-upload" className="text-sm font-medium mb-2 block">
+              Enviar Nova Logo
+            </Label>
+            <div className="flex items-center gap-4">
+              <Input
+                id="logo-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleLogoUpload}
+                disabled={uploadingLogo}
+                className="flex-1"
+              />
+              <Button
+                onClick={() => document.getElementById('logo-upload')?.click()}
+                disabled={uploadingLogo}
+                variant="outline"
+              >
+                {uploadingLogo ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Upload className="h-4 w-4 mr-2" />
+                )}
+                Selecionar Arquivo
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Formatos aceitos: PNG, JPG, JPEG, GIF. Tamanho máximo: 5MB
+            </p>
+          </div>
+
+          <Separator />
+
+          <div>
+            <h3 className="text-sm font-medium mb-4">Logos Disponíveis</h3>
+            {loadingLogos ? (
+              <div className="flex items-center justify-center p-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            ) : logos.length === 0 ? (
+              <p className="text-center text-muted-foreground p-8">
+                Nenhuma logo encontrada. Envie uma logo acima.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {logos.map((logo) => (
+                  <div key={logo.name} className="border rounded-lg p-4 space-y-3">
+                    <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                      <img
+                        src={supabase.storage.from('logos').getPublicUrl(logo.name).data.publicUrl}
+                        alt={logo.name}
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium truncate">{logo.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(logo.created_at).toLocaleDateString('pt-BR')}
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const url = supabase.storage.from('logos').getPublicUrl(logo.name).data.publicUrl;
+                            navigator.clipboard.writeText(url);
+                            toast({
+                              title: "URL copiada",
+                              description: "URL da logo copiada para a área de transferência.",
+                            });
+                          }}
+                          className="flex-1"
+                        >
+                          Copiar URL
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteLogo(logo.name)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <p>• As logos enviadas ficam disponíveis publicamente</p>
+            <p>• Para usar uma logo, copie a URL e atualize o código de impressão</p>
+            <p>• Recomendamos logos em formato PNG com fundo transparente</p>
+            <p>• As logos são exibidas automaticamente nos documentos impressos</p>
           </div>
         </CardContent>
       </Card>
