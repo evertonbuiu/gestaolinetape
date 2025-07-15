@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Calendar, Clock, MapPin, User, Package, Plus, Edit, Trash2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, Package, Plus, Edit, Trash2, Printer } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { format } from 'date-fns';
@@ -272,6 +272,98 @@ export const EventEquipment = () => {
 
   const yearsAndMonths = generateYearsAndMonths();
   
+  // Print equipment list
+  const printEquipmentList = () => {
+    if (!selectedEvent) return;
+
+    const printContent = `
+      <html>
+        <head>
+          <title>Lista de Materiais - ${selectedEvent.name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+            .event-info { margin-bottom: 20px; }
+            .event-info h2 { color: #333; margin-bottom: 10px; }
+            .event-info p { margin: 5px 0; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+            th { background-color: #f5f5f5; font-weight: bold; }
+            .status { padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+            .status-pending { background-color: #fff3cd; color: #856404; }
+            .status-confirmed { background-color: #d1ecf1; color: #0c5460; }
+            .status-allocated { background-color: #d4edda; color: #155724; }
+            .status-returned { background-color: #f8d7da; color: #721c24; }
+            .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>LISTA DE MATERIAIS</h1>
+            <p>Sistema de Controle de Almoxarifado</p>
+          </div>
+          
+          <div class="event-info">
+            <h2>${selectedEvent.name}</h2>
+            <p><strong>Cliente:</strong> ${selectedEvent.client_name}</p>
+            ${selectedEvent.client_email ? `<p><strong>Email:</strong> ${selectedEvent.client_email}</p>` : ''}
+            ${selectedEvent.client_phone ? `<p><strong>Telefone:</strong> ${selectedEvent.client_phone}</p>` : ''}
+            <p><strong>Data do Evento:</strong> ${format(new Date(selectedEvent.event_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
+            ${selectedEvent.event_time ? `<p><strong>Horário:</strong> ${selectedEvent.event_time}</p>` : ''}
+            ${selectedEvent.setup_start_date ? `<p><strong>Data de Montagem:</strong> ${format(new Date(selectedEvent.setup_start_date), 'dd/MM/yyyy', { locale: ptBR })}</p>` : ''}
+            ${selectedEvent.location ? `<p><strong>Local:</strong> ${selectedEvent.location}</p>` : ''}
+            ${selectedEvent.description ? `<p><strong>Descrição:</strong> ${selectedEvent.description}</p>` : ''}
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Equipamento</th>
+                <th>Quantidade</th>
+                <th>Status</th>
+                <th>Descrição</th>
+                <th>Observações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${equipment.map(item => `
+                <tr>
+                  <td>${item.equipment_name}</td>
+                  <td>${item.quantity}</td>
+                  <td>
+                    <span class="status status-${item.status}">
+                      ${getStatusText(item.status)}
+                    </span>
+                  </td>
+                  <td>${item.description || '-'}</td>
+                  <td>_________________</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="footer">
+            <p>Documento gerado em ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}</p>
+            <p>Total de itens: ${equipment.length}</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }
+  };
+  
   // Update selectedMonth when year changes
   useEffect(() => {
     setSelectedMonth(new Date(selectedYear, selectedMonth.getMonth(), 1));
@@ -437,86 +529,97 @@ export const EventEquipment = () => {
               {/* Add Equipment Button */}
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold">Equipamentos do Evento</h3>
-                <Dialog open={equipmentDialog} onOpenChange={setEquipmentDialog}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Adicionar Equipamento
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Novo Equipamento</DialogTitle>
-                      <DialogDescription>
-                        Adicione um novo equipamento ao evento
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="equipment_name">Nome do Equipamento *</Label>
-                        <Select value={newEquipment.equipment_name} onValueChange={(value) => setNewEquipment(prev => ({ ...prev, equipment_name: value }))}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione um equipamento" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableEquipment.map((item) => (
-                              <SelectItem key={item.id} value={item.name}>
-                                {item.name} - {item.category} ({item.available} disponíveis)
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={printEquipmentList}
+                    className="gap-2"
+                  >
+                    <Printer className="h-4 w-4" />
+                    Imprimir Lista
+                  </Button>
+                  <Dialog open={equipmentDialog} onOpenChange={setEquipmentDialog}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Adicionar Equipamento
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Novo Equipamento</DialogTitle>
+                        <DialogDescription>
+                          Adicione um novo equipamento ao evento
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
                         <div>
-                          <Label htmlFor="quantity">Quantidade</Label>
-                          <Input
-                            id="quantity"
-                            type="number"
-                            min="1"
-                            value={newEquipment.quantity || 1}
-                            onChange={(e) => setNewEquipment(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
-                          />
-                        </div>
-                        
-                        <div>
-                          <Label htmlFor="status">Status</Label>
-                          <Select value={newEquipment.status} onValueChange={(value) => setNewEquipment(prev => ({ ...prev, status: value }))}>
+                          <Label htmlFor="equipment_name">Nome do Equipamento *</Label>
+                          <Select value={newEquipment.equipment_name} onValueChange={(value) => setNewEquipment(prev => ({ ...prev, equipment_name: value }))}>
                             <SelectTrigger>
-                              <SelectValue />
+                              <SelectValue placeholder="Selecione um equipamento" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="pending">Pendente</SelectItem>
-                              <SelectItem value="confirmed">Confirmado</SelectItem>
-                              <SelectItem value="allocated">Alocado</SelectItem>
-                              <SelectItem value="returned">Devolvido</SelectItem>
+                              {availableEquipment.map((item) => (
+                                <SelectItem key={item.id} value={item.name}>
+                                  {item.name} - {item.category} ({item.available} disponíveis)
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </div>
-                      </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="quantity">Quantidade</Label>
+                            <Input
+                              id="quantity"
+                              type="number"
+                              min="1"
+                              value={newEquipment.quantity || 1}
+                              onChange={(e) => setNewEquipment(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
+                            />
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="status">Status</Label>
+                            <Select value={newEquipment.status} onValueChange={(value) => setNewEquipment(prev => ({ ...prev, status: value }))}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pending">Pendente</SelectItem>
+                                <SelectItem value="confirmed">Confirmado</SelectItem>
+                                <SelectItem value="allocated">Alocado</SelectItem>
+                                <SelectItem value="returned">Devolvido</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
 
-                      <div>
-                        <Label htmlFor="description">Descrição</Label>
-                        <Textarea
-                          id="description"
-                          value={newEquipment.description || ''}
-                          onChange={(e) => setNewEquipment(prev => ({ ...prev, description: e.target.value }))}
-                          placeholder="Detalhes sobre o equipamento..."
-                        />
-                      </div>
+                        <div>
+                          <Label htmlFor="description">Descrição</Label>
+                          <Textarea
+                            id="description"
+                            value={newEquipment.description || ''}
+                            onChange={(e) => setNewEquipment(prev => ({ ...prev, description: e.target.value }))}
+                            placeholder="Detalhes sobre o equipamento..."
+                          />
+                        </div>
 
-                      <div className="flex justify-end gap-3">
-                        <Button variant="outline" onClick={() => setEquipmentDialog(false)}>
-                          Cancelar
-                        </Button>
-                        <Button onClick={addEquipment}>
-                          Adicionar
-                        </Button>
+                        <div className="flex justify-end gap-3">
+                          <Button variant="outline" onClick={() => setEquipmentDialog(false)}>
+                            Cancelar
+                          </Button>
+                          <Button onClick={addEquipment}>
+                            Adicionar
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </div>
 
               {/* Equipment List */}
