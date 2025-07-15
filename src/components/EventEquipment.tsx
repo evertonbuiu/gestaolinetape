@@ -80,6 +80,7 @@ export const EventEquipment = () => {
   const [collaboratorDialog, setCollaboratorDialog] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string>('/logo-empresa.png');
   const [collaborators, setCollaborators] = useState<EventCollaborator[]>([]);
+  const [availableCollaborators, setAvailableCollaborators] = useState<any[]>([]);
   const [newEquipment, setNewEquipment] = useState<Partial<EventEquipment>>({
     equipment_name: '',
     quantity: 1,
@@ -89,8 +90,10 @@ export const EventEquipment = () => {
   const [newCollaborator, setNewCollaborator] = useState({
     collaborator_name: '',
     collaborator_email: '',
-    role: 'funcionario'
+    role: 'funcionario',
+    selectedCollaboratorId: ''
   });
+  const [isNewCollaborator, setIsNewCollaborator] = useState(false);
 
   // Fetch events
   const fetchEvents = async () => {
@@ -258,7 +261,8 @@ export const EventEquipment = () => {
       setNewCollaborator({
         collaborator_name: '',
         collaborator_email: '',
-        role: 'funcionario'
+        role: 'funcionario',
+        selectedCollaboratorId: ''
       });
       setCollaboratorDialog(false);
 
@@ -356,6 +360,36 @@ export const EventEquipment = () => {
         description: "Não foi possível carregar os equipamentos disponíveis.",
         variant: "destructive"
       });
+    }
+  };
+
+  // Fetch available collaborators
+  const fetchAvailableCollaborators = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      setAvailableCollaborators(data || []);
+    } catch (error) {
+      console.error('Error fetching available collaborators:', error);
+      // Fallback para mock data se não conseguir buscar
+      setAvailableCollaborators([]);
+    }
+  };
+
+  // Handle collaborator selection
+  const handleCollaboratorSelect = (collaboratorId: string) => {
+    const selectedCollaborator = availableCollaborators.find(c => c.id === collaboratorId);
+    if (selectedCollaborator) {
+      setNewCollaborator(prev => ({
+        ...prev,
+        collaborator_name: selectedCollaborator.name,
+        collaborator_email: selectedCollaborator.email,
+        selectedCollaboratorId: collaboratorId
+      }));
     }
   };
 
@@ -638,6 +672,7 @@ export const EventEquipment = () => {
   useEffect(() => {
     fetchEvents();
     fetchAvailableEquipment();
+    fetchAvailableCollaborators();
     fetchLogo();
   }, []);
 
@@ -956,27 +991,74 @@ export const EventEquipment = () => {
                         </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="collaborator_name">Nome do Colaborador *</Label>
-                          <Input
-                            id="collaborator_name"
-                            value={newCollaborator.collaborator_name}
-                            onChange={(e) => setNewCollaborator(prev => ({ ...prev, collaborator_name: e.target.value }))}
-                            placeholder="Digite o nome do colaborador"
-                          />
+                        {/* Toggle para selecionar da lista ou adicionar novo */}
+                        <div className="flex gap-4 p-4 border rounded-lg">
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name="collaborator_type"
+                              checked={!isNewCollaborator}
+                              onChange={() => setIsNewCollaborator(false)}
+                            />
+                            <span>Selecionar da lista</span>
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name="collaborator_type"
+                              checked={isNewCollaborator}
+                              onChange={() => setIsNewCollaborator(true)}
+                            />
+                            <span>Adicionar novo</span>
+                          </label>
                         </div>
-                        
-                        <div>
-                          <Label htmlFor="collaborator_email">Email do Colaborador *</Label>
-                          <Input
-                            id="collaborator_email"
-                            type="email"
-                            value={newCollaborator.collaborator_email}
-                            onChange={(e) => setNewCollaborator(prev => ({ ...prev, collaborator_email: e.target.value }))}
-                            placeholder="email@exemplo.com"
-                          />
-                        </div>
-                        
+
+                        {/* Seleção da lista de colaboradores */}
+                        {!isNewCollaborator && (
+                          <div>
+                            <Label htmlFor="select_collaborator">Selecionar Colaborador</Label>
+                            <Select value={newCollaborator.selectedCollaboratorId} onValueChange={handleCollaboratorSelect}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione um colaborador" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableCollaborators.map((collaborator) => (
+                                  <SelectItem key={collaborator.id} value={collaborator.id}>
+                                    {collaborator.name} ({collaborator.email})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
+                        {/* Campos manuais para novo colaborador */}
+                        {isNewCollaborator && (
+                          <>
+                            <div>
+                              <Label htmlFor="collaborator_name">Nome do Colaborador *</Label>
+                              <Input
+                                id="collaborator_name"
+                                value={newCollaborator.collaborator_name}
+                                onChange={(e) => setNewCollaborator(prev => ({ ...prev, collaborator_name: e.target.value }))}
+                                placeholder="Digite o nome do colaborador"
+                              />
+                            </div>
+                            
+                            <div>
+                              <Label htmlFor="collaborator_email">Email do Colaborador *</Label>
+                              <Input
+                                id="collaborator_email"
+                                type="email"
+                                value={newCollaborator.collaborator_email}
+                                onChange={(e) => setNewCollaborator(prev => ({ ...prev, collaborator_email: e.target.value }))}
+                                placeholder="email@exemplo.com"
+                              />
+                            </div>
+                          </>
+                        )}
+
+                        {/* Função sempre disponível */}
                         <div>
                           <Label htmlFor="collaborator_role">Função</Label>
                           <Select value={newCollaborator.role} onValueChange={(value) => setNewCollaborator(prev => ({ ...prev, role: value }))}>
