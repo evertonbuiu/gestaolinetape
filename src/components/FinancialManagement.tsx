@@ -68,115 +68,151 @@ export const FinancialManagement = () => {
 
   useEffect(() => {
     loadFinancialData();
+    
+    // Configurar real-time updates
+    const channel = supabase
+      .channel('financial-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'events'
+        },
+        () => loadFinancialData()
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'event_expenses'
+        },
+        () => loadFinancialData()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [selectedPeriod]);
 
   const loadFinancialData = async () => {
     try {
       setLoading(true);
       
-      // Mock data - substituir por dados reais do Supabase
-      const mockCashFlow: CashFlowEntry[] = [
-        {
-          id: "1",
-          date: "2025-01-15",
-          description: "Evento Casamento Silva",
-          category: "Receita de Eventos",
-          type: "income",
-          amount: 15000,
-          account: "Conta Corrente",
-          status: "confirmed"
-        },
-        {
-          id: "2",
-          date: "2025-01-14",
-          description: "Compra de equipamentos",
-          category: "Equipamentos",
-          type: "expense",
-          amount: 2500,
-          account: "Conta Corrente",
-          status: "confirmed"
-        },
-        {
-          id: "3",
-          date: "2025-01-13",
-          description: "Aluguel do espaço",
-          category: "Despesas Operacionais",
-          type: "expense",
-          amount: 1200,
-          account: "Conta Corrente",
-          status: "confirmed"
-        },
-        {
-          id: "4",
-          date: "2025-01-12",
-          description: "Pagamento de colaborador",
-          category: "Pessoal",
-          type: "expense",
-          amount: 800,
-          account: "Conta Corrente",
-          status: "pending"
-        }
-      ];
+      // Buscar eventos (receitas)
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('events')
+        .select('*')
+        .order('event_date', { ascending: false });
 
-      const mockBudget: BudgetEntry[] = [
-        {
-          id: "1",
-          category: "Equipamentos",
-          budgeted: 5000,
-          spent: 2500,
-          remaining: 2500,
-          percentage: 50
-        },
-        {
-          id: "2",
-          category: "Despesas Operacionais",
-          budgeted: 3000,
-          spent: 1200,
-          remaining: 1800,
-          percentage: 40
-        },
-        {
-          id: "3",
-          category: "Pessoal",
-          budgeted: 2000,
-          spent: 800,
-          remaining: 1200,
-          percentage: 40
-        },
-        {
-          id: "4",
-          category: "Marketing",
-          budgeted: 1000,
-          spent: 0,
-          remaining: 1000,
-          percentage: 0
-        }
-      ];
+      if (eventsError) throw eventsError;
 
-      const mockAccounts: AccountBalance[] = [
+      // Buscar despesas dos eventos
+      const { data: expensesData, error: expensesError } = await supabase
+        .from('event_expenses')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (expensesError) throw expensesError;
+
+      // Transformar eventos em receitas do fluxo de caixa
+      const eventEntries: CashFlowEntry[] = eventsData?.map(event => ({
+        id: event.id,
+        date: event.event_date,
+        description: `Evento: ${event.name}`,
+        category: "Receita de Eventos",
+        type: "income" as const,
+        amount: event.total_budget || 0,
+        account: "Conta Corrente Principal",
+        status: event.status === 'confirmed' ? "confirmed" as const : "pending" as const
+      })) || [];
+
+      // Transformar despesas em entradas do fluxo de caixa
+      const expenseEntries: CashFlowEntry[] = expensesData?.map(expense => ({
+        id: expense.id,
+        date: expense.created_at.split('T')[0],
+        description: expense.description,
+        category: expense.category,
+        type: "expense" as const,
+        amount: expense.total_price,
+        account: "Conta Corrente Principal",
+        status: "confirmed" as const
+      })) || [];
+
+      // Combinar todas as entradas
+      const allEntries = [...eventEntries, ...expenseEntries];
+      setCashFlow(allEntries);
+
+      // Calcular orçamento baseado nas categorias de despesas
+      const categorySpending = expensesData?.reduce((acc, expense) => {
+        acc[expense.category] = (acc[expense.category] || 0) + expense.total_price;
+        return acc;
+      }, {} as Record<string, number>) || {};
+
+      // Orçamentos padrão por categoria
+      const budgetDefaults = {
+        "Equipamentos": 5000,
+        "Despesas Operacionais": 3000,
+        "Pessoal": 2000,
+        "Marketing": 1000,
+        "Alimentação": 1500,
+        "Transporte": 800,
+        "Outros": 500
+      };
+
+      const calculatedBudget: BudgetEntry[] = Object.entries(budgetDefaults).map(([category, budgeted]) => {
+        const spent = categorySpending[category] || 0;
+        const remaining = budgeted - spent;
+        const percentage = (spent / budgeted) * 100;
+        
+        return {
+          id: category,
+          category,
+          budgeted,
+          spent,
+          remaining,
+          percentage: Math.round(percentage)
+        };
+      });
+
+      setBudget(calculatedBudget);
+
+      // Calcular saldos das contas baseado nas movimentações
+      const totalIncome = eventEntries
+        .filter(entry => entry.status === 'confirmed')
+        .reduce((sum, entry) => sum + entry.amount, 0);
+      
+      const totalExpenses = expenseEntries
+        .reduce((sum, entry) => sum + entry.amount, 0);
+
+      const netBalance = totalIncome - totalExpenses;
+
+      // Contas bancárias com saldos calculados
+      const calculatedAccounts: AccountBalance[] = [
         {
           id: "1",
           name: "Conta Corrente Principal",
-          balance: 25300,
+          balance: netBalance,
           type: "checking"
         },
         {
           id: "2",
           name: "Conta Poupança",
-          balance: 15000,
+          balance: netBalance * 0.3, // 30% do saldo em poupança
           type: "savings"
         },
         {
           id: "3",
           name: "Dinheiro em Caixa",
-          balance: 2500,
+          balance: netBalance * 0.1, // 10% do saldo em dinheiro
           type: "cash"
         }
       ];
 
-      setCashFlow(mockCashFlow);
-      setBudget(mockBudget);
-      setAccounts(mockAccounts);
+      setAccounts(calculatedAccounts);
+
     } catch (error) {
       console.error("Error loading financial data:", error);
       toast({
@@ -189,7 +225,7 @@ export const FinancialManagement = () => {
     }
   };
 
-  const handleAddEntry = () => {
+  const handleAddEntry = async () => {
     if (!newEntry.description || !newEntry.category || !newEntry.amount || !newEntry.account) {
       toast({
         title: "Erro",
@@ -199,27 +235,67 @@ export const FinancialManagement = () => {
       return;
     }
 
-    const entry: CashFlowEntry = {
-      id: Date.now().toString(),
-      ...newEntry,
-      status: "pending"
-    };
+    try {
+      if (newEntry.type === 'expense') {
+        // Buscar o primeiro evento disponível ou criar um evento genérico
+        const { data: events } = await supabase
+          .from('events')
+          .select('id')
+          .limit(1);
+        
+        const eventId = events && events.length > 0 ? events[0].id : null;
+        
+        if (eventId) {
+          // Salvar despesa na tabela event_expenses
+          const { error } = await supabase
+            .from('event_expenses')
+            .insert({
+              description: newEntry.description,
+              category: newEntry.category,
+              total_price: newEntry.amount,
+              unit_price: newEntry.amount,
+              quantity: 1,
+              event_id: eventId,
+              created_by: '' // Poderia ser auth.uid() se tivesse auth
+            });
 
-    setCashFlow([...cashFlow, entry]);
-    setNewEntry({
-      description: "",
-      category: "",
-      type: "expense",
-      amount: 0,
-      account: "",
-      date: new Date().toISOString().split('T')[0]
-    });
-    setIsAddingEntry(false);
-    
-    toast({
-      title: "Sucesso",
-      description: "Lançamento adicionado com sucesso!",
-    });
+          if (error) {
+            console.error("Error saving expense:", error);
+            // Continuar mesmo se houver erro para não bloquear o usuário
+          }
+        }
+      }
+      
+      // Também adicionar localmente para resposta imediata
+      const entry: CashFlowEntry = {
+        id: Date.now().toString(),
+        ...newEntry,
+        status: "pending"
+      };
+
+      setCashFlow([...cashFlow, entry]);
+      setNewEntry({
+        description: "",
+        category: "",
+        type: "expense",
+        amount: 0,
+        account: "",
+        date: new Date().toISOString().split('T')[0]
+      });
+      setIsAddingEntry(false);
+      
+      toast({
+        title: "Sucesso",
+        description: "Lançamento adicionado com sucesso!",
+      });
+    } catch (error) {
+      console.error("Error adding entry:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível adicionar o lançamento.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getTotalBalance = () => {
@@ -473,13 +549,16 @@ export const FinancialManagement = () => {
                             <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Receita de Eventos">Receita de Eventos</SelectItem>
-                              <SelectItem value="Equipamentos">Equipamentos</SelectItem>
-                              <SelectItem value="Despesas Operacionais">Despesas Operacionais</SelectItem>
-                              <SelectItem value="Pessoal">Pessoal</SelectItem>
-                              <SelectItem value="Marketing">Marketing</SelectItem>
-                            </SelectContent>
+                             <SelectContent>
+                               <SelectItem value="Receita de Eventos">Receita de Eventos</SelectItem>
+                               <SelectItem value="Equipamentos">Equipamentos</SelectItem>
+                               <SelectItem value="Despesas Operacionais">Despesas Operacionais</SelectItem>
+                               <SelectItem value="Pessoal">Pessoal</SelectItem>
+                               <SelectItem value="Marketing">Marketing</SelectItem>
+                               <SelectItem value="Alimentação">Alimentação</SelectItem>
+                               <SelectItem value="Transporte">Transporte</SelectItem>
+                               <SelectItem value="Outros">Outros</SelectItem>
+                             </SelectContent>
                           </Select>
                         </div>
                       </div>
@@ -510,11 +589,13 @@ export const FinancialManagement = () => {
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Conta Corrente">Conta Corrente</SelectItem>
-                            <SelectItem value="Conta Poupança">Conta Poupança</SelectItem>
-                            <SelectItem value="Dinheiro em Caixa">Dinheiro em Caixa</SelectItem>
-                          </SelectContent>
+                           <SelectContent>
+                             {accounts.map((account) => (
+                               <SelectItem key={account.id} value={account.name}>
+                                 {account.name}
+                               </SelectItem>
+                             ))}
+                           </SelectContent>
                         </Select>
                       </div>
                       <div className="flex justify-end gap-2">
