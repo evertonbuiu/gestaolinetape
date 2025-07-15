@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Package, Settings, BarChart3, Calendar, Home, Users, Wrench, LogOut } from "lucide-react";
+import { Package, Settings, BarChart3, Calendar, Home, Users, Wrench, LogOut, Cog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,7 +27,8 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
     { id: "dashboard", label: "Dashboard", icon: Home },
     { id: "equipment", label: "Equipamentos", icon: Package },
     { id: "inventory", label: "Estoque", icon: BarChart3 },
-    { id: "rentals", label: "Locações", icon: Calendar },
+    ...(userRole === 'admin' ? [{ id: "rentals", label: "Locações", icon: Calendar }] : []),
+    { id: "event-equipment", label: "Equipamentos Eventos", icon: Cog },
     { id: "clients", label: "Clientes", icon: Users },
     { id: "maintenance", label: "Manutenção", icon: Wrench },
     ...(canAccessSettings ? [{ id: "settings", label: "Configurações", icon: Settings }] : []),

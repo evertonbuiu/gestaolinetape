@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      event_equipment: {
+        Row: {
+          assigned_by: string
+          created_at: string
+          description: string | null
+          equipment_name: string
+          event_id: string
+          id: string
+          quantity: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_by: string
+          created_at?: string
+          description?: string | null
+          equipment_name: string
+          event_id: string
+          id?: string
+          quantity?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_by?: string
+          created_at?: string
+          description?: string | null
+          equipment_name?: string
+          event_id?: string
+          id?: string
+          quantity?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_equipment_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_expenses: {
         Row: {
           category: string
