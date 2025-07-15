@@ -274,8 +274,10 @@ export type Database = {
           is_paid: boolean | null
           location: string | null
           name: string
+          payment_amount: number | null
           payment_bank_account: string | null
           payment_date: string | null
+          payment_type: string | null
           profit_margin: number | null
           setup_start_date: string | null
           status: string
@@ -296,8 +298,10 @@ export type Database = {
           is_paid?: boolean | null
           location?: string | null
           name: string
+          payment_amount?: number | null
           payment_bank_account?: string | null
           payment_date?: string | null
+          payment_type?: string | null
           profit_margin?: number | null
           setup_start_date?: string | null
           status?: string
@@ -318,8 +322,10 @@ export type Database = {
           is_paid?: boolean | null
           location?: string | null
           name?: string
+          payment_amount?: number | null
           payment_bank_account?: string | null
           payment_date?: string | null
+          payment_type?: string | null
           profit_margin?: number | null
           setup_start_date?: string | null
           status?: string

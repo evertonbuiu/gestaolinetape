@@ -37,6 +37,8 @@ interface Event {
   is_paid: boolean;
   payment_date: string;
   payment_bank_account?: string;
+  payment_amount: number;
+  payment_type: string;
   created_at: string;
 }
 
@@ -305,7 +307,9 @@ export const Rentals = () => {
         status: newEvent.status || 'pending',
         is_paid: newEvent.is_paid || false,
         payment_date: newEvent.payment_date || null,
-        payment_bank_account: newEvent.payment_bank_account || null
+        payment_bank_account: newEvent.payment_bank_account || null,
+        payment_amount: newEvent.payment_amount || 0,
+        payment_type: newEvent.payment_type || 'total'
       };
 
       const { error } = await supabase
@@ -749,11 +753,11 @@ export const Rentals = () => {
                                  <Badge className={getStatusColor(event.status)}>
                                    {getStatusText(event.status)}
                                  </Badge>
-                                 {event.is_paid && (
-                                   <Badge className="bg-green-100 text-green-800">
-                                     Pago
-                                   </Badge>
-                                 )}
+                                  {event.is_paid && (
+                                    <Badge className="bg-green-100 text-green-800" title={`${event.payment_type === 'entrada' ? 'Entrada' : 'Valor Total'}: R$ ${event.payment_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}>
+                                      {event.payment_type === 'entrada' ? 'Entrada Paga' : 'Pago'}
+                                    </Badge>
+                                  )}
                                  {canEditRentals && (
                                    <>
                                      <Button
@@ -1408,6 +1412,35 @@ export const Rentals = () => {
                          ))}
                        </SelectContent>
                      </Select>
+                   </div>
+                 </div>
+               )}
+               
+               {newEvent.is_paid && (
+                 <div className="grid grid-cols-2 gap-4">
+                   <div>
+                     <Label htmlFor="payment_type">Tipo de Pagamento</Label>
+                     <Select value={newEvent.payment_type || 'total'} onValueChange={(value) => setNewEvent(prev => ({ ...prev, payment_type: value }))}>
+                       <SelectTrigger>
+                         <SelectValue placeholder="Selecione o tipo" />
+                       </SelectTrigger>
+                       <SelectContent>
+                         <SelectItem value="entrada">Entrada</SelectItem>
+                         <SelectItem value="total">Valor Total</SelectItem>
+                       </SelectContent>
+                     </Select>
+                   </div>
+                   <div>
+                     <Label htmlFor="payment_amount">Valor Pago</Label>
+                     <Input
+                       id="payment_amount"
+                       type="number"
+                       min="0"
+                       step="0.01"
+                       value={newEvent.payment_amount || 0}
+                       onChange={(e) => setNewEvent(prev => ({ ...prev, payment_amount: parseFloat(e.target.value) || 0 }))}
+                       placeholder="0.00"
+                     />
                    </div>
                  </div>
                )}
