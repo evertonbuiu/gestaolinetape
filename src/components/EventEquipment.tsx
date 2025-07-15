@@ -78,6 +78,7 @@ export const EventEquipment = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [equipmentDialog, setEquipmentDialog] = useState(false);
   const [editEquipmentDialog, setEditEquipmentDialog] = useState(false);
+  const [returnedEquipmentDialog, setReturnedEquipmentDialog] = useState(false);
   const [collaboratorDialog, setCollaboratorDialog] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string>('/logo-empresa.png');
   const [collaborators, setCollaborators] = useState<EventCollaborator[]>([]);
@@ -231,6 +232,54 @@ export const EventEquipment = () => {
       toast({
         title: "Erro ao atualizar equipamento",
         description: "Não foi possível atualizar o equipamento.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Add returned equipment
+  const addReturnedEquipment = async () => {
+    if (!selectedEvent || !newEquipment.equipment_name || !user) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha o nome do equipamento.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('event_equipment')
+        .insert({
+          event_id: selectedEvent.id,
+          equipment_name: newEquipment.equipment_name,
+          quantity: newEquipment.quantity || 1,
+          description: newEquipment.description || '',
+          status: 'returned',
+          assigned_by: user.id
+        });
+
+      if (error) throw error;
+
+      await fetchEquipment(selectedEvent.id);
+      setNewEquipment({
+        equipment_name: '',
+        quantity: 1,
+        description: '',
+        status: 'pending'
+      });
+      setReturnedEquipmentDialog(false);
+
+      toast({
+        title: "Equipamento devolvido adicionado",
+        description: "O equipamento foi adicionado à lista de devolvidos com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error adding returned equipment:', error);
+      toast({
+        title: "Erro ao adicionar equipamento devolvido",
+        description: "Não foi possível adicionar o equipamento devolvido.",
         variant: "destructive"
       });
     }
@@ -1056,9 +1105,84 @@ export const EventEquipment = () => {
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h4 className="text-md font-semibold text-foreground">Equipamentos Devolvidos ao Estoque</h4>
-                    <Badge variant="outline" className="bg-green-50 text-green-700">
-                      {equipment.filter(item => item.status === 'returned').length} devolvido(s)
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-green-50 text-green-700">
+                        {equipment.filter(item => item.status === 'returned').length} devolvido(s)
+                      </Badge>
+                      <Dialog open={returnedEquipmentDialog} onOpenChange={setReturnedEquipmentDialog}>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Adicionar Devolvido
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Adicionar Equipamento Devolvido</DialogTitle>
+                            <DialogDescription>
+                              Adicione um equipamento que foi devolvido ao estoque
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div>
+                              <Label htmlFor="returned_equipment_name">Nome do Equipamento *</Label>
+                              <Select value={newEquipment.equipment_name} onValueChange={(value) => setNewEquipment(prev => ({ ...prev, equipment_name: value }))}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione um equipamento" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {availableEquipment.map((item) => (
+                                    <SelectItem key={item.id} value={item.name}>
+                                      {item.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <div>
+                              <Label htmlFor="returned_equipment_quantity">Quantidade *</Label>
+                              <Input
+                                id="returned_equipment_quantity"
+                                type="number"
+                                min="1"
+                                value={newEquipment.quantity || ''}
+                                onChange={(e) => setNewEquipment(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+                                placeholder="Digite a quantidade"
+                              />
+                            </div>
+                            
+                            <div>
+                              <Label htmlFor="returned_equipment_description">Descrição</Label>
+                              <Textarea
+                                id="returned_equipment_description"
+                                value={newEquipment.description || ''}
+                                onChange={(e) => setNewEquipment(prev => ({ ...prev, description: e.target.value }))}
+                                placeholder="Digite uma descrição (opcional)"
+                                rows={3}
+                              />
+                            </div>
+
+                            <div className="flex justify-end gap-3">
+                              <Button variant="outline" onClick={() => {
+                                setReturnedEquipmentDialog(false);
+                                setNewEquipment({
+                                  equipment_name: '',
+                                  quantity: 1,
+                                  description: '',
+                                  status: 'pending'
+                                });
+                              }}>
+                                Cancelar
+                              </Button>
+                              <Button onClick={addReturnedEquipment}>
+                                Adicionar Devolvido
+                              </Button>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
                   </div>
                   <div className="border rounded-lg">
                     <Table>
