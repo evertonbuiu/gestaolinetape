@@ -362,25 +362,35 @@ export const FinancialManagement = () => {
 
       // Update bank account balance for the entry
       if (newEntry.account && newEntry.amount > 0) {
+        console.log(`Adding financial entry: ${newEntry.type} of ${newEntry.amount} to account ${newEntry.account}`);
+        
         const { data: bankAccount, error: bankFetchError } = await supabase
           .from('bank_accounts')
           .select('*')
           .eq('name', newEntry.account)
-          .single();
+          .maybeSingle();
 
         if (!bankFetchError && bankAccount) {
-          const currentBalance = bankAccount.balance || 0;
+          const currentBalance = Number(bankAccount.balance) || 0;
+          const adjustmentAmount = Number(newEntry.amount);
           const newBalance = newEntry.type === 'income' 
-            ? currentBalance + newEntry.amount
-            : currentBalance - newEntry.amount;
+            ? currentBalance + adjustmentAmount
+            : currentBalance - adjustmentAmount;
+          
+          console.log(`Financial entry - Updating account ${newEntry.account}: ${currentBalance} -> ${newBalance} (${newEntry.type === 'income' ? '+' : '-'}${adjustmentAmount})`);
           
           const { error: bankUpdateError } = await supabase
             .from('bank_accounts')
-            .update({ balance: newBalance })
+            .update({ 
+              balance: newBalance,
+              updated_at: new Date().toISOString()
+            })
             .eq('id', bankAccount.id);
 
           if (bankUpdateError) {
             console.error('Error updating bank account balance:', bankUpdateError);
+          } else {
+            console.log(`Successfully updated bank account balance to ${newBalance}`);
           }
         }
       }

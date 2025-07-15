@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Separator } from "@/components/ui/separator";
 import { AlertCircle, Calendar, Clock, MapPin, User, DollarSign, FileText, Plus, Edit, Trash2, Calculator, Shield, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { formatCurrency } from "@/lib/utils";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { startOfMonth, endOfMonth, isSameMonth, addMonths, subMonths } from 'date-fns';
@@ -443,8 +444,15 @@ export const Rentals = () => {
   const togglePaymentStatus = async (event: Event) => {
     try {
       const newPaidStatus = !event.is_paid;
-      const paymentAmount = event.payment_amount || event.total_budget || 0;
+      const paymentAmount = Number(event.payment_amount) || Number(event.total_budget) || 0;
       const paymentAccount = event.payment_bank_account || "Conta Corrente Principal";
+
+      console.log(`Toggling payment status for event ${event.name}: ${event.is_paid} -> ${newPaidStatus}, amount: ${paymentAmount}, account: ${paymentAccount}`);
+
+      // Check if this toggle would create a duplicate operation
+      if (paymentAmount <= 0) {
+        console.warn('No payment amount found for event:', event.name);
+      }
 
       // Update event payment status first
       const { error } = await supabase
@@ -477,6 +485,17 @@ export const Rentals = () => {
           
           console.log(`Updating bank account ${paymentAccount}: ${currentBalance} -> ${newBalance} (${newPaidStatus ? '+' : '-'}${adjustmentAmount})`);
           
+          // Add validation to prevent negative balances from going too negative
+          if (newBalance < -100000) {
+            console.warn('Preventing excessive negative balance:', newBalance);
+            toast({
+              title: "Aviso",
+              description: "Operação resultaria em saldo muito negativo. Verifique os valores.",
+              variant: "destructive"
+            });
+            return;
+          }
+          
           const { error: bankUpdateError } = await supabase
             .from('bank_accounts')
             .update({ 
@@ -499,7 +518,7 @@ export const Rentals = () => {
       await fetchEvents();
       toast({
         title: event.is_paid ? "Marcado como não pago" : "Marcado como pago",
-        description: "O status de pagamento e saldo da conta foram atualizados com sucesso.",
+        description: `O status de pagamento foi atualizado com sucesso. Saldo ${newPaidStatus ? 'aumentado' : 'diminuído'} em ${formatCurrency(paymentAmount)}.`,
       });
     } catch (error) {
       console.error('Error updating payment status:', error);
