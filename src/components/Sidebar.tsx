@@ -1,6 +1,8 @@
-import { Package, Settings, BarChart3, Calendar, Home, Users, Wrench } from "lucide-react";
+import { Package, Settings, BarChart3, Calendar, Home, Users, Wrench, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { Badge } from "@/components/ui/badge";
 
 interface SidebarProps {
   activeTab: string;
@@ -8,6 +10,8 @@ interface SidebarProps {
 }
 
 export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
+  const { signOut, userRole } = useAuth();
+  
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: Home },
     { id: "equipment", label: "Equipamentos", icon: Package },
@@ -20,10 +24,15 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
 
   return (
     <div className="w-64 bg-card border-r border-border h-screen flex flex-col">
-      <div className="p-6 border-b border-border">
-        <h1 className="text-xl font-bold text-primary">Luz Locação</h1>
-        <p className="text-sm text-muted-foreground">Controle de Estoque</p>
+    <div className="p-6 border-b border-border">
+      <h1 className="text-xl font-bold text-primary">Luz Locação</h1>
+      <p className="text-sm text-muted-foreground">Controle de Estoque</p>
+      <div className="mt-2">
+        <Badge variant={userRole === 'admin' ? 'default' : 'secondary'}>
+          {userRole === 'admin' ? 'Administrador' : 'Funcionário'}
+        </Badge>
       </div>
+    </div>
       
       <nav className="flex-1 p-4 space-y-2">
         {menuItems.map((item) => (
@@ -41,6 +50,17 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
           </Button>
         ))}
       </nav>
+      
+      <div className="p-4 border-t border-border">
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-3 text-red-600 hover:text-red-700 hover:bg-red-50"
+          onClick={signOut}
+        >
+          <LogOut className="w-5 h-5" />
+          Sair
+        </Button>
+      </div>
     </div>
   );
 };

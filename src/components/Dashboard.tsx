@@ -1,7 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, Package, Calendar, TrendingUp } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Dashboard = () => {
+  const { userRole } = useAuth();
+  
   const stats = [
     {
       title: "Total de Equipamentos",
@@ -24,13 +27,14 @@ export const Dashboard = () => {
       icon: AlertTriangle,
       color: "text-red-600"
     },
-    {
+    // Ocultar receita para funcionários
+    ...(userRole === 'admin' ? [{
       title: "Receita do Mês",
       value: "R$ 45.230",
       description: "Faturamento atual",
       icon: TrendingUp,
       color: "text-purple-600"
-    }
+    }] : [])
   ];
 
   return (
