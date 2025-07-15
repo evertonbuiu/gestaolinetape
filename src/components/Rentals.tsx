@@ -359,6 +359,15 @@ export const Rentals = () => {
     }
 
     try {
+      // Get event details before removal to calculate account balance changes
+      const { data: eventData, error: eventFetchError } = await supabase
+        .from('events')
+        .select('*')
+        .eq('id', eventId)
+        .single();
+
+      if (eventFetchError) throw eventFetchError;
+
       // First remove all related expenses
       const { error: expensesError } = await supabase
         .from('event_expenses')
@@ -383,6 +392,30 @@ export const Rentals = () => {
 
       if (equipmentError) throw equipmentError;
 
+      // Update bank account balance if event was paid
+      if (eventData.is_paid && eventData.payment_amount > 0 && eventData.payment_bank_account) {
+        // Find the bank account and subtract the payment amount
+        const { data: bankAccount, error: bankFetchError } = await supabase
+          .from('bank_accounts')
+          .select('*')
+          .eq('name', eventData.payment_bank_account)
+          .single();
+
+        if (!bankFetchError && bankAccount) {
+          const newBalance = (bankAccount.balance || 0) - eventData.payment_amount;
+          
+          const { error: bankUpdateError } = await supabase
+            .from('bank_accounts')
+            .update({ balance: newBalance })
+            .eq('id', bankAccount.id);
+
+          if (bankUpdateError) {
+            console.error('Error updating bank account balance:', bankUpdateError);
+            // Don't throw here, continue with event removal
+          }
+        }
+      }
+
       // Finally remove the event
       const { error } = await supabase
         .from('events')
@@ -394,7 +427,7 @@ export const Rentals = () => {
       await fetchEvents();
       toast({
         title: "Evento removido",
-        description: "O evento foi removido com sucesso.",
+        description: "O evento e os saldos das contas foram atualizados com sucesso.",
       });
     } catch (error) {
       console.error('Error removing event:', error);
