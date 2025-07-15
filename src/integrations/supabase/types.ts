@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      bank_accounts: {
+        Row: {
+          account_type: string
+          balance: number | null
+          created_at: string | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          account_type: string
+          balance?: number | null
+          created_at?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          account_type?: string
+          balance?: number | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           address: string | null
@@ -181,6 +208,7 @@ export type Database = {
           created_by: string
           description: string
           event_id: string
+          expense_bank_account: string | null
           id: string
           notes: string | null
           quantity: number
@@ -196,6 +224,7 @@ export type Database = {
           created_by: string
           description: string
           event_id: string
+          expense_bank_account?: string | null
           id?: string
           notes?: string | null
           quantity?: number
@@ -211,6 +240,7 @@ export type Database = {
           created_by?: string
           description?: string
           event_id?: string
+          expense_bank_account?: string | null
           id?: string
           notes?: string | null
           quantity?: number
@@ -243,6 +273,7 @@ export type Database = {
           id: string
           location: string | null
           name: string
+          payment_bank_account: string | null
           profit_margin: number | null
           setup_start_date: string | null
           status: string
@@ -262,6 +293,7 @@ export type Database = {
           id?: string
           location?: string | null
           name: string
+          payment_bank_account?: string | null
           profit_margin?: number | null
           setup_start_date?: string | null
           status?: string
@@ -281,6 +313,7 @@ export type Database = {
           id?: string
           location?: string | null
           name?: string
+          payment_bank_account?: string | null
           profit_margin?: number | null
           setup_start_date?: string | null
           status?: string

@@ -34,6 +34,7 @@ interface Event {
   total_expenses: number;
   profit_margin: number;
   status: string;
+  payment_bank_account?: string;
   created_at: string;
 }
 
@@ -48,6 +49,7 @@ interface EventExpense {
   supplier: string;
   notes: string;
   receipt_url: string;
+  expense_bank_account?: string;
 }
 
 interface Collaborator {
@@ -74,9 +76,12 @@ export const Rentals = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [expenseDialog, setExpenseDialog] = useState(false);
   const [eventDialog, setEventDialog] = useState(false);
+  const [editEventDialog, setEditEventDialog] = useState(false);
   const [statusDialog, setStatusDialog] = useState(false);
   const [selectedEventForStatus, setSelectedEventForStatus] = useState<Event | null>(null);
+  const [selectedEventForEdit, setSelectedEventForEdit] = useState<Event | null>(null);
   const [newStatus, setNewStatus] = useState('');
+  const [bankAccounts, setBankAccounts] = useState<any[]>([]);
   const [canViewRentals, setCanViewRentals] = useState(false);
   const [canEditRentals, setCanEditRentals] = useState(false);
   const [canViewFinancials, setCanViewFinancials] = useState(false);
@@ -204,22 +209,29 @@ export const Rentals = () => {
     }
 
     try {
+      const eventData: any = {
+        name: newEvent.name,
+        client_name: newEvent.client_name,
+        client_email: newEvent.client_email || '',
+        client_phone: newEvent.client_phone || '',
+        setup_start_date: newEvent.setup_start_date || null,
+        event_date: newEvent.event_date,
+        event_time: newEvent.event_time || '',
+        location: newEvent.location || '',
+        description: newEvent.description || '',
+        total_budget: newEvent.total_budget || 0,
+        status: newEvent.status || 'pending',
+        created_by: user.id
+      };
+
+      // Add payment bank account if status is paid
+      if (newEvent.status === 'paid' && newEvent.payment_bank_account) {
+        eventData.payment_bank_account = newEvent.payment_bank_account;
+      }
+
       const { error } = await supabase
         .from('events')
-        .insert({
-          name: newEvent.name,
-          client_name: newEvent.client_name,
-          client_email: newEvent.client_email || '',
-          client_phone: newEvent.client_phone || '',
-          setup_start_date: newEvent.setup_start_date || null,
-          event_date: newEvent.event_date,
-          event_time: newEvent.event_time || '',
-          location: newEvent.location || '',
-          description: newEvent.description || '',
-          total_budget: newEvent.total_budget || 0,
-          status: newEvent.status || 'pending',
-          created_by: user.id
-        });
+        .insert(eventData);
 
       if (error) throw error;
 
@@ -248,6 +260,71 @@ export const Rentals = () => {
       toast({
         title: "Erro ao criar evento",
         description: "Não foi possível criar o evento.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Edit event
+  const updateEvent = async () => {
+    if (!selectedEventForEdit || !newEvent.name || !newEvent.client_name || !newEvent.event_date || !user) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha nome do evento, cliente e data.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const eventData = {
+        name: newEvent.name,
+        client_name: newEvent.client_name,
+        client_email: newEvent.client_email || '',
+        client_phone: newEvent.client_phone || '',
+        setup_start_date: newEvent.setup_start_date || null,
+        event_date: newEvent.event_date,
+        event_time: newEvent.event_time || '',
+        location: newEvent.location || '',
+        description: newEvent.description || '',
+        total_budget: newEvent.total_budget || 0,
+        status: newEvent.status || 'pending',
+        payment_bank_account: newEvent.payment_bank_account || null
+      };
+
+      const { error } = await supabase
+        .from('events')
+        .update(eventData)
+        .eq('id', selectedEventForEdit.id);
+
+      if (error) throw error;
+
+      await fetchEvents();
+      setEditEventDialog(false);
+      setSelectedEventForEdit(null);
+      setNewEvent({
+        name: '',
+        client_name: '',
+        client_email: '',
+        client_phone: '',
+        setup_start_date: '',
+        event_date: '',
+        event_time: '',
+        location: '',
+        description: '',
+        total_budget: 0,
+        status: 'pending'
+      });
+
+      toast({
+        title: "Evento atualizado",
+        description: "O evento foi atualizado com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error updating event:', error);
+      toast({
+        title: "Erro ao atualizar evento",
+        description: "Não foi possível atualizar o evento.",
         variant: "destructive"
       });
     }
@@ -286,19 +363,26 @@ export const Rentals = () => {
     }
 
     try {
+      const expenseData: any = {
+        event_id: selectedEvent.id,
+        category: newExpense.category,
+        description: newExpense.description,
+        quantity: newExpense.quantity || 1,
+        unit_price: newExpense.unit_price || 0,
+        total_price: (newExpense.quantity || 1) * (newExpense.unit_price || 0),
+        supplier: newExpense.supplier || '',
+        notes: newExpense.notes || '',
+        created_by: user.id
+      };
+
+      // Add bank account if selected
+      if (newExpense.expense_bank_account) {
+        expenseData.expense_bank_account = newExpense.expense_bank_account;
+      }
+
       const { error } = await supabase
         .from('event_expenses')
-        .insert({
-          event_id: selectedEvent.id,
-          category: newExpense.category,
-          description: newExpense.description,
-          quantity: newExpense.quantity || 1,
-          unit_price: newExpense.unit_price || 0,
-          total_price: (newExpense.quantity || 1) * (newExpense.unit_price || 0),
-          supplier: newExpense.supplier || '',
-          notes: newExpense.notes || '',
-          created_by: user.id
-        });
+        .insert(expenseData);
 
       if (error) throw error;
 
@@ -365,6 +449,7 @@ export const Rentals = () => {
       case 'in_progress': return 'bg-green-100 text-green-800';
       case 'completed': return 'bg-gray-100 text-gray-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
+      case 'paid': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -377,6 +462,7 @@ export const Rentals = () => {
       case 'in_progress': return 'Em Andamento';
       case 'completed': return 'Concluído';
       case 'cancelled': return 'Cancelado';
+      case 'paid': return 'Pago';
       default: return status;
     }
   };
@@ -477,7 +563,23 @@ export const Rentals = () => {
     fetchEvents();
     fetchClients();
     fetchCollaborators();
+    fetchBankAccounts();
   }, []);
+
+  // Fetch bank accounts
+  const fetchBankAccounts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('bank_accounts')
+        .select('*')
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      setBankAccounts(data || []);
+    } catch (error) {
+      console.error('Error fetching bank accounts:', error);
+    }
+  };
 
   const yearsAndMonths = generateYearsAndMonths();
   
@@ -617,35 +719,50 @@ export const Rentals = () => {
                                 </CardDescription>
                               </div>
                               <div className="flex items-center gap-2">
-                                <Badge className={getStatusColor(event.status)}>
-                                  {getStatusText(event.status)}
-                                </Badge>
-                                {canEditRentals && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      setSelectedEventForStatus(event);
-                                      setNewStatus(event.status);
-                                      setStatusDialog(true);
-                                    }}
-                                  >
-                                    <Settings className="h-4 w-4" />
-                                  </Button>
-                                )}
-                                {canViewFinancials && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      setSelectedEvent(event);
-                                      fetchExpenses(event.id);
-                                    }}
-                                  >
-                                    <Calculator className="h-4 w-4 mr-2" />
-                                    Despesas
-                                  </Button>
-                                )}
+                                 <Badge className={getStatusColor(event.status)}>
+                                   {getStatusText(event.status)}
+                                 </Badge>
+                                 {canEditRentals && (
+                                   <>
+                                     <Button
+                                       variant="ghost"
+                                       size="sm"
+                                       onClick={() => {
+                                         setSelectedEventForEdit(event);
+                                         setNewEvent(event);
+                                         setEditEventDialog(true);
+                                       }}
+                                       title="Editar evento"
+                                     >
+                                       <Edit className="h-4 w-4" />
+                                     </Button>
+                                     <Button
+                                       variant="ghost"
+                                       size="sm"
+                                       onClick={() => {
+                                         setSelectedEventForStatus(event);
+                                         setNewStatus(event.status);
+                                         setStatusDialog(true);
+                                       }}
+                                       title="Alterar status"
+                                     >
+                                       <Settings className="h-4 w-4" />
+                                     </Button>
+                                   </>
+                                 )}
+                                 {canViewFinancials && (
+                                   <Button
+                                     variant="outline"
+                                     size="sm"
+                                     onClick={() => {
+                                       setSelectedEvent(event);
+                                       fetchExpenses(event.id);
+                                     }}
+                                   >
+                                     <Calculator className="h-4 w-4 mr-2" />
+                                     Despesas
+                                   </Button>
+                                 )}
                               </div>
                             </div>
                           </CardHeader>
@@ -875,19 +992,35 @@ export const Rentals = () => {
                           onChange={(e) => setNewExpense(prev => ({ ...prev, notes: e.target.value }))}
                           placeholder="Observações adicionais"
                         />
-                      </div>
-                      
-                       <div className="flex justify-end gap-2">
-                         <Button variant="outline" onClick={() => {
-                           setExpenseDialog(false);
-                           setSelectedCollaborator('');
-                         }}>
-                           Cancelar
-                         </Button>
-                         <Button onClick={addExpense}>
-                           Adicionar Despesa
-                         </Button>
                        </div>
+                       
+                       <div>
+                         <Label htmlFor="expense_bank_account">Conta Bancária</Label>
+                         <Select value={newExpense.expense_bank_account} onValueChange={(value) => setNewExpense(prev => ({ ...prev, expense_bank_account: value }))}>
+                           <SelectTrigger>
+                             <SelectValue placeholder="Selecione a conta bancária" />
+                           </SelectTrigger>
+                           <SelectContent>
+                             {bankAccounts.map((account) => (
+                               <SelectItem key={account.id} value={account.name}>
+                                 {account.name}
+                               </SelectItem>
+                             ))}
+                           </SelectContent>
+                         </Select>
+                       </div>
+                       
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" onClick={() => {
+                            setExpenseDialog(false);
+                            setSelectedCollaborator('');
+                          }}>
+                            Cancelar
+                          </Button>
+                          <Button onClick={addExpense}>
+                            Adicionar Despesa
+                          </Button>
+                        </div>
                     </div>
                   </DialogContent>
                 </Dialog>
@@ -1079,16 +1212,36 @@ export const Rentals = () => {
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pendente</SelectItem>
-                    <SelectItem value="confirmed">Confirmado</SelectItem>
-                    <SelectItem value="in_progress">Em Andamento</SelectItem>
-                    <SelectItem value="completed">Concluído</SelectItem>
-                    <SelectItem value="cancelled">Cancelado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+                   <SelectContent>
+                     <SelectItem value="pending">Pendente</SelectItem>
+                     <SelectItem value="confirmed">Confirmado</SelectItem>
+                     <SelectItem value="in_progress">Em Andamento</SelectItem>
+                     <SelectItem value="completed">Concluído</SelectItem>
+                     <SelectItem value="cancelled">Cancelado</SelectItem>
+                     <SelectItem value="paid">Pago</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
+             </div>
+             
+             {/* Campo de banco bancária quando status for "pago" */}
+             {newEvent.status === 'paid' && (
+               <div>
+                 <Label htmlFor="payment_bank_account">Conta Bancária Recebimento</Label>
+                 <Select value={newEvent.payment_bank_account} onValueChange={(value) => setNewEvent(prev => ({ ...prev, payment_bank_account: value }))}>
+                   <SelectTrigger>
+                     <SelectValue placeholder="Selecione a conta bancária" />
+                   </SelectTrigger>
+                   <SelectContent>
+                     {bankAccounts.map((account) => (
+                       <SelectItem key={account.id} value={account.name}>
+                         {account.name}
+                       </SelectItem>
+                     ))}
+                   </SelectContent>
+                 </Select>
+               </div>
+             )}
             
             <div>
               <Label htmlFor="description">Descrição</Label>
@@ -1112,39 +1265,80 @@ export const Rentals = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Change Status Dialog */}
-      <Dialog open={statusDialog} onOpenChange={setStatusDialog}>
-        <DialogContent>
+      {/* Edit Event Dialog */}
+      <Dialog open={editEventDialog} onOpenChange={setEditEventDialog}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Alterar Status do Evento</DialogTitle>
+            <DialogTitle>Editar Evento</DialogTitle>
             <DialogDescription>
-              Altere o status do evento selecionado
+              Edite as informações do evento
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit_name">Nome do Evento</Label>
+                <Input
+                  id="edit_name"
+                  value={newEvent.name}
+                  onChange={(e) => setNewEvent(prev => ({ ...prev, name: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit_client">Cliente</Label>
+                <Input
+                  id="edit_client"
+                  value={newEvent.client_name}
+                  onChange={(e) => setNewEvent(prev => ({ ...prev, client_name: e.target.value }))}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit_event_date">Data do Evento</Label>
+                <Input
+                  id="edit_event_date"
+                  type="date"
+                  value={newEvent.event_date}
+                  onChange={(e) => setNewEvent(prev => ({ ...prev, event_date: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit_event_time">Horário</Label>
+                <Input
+                  id="edit_event_time"
+                  type="time"
+                  value={newEvent.event_time}
+                  onChange={(e) => setNewEvent(prev => ({ ...prev, event_time: e.target.value }))}
+                />
+              </div>
+            </div>
+            
             <div>
-              <Label htmlFor="event_name_display">Evento</Label>
+              <Label htmlFor="edit_location">Local</Label>
               <Input
-                id="event_name_display"
-                value={selectedEventForStatus?.name || ''}
-                disabled
+                id="edit_location"
+                value={newEvent.location}
+                onChange={(e) => setNewEvent(prev => ({ ...prev, location: e.target.value }))}
               />
             </div>
             
             <div>
-              <Label htmlFor="current_status">Status Atual</Label>
+              <Label htmlFor="edit_total_budget">Orçamento Total</Label>
               <Input
-                id="current_status"
-                value={selectedEventForStatus ? getStatusText(selectedEventForStatus.status) : ''}
-                disabled
+                id="edit_total_budget"
+                type="number"
+                value={newEvent.total_budget}
+                onChange={(e) => setNewEvent(prev => ({ ...prev, total_budget: Number(e.target.value) }))}
               />
             </div>
             
             <div>
-              <Label htmlFor="new_status">Novo Status</Label>
-              <Select value={newStatus} onValueChange={setNewStatus}>
+              <Label htmlFor="edit_status">Status</Label>
+              <Select value={newEvent.status} onValueChange={(value) => setNewEvent(prev => ({ ...prev, status: value }))}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o novo status" />
+                  <SelectValue placeholder="Selecione o status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pending">Pendente</SelectItem>
@@ -1152,16 +1346,36 @@ export const Rentals = () => {
                   <SelectItem value="in_progress">Em Andamento</SelectItem>
                   <SelectItem value="completed">Concluído</SelectItem>
                   <SelectItem value="cancelled">Cancelado</SelectItem>
+                  <SelectItem value="paid">Pago</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
+            {/* Campo de banco quando status for "pago" */}
+            {newEvent.status === 'paid' && (
+              <div>
+                <Label htmlFor="edit_payment_bank_account">Conta Bancária Recebimento</Label>
+                <Select value={newEvent.payment_bank_account} onValueChange={(value) => setNewEvent(prev => ({ ...prev, payment_bank_account: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a conta bancária" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bankAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.name}>
+                        {account.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setStatusDialog(false)}>
+              <Button variant="outline" onClick={() => setEditEventDialog(false)}>
                 Cancelar
               </Button>
-              <Button onClick={updateEventStatus}>
-                Alterar Status
+              <Button onClick={updateEvent}>
+                Salvar Alterações
               </Button>
             </div>
           </div>
