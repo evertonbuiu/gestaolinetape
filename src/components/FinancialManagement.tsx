@@ -77,6 +77,30 @@ export const FinancialManagement = () => {
   const [activeReport, setActiveReport] = useState<string | null>(null);
   const { toast } = useToast();
 
+  const loadBankAccounts = async () => {
+    try {
+      const { data: bankAccountsData, error: bankAccountsError } = await supabase
+        .from('bank_accounts')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (bankAccountsError) throw bankAccountsError;
+
+      if (bankAccountsData) {
+        const accountBalances = bankAccountsData.map(account => ({
+          id: account.id,
+          name: account.name,
+          balance: account.balance || 0,
+          type: account.account_type as 'checking' | 'savings' | 'cash'
+        }));
+
+        setAccounts(accountBalances);
+      }
+    } catch (error) {
+      console.error("Error loading bank accounts:", error);
+    }
+  };
+
   useEffect(() => {
     loadFinancialData();
     
@@ -108,7 +132,11 @@ export const FinancialManagement = () => {
           schema: 'public',
           table: 'bank_accounts'
         },
-        () => loadFinancialData()
+        (payload) => {
+          console.log('Bank account change detected:', payload);
+          // Atualizar apenas as contas bancárias, não todos os dados
+          loadBankAccounts();
+        }
       )
       .subscribe();
 
