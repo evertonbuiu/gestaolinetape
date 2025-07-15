@@ -41,11 +41,24 @@ interface EventEquipment {
   created_at: string;
 }
 
+interface Equipment {
+  id: string;
+  name: string;
+  category: string;
+  total_stock: number;
+  available: number;
+  rented: number;
+  price_per_day: number;
+  status: string;
+  description: string;
+}
+
 export const EventEquipment = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [events, setEvents] = useState<Event[]>([]);
   const [equipment, setEquipment] = useState<EventEquipment[]>([]);
+  const [availableEquipment, setAvailableEquipment] = useState<Equipment[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [equipmentDialog, setEquipmentDialog] = useState(false);
@@ -210,8 +223,29 @@ export const EventEquipment = () => {
     }
   };
 
+  // Fetch available equipment
+  const fetchAvailableEquipment = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('equipment')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      setAvailableEquipment(data || []);
+    } catch (error) {
+      console.error('Error fetching available equipment:', error);
+      toast({
+        title: "Erro ao carregar equipamentos",
+        description: "Não foi possível carregar os equipamentos disponíveis.",
+        variant: "destructive"
+      });
+    }
+  };
+
   useEffect(() => {
     fetchEvents();
+    fetchAvailableEquipment();
   }, []);
 
   if (loading) {
@@ -321,12 +355,18 @@ export const EventEquipment = () => {
                     <div className="space-y-4">
                       <div>
                         <Label htmlFor="equipment_name">Nome do Equipamento *</Label>
-                        <Input
-                          id="equipment_name"
-                          value={newEquipment.equipment_name || ''}
-                          onChange={(e) => setNewEquipment(prev => ({ ...prev, equipment_name: e.target.value }))}
-                          placeholder="Ex: Refletor LED 500W"
-                        />
+                        <Select value={newEquipment.equipment_name} onValueChange={(value) => setNewEquipment(prev => ({ ...prev, equipment_name: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione um equipamento" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableEquipment.map((item) => (
+                              <SelectItem key={item.id} value={item.name}>
+                                {item.name} - {item.category} ({item.available} disponíveis)
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       
                       <div className="grid grid-cols-2 gap-4">

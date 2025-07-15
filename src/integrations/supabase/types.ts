@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      equipment: {
+        Row: {
+          available: number
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          price_per_day: number
+          rented: number
+          status: string
+          total_stock: number
+          updated_at: string
+        }
+        Insert: {
+          available?: number
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          price_per_day?: number
+          rented?: number
+          status?: string
+          total_stock?: number
+          updated_at?: string
+        }
+        Update: {
+          available?: number
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          price_per_day?: number
+          rented?: number
+          status?: string
+          total_stock?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       event_equipment: {
         Row: {
           assigned_by: string

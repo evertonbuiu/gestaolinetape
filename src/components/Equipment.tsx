@@ -1,65 +1,54 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Edit, Trash2, Package } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+interface Equipment {
+  id: string;
+  name: string;
+  category: string;
+  total_stock: number;
+  available: number;
+  rented: number;
+  price_per_day: number;
+  status: string;
+  description?: string;
+}
 
 export const Equipment = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  const equipment = [
-    {
-      id: 1,
-      name: "Refletor LED 200W",
-      category: "Iluminação",
-      totalStock: 25,
-      available: 18,
-      rented: 7,
-      pricePerDay: 45.00,
-      status: "available"
-    },
-    {
-      id: 2,
-      name: "Mesa de Som 24 Canais",
-      category: "Áudio",
-      totalStock: 8,
-      available: 5,
-      rented: 3,
-      pricePerDay: 120.00,
-      status: "available"
-    },
-    {
-      id: 3,
-      name: "Microfone Sem Fio",
-      category: "Áudio",
-      totalStock: 20,
-      available: 2,
-      rented: 18,
-      pricePerDay: 25.00,
-      status: "low_stock"
-    },
-    {
-      id: 4,
-      name: "Caixa de Som Ativa 500W",
-      category: "Áudio",
-      totalStock: 15,
-      available: 12,
-      rented: 3,
-      pricePerDay: 80.00,
-      status: "available"
-    },
-    {
-      id: 5,
-      name: "Truss Quadrada 3m",
-      category: "Estrutura",
-      totalStock: 30,
-      available: 22,
-      rented: 8,
-      pricePerDay: 15.00,
-      status: "available"
+  const fetchEquipment = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('equipment')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      setEquipment(data || []);
+    } catch (error) {
+      console.error('Error fetching equipment:', error);
+      toast({
+        title: "Erro ao carregar equipamentos",
+        description: "Não foi possível carregar os equipamentos.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  useEffect(() => {
+    fetchEquipment();
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -91,6 +80,10 @@ export const Equipment = () => {
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (loading) {
+    return <div className="p-6">Carregando equipamentos...</div>;
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -134,7 +127,7 @@ export const Equipment = () => {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-muted-foreground">Total</p>
-                  <p className="font-medium">{item.totalStock}</p>
+                  <p className="font-medium">{item.total_stock}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Disponível</p>
@@ -146,7 +139,7 @@ export const Equipment = () => {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Preço/Dia</p>
-                  <p className="font-medium">R$ {item.pricePerDay.toFixed(2)}</p>
+                  <p className="font-medium">R$ {item.price_per_day.toFixed(2)}</p>
                 </div>
               </div>
               
