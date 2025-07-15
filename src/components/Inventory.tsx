@@ -78,7 +78,7 @@ export const Inventory = () => {
 
   const categories = [
     { value: "all", label: "Todos os Itens" },
-    { value: "equipamentos", label: "Equipamentos" },
+    { value: "equipamento", label: "Equipamentos" },
     { value: "cabeamento", label: "Cabeamentos" },
     { value: "insumos", label: "Insumos" }
   ];
