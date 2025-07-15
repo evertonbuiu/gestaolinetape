@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Settings2, Shield, Eye, Edit3, Save } from 'lucide-react';
+import { Loader2, Settings2, Shield, Eye, Edit3, Save, UserPlus, Mail, Lock, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export const SettingsPage = () => {
@@ -16,6 +20,13 @@ export const SettingsPage = () => {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [changes, setChanges] = useState<Record<string, { can_view: boolean; can_edit: boolean }>>({});
+  const [createUserDialog, setCreateUserDialog] = useState(false);
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [newUser, setNewUser] = useState({
+    name: '',
+    email: '',
+    password: ''
+  });
 
   // Group permissions by category
   const groupedPermissions = rolePermissions.reduce((acc, rp) => {
@@ -81,6 +92,50 @@ export const SettingsPage = () => {
   // Check if there are pending changes
   const hasChanges = Object.keys(changes).length > 0;
 
+  // Create new employee
+  const createEmployee = async () => {
+    if (!newUser.name || !newUser.email || !newUser.password) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha todos os campos para criar o funcionário.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setCreatingUser(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          name: newUser.name,
+          email: newUser.email,
+          password: newUser.password
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      setNewUser({ name: '', email: '', password: '' });
+      setCreateUserDialog(false);
+      
+      toast({
+        title: "Funcionário criado",
+        description: "O funcionário foi criado com sucesso e pode fazer login.",
+      });
+    } catch (error) {
+      console.error('Error creating employee:', error);
+      toast({
+        title: "Erro ao criar funcionário",
+        description: error instanceof Error ? error.message : "Ocorreu um erro inesperado.",
+        variant: "destructive"
+      });
+    } finally {
+      setCreatingUser(false);
+    }
+  };
+
   if (userRole !== 'admin') {
     return (
       <div className="p-6">
@@ -126,6 +181,107 @@ export const SettingsPage = () => {
           </Button>
         )}
       </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Gerenciar Funcionários</CardTitle>
+              <CardDescription>
+                Cadastre novos funcionários no sistema
+              </CardDescription>
+            </div>
+            <Dialog open={createUserDialog} onOpenChange={setCreateUserDialog}>
+              <DialogTrigger asChild>
+                <Button>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Novo Funcionário
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Cadastrar Funcionário</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="name">Nome Completo</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="name"
+                        type="text"
+                        placeholder="Digite o nome do funcionário"
+                        value={newUser.name}
+                        onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="Digite o email do funcionário"
+                        value={newUser.email}
+                        onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="password">Senha</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder="Digite a senha"
+                        value={newUser.password}
+                        onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-4">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setCreateUserDialog(false)}
+                      disabled={creatingUser}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button 
+                      onClick={createEmployee}
+                      disabled={creatingUser}
+                    >
+                      {creatingUser ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <UserPlus className="h-4 w-4 mr-2" />
+                      )}
+                      Criar Funcionário
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <p>• Os funcionários criados terão acesso ao sistema com as permissões configuradas</p>
+            <p>• Eles poderão fazer login com o email e senha fornecidos</p>
+            <p>• Por padrão, funcionários têm papel de "funcionario" no sistema</p>
+            <p>• As permissões podem ser ajustadas na seção abaixo</p>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
