@@ -265,14 +265,47 @@ export const FinancialManagement = () => {
           }
         }
       } else {
-        // Mapear contas do banco para o formato do componente
-        const mappedAccounts: AccountBalance[] = bankAccountsData.map(account => ({
-          id: account.id,
-          name: account.name,
-          balance: account.balance || 0,
-          type: account.account_type as 'checking' | 'savings' | 'cash'
-        }));
-        setAccounts(mappedAccounts);
+        // Calcular saldos dinâmicos baseados nas transações
+        const accountBalances = bankAccountsData.map(account => {
+          // Calcular receitas para esta conta
+          const accountIncome = eventEntries
+            .filter(entry => entry.account === account.name && entry.status === 'confirmed')
+            .reduce((sum, entry) => sum + entry.amount, 0);
+          
+          // Calcular despesas para esta conta (assumindo conta principal se não especificado)
+          const accountExpenses = expenseEntries
+            .filter(entry => {
+              const expenseAccount = entry.account || "Conta Corrente Principal";
+              return expenseAccount === account.name;
+            })
+            .reduce((sum, entry) => sum + entry.amount, 0);
+          
+          // Saldo dinâmico baseado nas transações + saldo inicial do banco
+          const dynamicBalance = (account.balance || 0) + accountIncome - accountExpenses;
+          
+          return {
+            id: account.id,
+            name: account.name,
+            balance: dynamicBalance,
+            type: account.account_type as 'checking' | 'savings' | 'cash'
+          };
+        });
+
+        // Atualizar saldos no banco de dados se mudaram significativamente
+        for (const account of accountBalances) {
+          const originalAccount = bankAccountsData.find(ba => ba.id === account.id);
+          const balanceDifference = Math.abs((originalAccount?.balance || 0) - account.balance);
+          
+          // Atualizar se a diferença for maior que 1 real
+          if (balanceDifference > 1) {
+            await supabase
+              .from('bank_accounts')
+              .update({ balance: account.balance })
+              .eq('id', account.id);
+          }
+        }
+
+        setAccounts(accountBalances);
       }
 
     } catch (error) {
