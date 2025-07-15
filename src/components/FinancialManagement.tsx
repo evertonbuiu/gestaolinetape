@@ -56,6 +56,9 @@ export const FinancialManagement = () => {
   });
   const [isAddingEntry, setIsAddingEntry] = useState(false);
   const [isAddingAccount, setIsAddingAccount] = useState(false);
+  const [isEditingAccount, setIsEditingAccount] = useState(false);
+  const [isViewingStatement, setIsViewingStatement] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState<AccountBalance | null>(null);
   const [newAccount, setNewAccount] = useState({
     name: "",
     type: "checking" as 'checking' | 'savings' | 'cash',
@@ -274,6 +277,56 @@ export const FinancialManagement = () => {
       title: "Sucesso",
       description: "Conta removida com sucesso!",
     });
+  };
+
+  const handleEditAccount = (account: AccountBalance) => {
+    setSelectedAccount(account);
+    setNewAccount({
+      name: account.name,
+      type: account.type,
+      balance: account.balance
+    });
+    setIsEditingAccount(true);
+  };
+
+  const handleUpdateAccount = () => {
+    if (!selectedAccount || !newAccount.name || !newAccount.type) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const updatedAccounts = accounts.map(account =>
+      account.id === selectedAccount.id
+        ? { ...account, ...newAccount }
+        : account
+    );
+
+    setAccounts(updatedAccounts);
+    setNewAccount({
+      name: "",
+      type: "checking",
+      balance: 0
+    });
+    setSelectedAccount(null);
+    setIsEditingAccount(false);
+    
+    toast({
+      title: "Sucesso",
+      description: "Conta atualizada com sucesso!",
+    });
+  };
+
+  const handleViewStatement = (account: AccountBalance) => {
+    setSelectedAccount(account);
+    setIsViewingStatement(true);
+  };
+
+  const getAccountTransactions = (accountName: string) => {
+    return cashFlow.filter(entry => entry.account === accountName);
   };
 
   if (loading) {
@@ -660,11 +713,19 @@ export const FinancialManagement = () => {
                     <div className="text-right">
                       <div className="text-2xl font-bold">{formatCurrency(account.balance)}</div>
                       <div className="flex gap-2 mt-2">
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewStatement(account)}
+                        >
                           <Eye className="h-4 w-4 mr-1" />
                           Extrato
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEditAccount(account)}
+                        >
                           <Edit className="h-4 w-4 mr-1" />
                           Editar
                         </Button>
@@ -714,6 +775,153 @@ export const FinancialManagement = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Dialog para editar conta */}
+      <Dialog open={isEditingAccount} onOpenChange={setIsEditingAccount}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Conta</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="editAccountName">Nome da Conta</Label>
+              <Input
+                id="editAccountName"
+                value={newAccount.name}
+                onChange={(e) => setNewAccount({...newAccount, name: e.target.value})}
+                placeholder="Digite o nome da conta..."
+              />
+            </div>
+            <div>
+              <Label htmlFor="editAccountType">Tipo da Conta</Label>
+              <Select value={newAccount.type} onValueChange={(value: 'checking' | 'savings' | 'cash') => setNewAccount({...newAccount, type: value})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="checking">Conta Corrente</SelectItem>
+                  <SelectItem value="savings">Conta Poupança</SelectItem>
+                  <SelectItem value="cash">Dinheiro em Caixa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="editAccountBalance">Saldo Atual</Label>
+              <Input
+                id="editAccountBalance"
+                type="number"
+                value={newAccount.balance}
+                onChange={(e) => setNewAccount({...newAccount, balance: parseFloat(e.target.value) || 0})}
+                placeholder="0,00"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsEditingAccount(false);
+                  setSelectedAccount(null);
+                  setNewAccount({
+                    name: "",
+                    type: "checking",
+                    balance: 0
+                  });
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={handleUpdateAccount}>
+                Salvar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para visualizar extrato */}
+      <Dialog open={isViewingStatement} onOpenChange={setIsViewingStatement}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Extrato - {selectedAccount?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+              <div>
+                <div className="font-medium">Saldo Atual</div>
+                <div className="text-2xl font-bold">{formatCurrency(selectedAccount?.balance || 0)}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-sm text-muted-foreground">
+                  {selectedAccount?.type === 'checking' ? 'Conta Corrente' : 
+                   selectedAccount?.type === 'savings' ? 'Conta Poupança' : 'Dinheiro'}
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <h3 className="font-medium">Movimentações</h3>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {selectedAccount && getAccountTransactions(selectedAccount.name).map((transaction) => (
+                    <TableRow key={transaction.id}>
+                      <TableCell>
+                        {new Date(transaction.date).toLocaleDateString('pt-BR')}
+                      </TableCell>
+                      <TableCell>{transaction.description}</TableCell>
+                      <TableCell>{transaction.category}</TableCell>
+                      <TableCell>
+                        <Badge variant={transaction.type === 'income' ? 'default' : 'secondary'}>
+                          {transaction.type === 'income' ? 'Receita' : 'Despesa'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className={transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}>
+                        {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={
+                          transaction.status === 'confirmed' ? 'default' : 
+                          transaction.status === 'pending' ? 'secondary' : 'destructive'
+                        }>
+                          {transaction.status === 'confirmed' ? 'Confirmado' : 
+                           transaction.status === 'pending' ? 'Pendente' : 'Cancelado'}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              
+              {selectedAccount && getAccountTransactions(selectedAccount.name).length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhuma movimentação encontrada para esta conta.
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-end">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsViewingStatement(false);
+                  setSelectedAccount(null);
+                }}
+              >
+                Fechar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
