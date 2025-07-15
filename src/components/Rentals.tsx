@@ -352,6 +352,60 @@ export const Rentals = () => {
     }
   };
 
+  // Remove event
+  const removeEvent = async (eventId: string, eventName: string) => {
+    if (!confirm(`Tem certeza que deseja remover o evento "${eventName}"? Esta ação não pode ser desfeita.`)) {
+      return;
+    }
+
+    try {
+      // First remove all related expenses
+      const { error: expensesError } = await supabase
+        .from('event_expenses')
+        .delete()
+        .eq('event_id', eventId);
+
+      if (expensesError) throw expensesError;
+
+      // Remove event collaborators
+      const { error: collaboratorsError } = await supabase
+        .from('event_collaborators')
+        .delete()
+        .eq('event_id', eventId);
+
+      if (collaboratorsError) throw collaboratorsError;
+
+      // Remove event equipment
+      const { error: equipmentError } = await supabase
+        .from('event_equipment')
+        .delete()
+        .eq('event_id', eventId);
+
+      if (equipmentError) throw equipmentError;
+
+      // Finally remove the event
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId);
+
+      if (error) throw error;
+
+      await fetchEvents();
+      toast({
+        title: "Evento removido",
+        description: "O evento foi removido com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error removing event:', error);
+      toast({
+        title: "Erro ao remover evento",
+        description: "Não foi possível remover o evento.",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Toggle payment status
   const togglePaymentStatus = async (event: Event) => {
     try {
@@ -823,34 +877,43 @@ export const Rentals = () => {
                                       {event.payment_type === 'entrada' ? 'Entrada Paga' : 'Pago'}
                                     </Badge>
                                   )}
-                                 {canEditRentals && (
-                                   <>
-                                     <Button
-                                       variant="ghost"
-                                       size="sm"
-                                       onClick={() => {
-                                         setSelectedEventForEdit(event);
-                                         setNewEvent(event);
-                                         setEditEventDialog(true);
-                                       }}
-                                       title="Editar evento"
-                                     >
-                                       <Edit className="h-4 w-4" />
-                                     </Button>
-                                     <Button
-                                       variant="ghost"
-                                       size="sm"
-                                       onClick={() => {
-                                         setSelectedEventForStatus(event);
-                                         setNewStatus(event.status);
-                                         setStatusDialog(true);
-                                       }}
-                                       title="Alterar status"
-                                     >
-                                       <Settings className="h-4 w-4" />
-                                     </Button>
-                                   </>
-                                  )}
+                                  {canEditRentals && (
+                                    <>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          setSelectedEventForEdit(event);
+                                          setNewEvent(event);
+                                          setEditEventDialog(true);
+                                        }}
+                                        title="Editar evento"
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          setSelectedEventForStatus(event);
+                                          setNewStatus(event.status);
+                                          setStatusDialog(true);
+                                        }}
+                                        title="Alterar status"
+                                      >
+                                        <Settings className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => removeEvent(event.id, event.name)}
+                                        title="Remover evento"
+                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </>
+                                   )}
                                   {canViewFinancials && (
                                     <Button
                                       variant="outline"
