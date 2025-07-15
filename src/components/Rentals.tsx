@@ -10,12 +10,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { AlertCircle, Calendar, Clock, MapPin, User, DollarSign, FileText, Plus, Edit, Trash2, Calculator, Shield, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { startOfMonth, endOfMonth, isSameMonth, addMonths, subMonths } from 'date-fns';
 
 interface Event {
   id: string;
@@ -56,6 +58,7 @@ export const Rentals = () => {
   const [expenses, setExpenses] = useState<EventExpense[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [expenseDialog, setExpenseDialog] = useState(false);
   const [eventDialog, setEventDialog] = useState(false);
   const [statusDialog, setStatusDialog] = useState(false);
@@ -365,9 +368,31 @@ export const Rentals = () => {
     }));
   };
 
+  // Generate months for tabs
+  const generateMonths = () => {
+    const months = [];
+    const currentDate = new Date();
+    
+    // Add 3 months before and 3 months after current month
+    for (let i = -3; i <= 3; i++) {
+      const month = i === 0 ? currentDate : addMonths(currentDate, i);
+      months.push(month);
+    }
+    
+    return months;
+  };
+
+  // Filter events by selected month
+  const filteredEvents = events.filter(event => {
+    const eventDate = new Date(event.event_date);
+    return isSameMonth(eventDate, selectedMonth);
+  });
+
   useEffect(() => {
     fetchEvents();
   }, []);
+
+  const months = generateMonths();
 
   if (loading) {
     return <div className="p-6">Carregando eventos...</div>;
@@ -405,119 +430,143 @@ export const Rentals = () => {
         )}
       </div>
 
-      <div className="grid gap-6">
-        {events.map((event) => (
-          <Card key={event.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-primary" />
-                    {event.name}
-                  </CardTitle>
-                  <CardDescription className="mt-2 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      <span>{event.client_name}</span>
-                      {event.client_email && (
-                        <span className="text-muted-foreground">• {event.client_email}</span>
-                      )}
-                    </div>
-                    {event.setup_start_date && (
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        <span>
-                          Montagem: {format(new Date(event.setup_start_date), 'dd/MM/yyyy', { locale: ptBR })}
-                        </span>
+      <Tabs value={selectedMonth.toISOString()} onValueChange={(value) => setSelectedMonth(new Date(value))}>
+        <TabsList className="grid w-full grid-cols-7">
+          {months.map((month) => (
+            <TabsTrigger
+              key={month.toISOString()}
+              value={month.toISOString()}
+              className="text-xs"
+            >
+              {format(month, 'MMM yyyy', { locale: ptBR })}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        
+        {months.map((month) => (
+          <TabsContent key={month.toISOString()} value={month.toISOString()}>
+            <div className="grid gap-6">
+              {filteredEvents.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhum evento encontrado para {format(selectedMonth, 'MMMM yyyy', { locale: ptBR })}
+                </div>
+              ) : (
+                filteredEvents.map((event) => (
+                  <Card key={event.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="flex items-center gap-2">
+                            <Calendar className="h-5 w-5 text-primary" />
+                            {event.name}
+                          </CardTitle>
+                          <CardDescription className="mt-2 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4" />
+                              <span>{event.client_name}</span>
+                              {event.client_email && (
+                                <span className="text-muted-foreground">• {event.client_email}</span>
+                              )}
+                            </div>
+                            {event.setup_start_date && (
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4" />
+                                <span>
+                                  Montagem: {format(new Date(event.setup_start_date), 'dd/MM/yyyy', { locale: ptBR })}
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4" />
+                              <span>
+                                Evento: {format(new Date(event.event_date), 'dd/MM/yyyy', { locale: ptBR })}
+                                {event.event_time && ` às ${event.event_time}`}
+                              </span>
+                            </div>
+                            {event.location && (
+                              <div className="flex items-center gap-2">
+                                <MapPin className="h-4 w-4" />
+                                <span>{event.location}</span>
+                              </div>
+                            )}
+                          </CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge className={getStatusColor(event.status)}>
+                            {getStatusText(event.status)}
+                          </Badge>
+                          {canEditRentals && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedEventForStatus(event);
+                                setNewStatus(event.status);
+                                setStatusDialog(true);
+                              }}
+                            >
+                              <Settings className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canViewFinancials && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedEvent(event);
+                                fetchExpenses(event.id);
+                              }}
+                            >
+                              <Calculator className="h-4 w-4 mr-2" />
+                              Despesas
+                            </Button>
+                          )}
+                        </div>
                       </div>
+                    </CardHeader>
+                    
+                    {canViewFinancials && (
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="h-4 w-4 text-green-600" />
+                            <div>
+                              <p className="text-sm font-medium">Orçamento</p>
+                              <p className="text-lg font-bold text-green-600">
+                                R$ {event.total_budget.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-red-600" />
+                            <div>
+                              <p className="text-sm font-medium">Despesas</p>
+                              <p className="text-lg font-bold text-red-600">
+                                R$ {event.total_expenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <AlertCircle className={`h-4 w-4 ${event.profit_margin >= 0 ? 'text-green-600' : 'text-red-600'}`} />
+                            <div>
+                              <p className="text-sm font-medium">Lucro</p>
+                              <p className={`text-lg font-bold ${event.profit_margin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                R$ {event.profit_margin.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
                     )}
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      <span>
-                        Evento: {format(new Date(event.event_date), 'dd/MM/yyyy', { locale: ptBR })}
-                        {event.event_time && ` às ${event.event_time}`}
-                      </span>
-                    </div>
-                    {event.location && (
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4" />
-                        <span>{event.location}</span>
-                      </div>
-                    )}
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge className={getStatusColor(event.status)}>
-                    {getStatusText(event.status)}
-                  </Badge>
-                  {canEditRentals && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedEventForStatus(event);
-                        setNewStatus(event.status);
-                        setStatusDialog(true);
-                      }}
-                    >
-                      <Settings className="h-4 w-4" />
-                    </Button>
-                  )}
-                  {canViewFinancials && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedEvent(event);
-                        fetchExpenses(event.id);
-                      }}
-                    >
-                      <Calculator className="h-4 w-4 mr-2" />
-                      Despesas
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-            
-            {canViewFinancials && (
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-green-600" />
-                    <div>
-                      <p className="text-sm font-medium">Orçamento</p>
-                      <p className="text-lg font-bold text-green-600">
-                        R$ {event.total_budget.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-red-600" />
-                    <div>
-                      <p className="text-sm font-medium">Despesas</p>
-                      <p className="text-lg font-bold text-red-600">
-                        R$ {event.total_expenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className={`h-4 w-4 ${event.profit_margin >= 0 ? 'text-green-600' : 'text-red-600'}`} />
-                    <div>
-                      <p className="text-sm font-medium">Lucro</p>
-                      <p className={`text-lg font-bold ${event.profit_margin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        R$ {event.profit_margin.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            )}
-          </Card>
+                  </Card>
+                ))
+              )}
+            </div>
+          </TabsContent>
         ))}
-      </div>
+      </Tabs>
 
       {/* Expense Management Dialog */}
       <Dialog open={!!selectedEvent} onOpenChange={(open) => {
