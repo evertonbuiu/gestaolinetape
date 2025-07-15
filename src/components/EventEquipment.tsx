@@ -251,6 +251,7 @@ export const EventEquipment = () => {
     }
 
     try {
+      // Add the returned equipment to event_equipment
       const { error } = await supabase
         .from('event_equipment')
         .insert({
@@ -264,6 +265,45 @@ export const EventEquipment = () => {
 
       if (error) throw error;
 
+      // Update the equipment stock automatically
+      const { data: equipmentData, error: equipmentError } = await supabase
+        .from('equipment')
+        .select('available, rented, total_stock')
+        .eq('name', newEquipment.equipment_name)
+        .single();
+
+      if (equipmentError) {
+        console.error('Error fetching equipment data:', equipmentError);
+      } else if (equipmentData) {
+        // Calculate new values
+        const returnedQuantity = newEquipment.quantity || 1;
+        const newAvailable = equipmentData.available + returnedQuantity;
+        const newRented = Math.max(0, equipmentData.rented - returnedQuantity);
+        
+        // Determine new status
+        let newStatus = 'available';
+        if (newAvailable === 0) {
+          newStatus = 'out_of_stock';
+        } else if (newAvailable <= equipmentData.total_stock * 0.2) {
+          newStatus = 'low_stock';
+        }
+
+        // Update equipment stock
+        const { error: updateError } = await supabase
+          .from('equipment')
+          .update({
+            available: newAvailable,
+            rented: newRented,
+            status: newStatus,
+            updated_at: new Date().toISOString()
+          })
+          .eq('name', newEquipment.equipment_name);
+
+        if (updateError) {
+          console.error('Error updating equipment stock:', updateError);
+        }
+      }
+
       await fetchEquipment(selectedEvent.id);
       setNewEquipment({
         equipment_name: '',
@@ -274,8 +314,8 @@ export const EventEquipment = () => {
       setReturnedEquipmentDialog(false);
 
       toast({
-        title: "Equipamento devolvido adicionado",
-        description: "O equipamento foi adicionado à lista de devolvidos com sucesso.",
+        title: "Equipamento devolvido e estoque atualizado",
+        description: "O equipamento foi adicionado à lista de devolvidos e o estoque foi atualizado automaticamente.",
       });
     } catch (error) {
       console.error('Error adding returned equipment:', error);
