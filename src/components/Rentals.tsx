@@ -442,20 +442,51 @@ export const Rentals = () => {
   // Toggle payment status
   const togglePaymentStatus = async (event: Event) => {
     try {
+      const newPaidStatus = !event.is_paid;
+      const paymentAmount = event.payment_amount || event.total_budget || 0;
+      const paymentAccount = event.payment_bank_account || "Conta Corrente Principal";
+
+      // Update event payment status
       const { error } = await supabase
         .from('events')
         .update({ 
-          is_paid: !event.is_paid,
-          payment_date: !event.is_paid ? new Date().toISOString().split('T')[0] : null
+          is_paid: newPaidStatus,
+          payment_date: newPaidStatus ? new Date().toISOString().split('T')[0] : null
         })
         .eq('id', event.id);
 
       if (error) throw error;
 
+      // Update bank account balance if there's a payment amount
+      if (paymentAmount > 0 && paymentAccount) {
+        // Find the bank account
+        const { data: bankAccount, error: bankFetchError } = await supabase
+          .from('bank_accounts')
+          .select('*')
+          .eq('name', paymentAccount)
+          .single();
+
+        if (!bankFetchError && bankAccount) {
+          const currentBalance = bankAccount.balance || 0;
+          const newBalance = newPaidStatus 
+            ? currentBalance + paymentAmount  // Add money when marking as paid
+            : currentBalance - paymentAmount; // Subtract money when marking as unpaid
+          
+          const { error: bankUpdateError } = await supabase
+            .from('bank_accounts')
+            .update({ balance: newBalance })
+            .eq('id', bankAccount.id);
+
+          if (bankUpdateError) {
+            console.error('Error updating bank account balance:', bankUpdateError);
+          }
+        }
+      }
+
       await fetchEvents();
       toast({
         title: event.is_paid ? "Marcado como não pago" : "Marcado como pago",
-        description: "O status de pagamento foi atualizado com sucesso.",
+        description: "O status de pagamento e saldo da conta foram atualizados com sucesso.",
       });
     } catch (error) {
       console.error('Error updating payment status:', error);

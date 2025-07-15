@@ -331,6 +331,31 @@ export const FinancialManagement = () => {
           }
         }
       }
+
+      // Update bank account balance for the entry
+      if (newEntry.account && newEntry.amount > 0) {
+        const { data: bankAccount, error: bankFetchError } = await supabase
+          .from('bank_accounts')
+          .select('*')
+          .eq('name', newEntry.account)
+          .single();
+
+        if (!bankFetchError && bankAccount) {
+          const currentBalance = bankAccount.balance || 0;
+          const newBalance = newEntry.type === 'income' 
+            ? currentBalance + newEntry.amount
+            : currentBalance - newEntry.amount;
+          
+          const { error: bankUpdateError } = await supabase
+            .from('bank_accounts')
+            .update({ balance: newBalance })
+            .eq('id', bankAccount.id);
+
+          if (bankUpdateError) {
+            console.error('Error updating bank account balance:', bankUpdateError);
+          }
+        }
+      }
       
       // Também adicionar localmente para resposta imediata
       const entry: CashFlowEntry = {
@@ -352,7 +377,7 @@ export const FinancialManagement = () => {
       
       toast({
         title: "Sucesso",
-        description: "Lançamento adicionado com sucesso!",
+        description: "Lançamento adicionado e saldo atualizado com sucesso!",
       });
     } catch (error) {
       console.error("Error adding entry:", error);
