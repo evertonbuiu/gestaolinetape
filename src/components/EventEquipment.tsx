@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Calendar, Clock, MapPin, User, Package, Plus, Edit, Trash2, Printer } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, Package, Plus, Edit, Trash2, Printer, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { format } from 'date-fns';
@@ -56,6 +56,16 @@ interface Equipment {
   description: string;
 }
 
+interface EventCollaborator {
+  id: string;
+  event_id: string;
+  collaborator_name: string;
+  collaborator_email: string;
+  role: string;
+  assigned_by: string;
+  created_at: string;
+}
+
 export const EventEquipment = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -67,12 +77,19 @@ export const EventEquipment = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [equipmentDialog, setEquipmentDialog] = useState(false);
+  const [collaboratorDialog, setCollaboratorDialog] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string>('/logo-empresa.png');
+  const [collaborators, setCollaborators] = useState<EventCollaborator[]>([]);
   const [newEquipment, setNewEquipment] = useState<Partial<EventEquipment>>({
     equipment_name: '',
     quantity: 1,
     description: '',
     status: 'pending'
+  });
+  const [newCollaborator, setNewCollaborator] = useState({
+    collaborator_name: '',
+    collaborator_email: '',
+    role: 'funcionario'
   });
 
   // Fetch events
@@ -187,6 +204,99 @@ export const EventEquipment = () => {
       toast({
         title: "Erro ao remover equipamento",
         description: "Não foi possível remover o equipamento.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Fetch collaborators for selected event
+  const fetchCollaborators = async (eventId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('event_collaborators')
+        .select('*')
+        .eq('event_id', eventId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setCollaborators(data || []);
+    } catch (error) {
+      console.error('Error fetching collaborators:', error);
+      toast({
+        title: "Erro ao carregar colaboradores",
+        description: "Não foi possível carregar os colaboradores.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Add collaborator to event
+  const addCollaborator = async () => {
+    if (!selectedEvent || !newCollaborator.collaborator_name || !newCollaborator.collaborator_email || !user) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha nome e email do colaborador.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('event_collaborators')
+        .insert({
+          event_id: selectedEvent.id,
+          collaborator_name: newCollaborator.collaborator_name,
+          collaborator_email: newCollaborator.collaborator_email,
+          role: newCollaborator.role,
+          assigned_by: user.id
+        });
+
+      if (error) throw error;
+
+      await fetchCollaborators(selectedEvent.id);
+      setNewCollaborator({
+        collaborator_name: '',
+        collaborator_email: '',
+        role: 'funcionario'
+      });
+      setCollaboratorDialog(false);
+
+      toast({
+        title: "Colaborador adicionado",
+        description: "O colaborador foi adicionado com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error adding collaborator:', error);
+      toast({
+        title: "Erro ao adicionar colaborador",
+        description: "Não foi possível adicionar o colaborador.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Remove collaborator from event
+  const removeCollaborator = async (collaboratorId: string) => {
+    try {
+      const { error } = await supabase
+        .from('event_collaborators')
+        .delete()
+        .eq('id', collaboratorId);
+
+      if (error) throw error;
+
+      await fetchCollaborators(selectedEvent!.id);
+
+      toast({
+        title: "Colaborador removido",
+        description: "O colaborador foi removido com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error removing collaborator:', error);
+      toast({
+        title: "Erro ao remover colaborador",
+        description: "Não foi possível remover o colaborador.",
         variant: "destructive"
       });
     }
@@ -648,6 +758,7 @@ export const EventEquipment = () => {
                                   onClick={() => {
                                     setSelectedEvent(event);
                                     fetchEquipment(event.id);
+                                    fetchCollaborators(event.id);
                                   }}
                                 >
                                   <Package className="h-4 w-4 mr-2" />
@@ -824,6 +935,122 @@ export const EventEquipment = () => {
                     )}
                   </TableBody>
                 </Table>
+              </div>
+
+              {/* Collaborators Section */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold">Colaboradores do Evento</h3>
+                  <Dialog open={collaboratorDialog} onOpenChange={setCollaboratorDialog}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Adicionar Colaborador
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Novo Colaborador</DialogTitle>
+                        <DialogDescription>
+                          Adicione um colaborador ao evento
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="collaborator_name">Nome do Colaborador *</Label>
+                          <Input
+                            id="collaborator_name"
+                            value={newCollaborator.collaborator_name}
+                            onChange={(e) => setNewCollaborator(prev => ({ ...prev, collaborator_name: e.target.value }))}
+                            placeholder="Digite o nome do colaborador"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="collaborator_email">Email do Colaborador *</Label>
+                          <Input
+                            id="collaborator_email"
+                            type="email"
+                            value={newCollaborator.collaborator_email}
+                            onChange={(e) => setNewCollaborator(prev => ({ ...prev, collaborator_email: e.target.value }))}
+                            placeholder="email@exemplo.com"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="collaborator_role">Função</Label>
+                          <Select value={newCollaborator.role} onValueChange={(value) => setNewCollaborator(prev => ({ ...prev, role: value }))}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="funcionario">Funcionário</SelectItem>
+                              <SelectItem value="admin">Administrador</SelectItem>
+                              <SelectItem value="coordenador">Coordenador</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="flex justify-end gap-3">
+                          <Button variant="outline" onClick={() => setCollaboratorDialog(false)}>
+                            Cancelar
+                          </Button>
+                          <Button onClick={addCollaborator}>
+                            Adicionar
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                {/* Collaborators List */}
+                <div className="border rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Função</TableHead>
+                        <TableHead>Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {collaborators.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-muted-foreground">
+                            Nenhum colaborador adicionado
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        collaborators.map((collaborator) => (
+                          <TableRow key={collaborator.id}>
+                            <TableCell className="font-medium">{collaborator.collaborator_name}</TableCell>
+                            <TableCell>{collaborator.collaborator_email}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {collaborator.role === 'funcionario' ? 'Funcionário' : 
+                                 collaborator.role === 'admin' ? 'Administrador' : 
+                                 collaborator.role === 'coordenador' ? 'Coordenador' : 
+                                 collaborator.role}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeCollaborator(collaborator.id)}
+                                className="text-red-600 hover:text-red-800"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             </div>
           )}

@@ -89,6 +89,47 @@ export type Database = {
         }
         Relationships: []
       }
+      event_collaborators: {
+        Row: {
+          assigned_by: string
+          collaborator_email: string
+          collaborator_name: string
+          created_at: string
+          event_id: string
+          id: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_by: string
+          collaborator_email: string
+          collaborator_name: string
+          created_at?: string
+          event_id: string
+          id?: string
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_by?: string
+          collaborator_email?: string
+          collaborator_name?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_collaborators_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_equipment: {
         Row: {
           assigned_by: string
