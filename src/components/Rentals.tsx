@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -622,6 +622,9 @@ export const Rentals = () => {
         <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Planilha de Despesas - {selectedEvent?.name}</DialogTitle>
+            <DialogDescription>
+              Gerencie as despesas relacionadas a este evento
+            </DialogDescription>
           </DialogHeader>
           
           {selectedEvent && (
@@ -661,6 +664,9 @@ export const Rentals = () => {
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Nova Despesa</DialogTitle>
+                      <DialogDescription>
+                        Adicione uma nova despesa ao evento
+                      </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
@@ -822,6 +828,9 @@ export const Rentals = () => {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Novo Evento</DialogTitle>
+            <DialogDescription>
+              Crie um novo evento para locação
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -964,6 +973,9 @@ export const Rentals = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Alterar Status do Evento</DialogTitle>
+            <DialogDescription>
+              Altere o status do evento selecionado
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>

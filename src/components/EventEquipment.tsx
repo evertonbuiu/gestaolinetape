@@ -4,17 +4,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Calendar, Clock, MapPin, User, Package, Plus, Edit, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { isSameMonth, addMonths } from 'date-fns';
 
 interface Event {
   id: string;
@@ -62,6 +64,8 @@ export const EventEquipment = () => {
   const [availableEquipment, setAvailableEquipment] = useState<Equipment[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [equipmentDialog, setEquipmentDialog] = useState(false);
   const [newEquipment, setNewEquipment] = useState<Partial<EventEquipment>>({
     equipment_name: '',
@@ -244,6 +248,35 @@ export const EventEquipment = () => {
     }
   };
 
+  // Generate years and months for tabs
+  const generateYearsAndMonths = () => {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    
+    for (let year = currentYear - 2; year <= currentYear + 2; year++) {
+      const months = [];
+      for (let month = 0; month < 12; month++) {
+        months.push(new Date(year, month, 1));
+      }
+      years.push({ year, months });
+    }
+    
+    return years;
+  };
+
+  // Filter events by selected month
+  const filteredEvents = events.filter(event => {
+    const eventDate = new Date(event.event_date);
+    return isSameMonth(eventDate, selectedMonth);
+  });
+
+  const yearsAndMonths = generateYearsAndMonths();
+  
+  // Update selectedMonth when year changes
+  useEffect(() => {
+    setSelectedMonth(new Date(selectedYear, selectedMonth.getMonth(), 1));
+  }, [selectedYear]);
+
   useEffect(() => {
     fetchEvents();
     fetchAvailableEquipment();
@@ -262,67 +295,126 @@ export const EventEquipment = () => {
         </div>
       </div>
 
-      <div className="grid gap-6">
-        {events.map((event) => (
-          <Card key={event.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-primary" />
-                    {event.name}
-                  </CardTitle>
-                  <CardDescription className="mt-2 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      <span>{event.client_name}</span>
-                      {event.client_email && (
-                        <span className="text-muted-foreground">• {event.client_email}</span>
-                      )}
-                    </div>
-                    {event.setup_start_date && (
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        <span>
-                          Montagem: {format(new Date(event.setup_start_date), 'dd/MM/yyyy', { locale: ptBR })}
-                        </span>
+      <div className="space-y-4">
+        {/* Year Selection */}
+        <div className="flex items-center gap-4">
+          <Label className="text-sm font-medium">Ano:</Label>
+          <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {yearsAndMonths.map(({ year }) => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Month Tabs */}
+        <Tabs value={selectedMonth.toISOString()} onValueChange={(value) => setSelectedMonth(new Date(value))}>
+          <TabsList className="grid w-full grid-cols-12 gap-1">
+            {yearsAndMonths
+              .find(({ year }) => year === selectedYear)
+              ?.months.map((month) => (
+                <TabsTrigger
+                  key={month.toISOString()}
+                  value={month.toISOString()}
+                  className="text-xs p-2"
+                >
+                  {format(month, 'MMM', { locale: ptBR })}
+                </TabsTrigger>
+              ))}
+          </TabsList>
+          
+          {yearsAndMonths
+            .find(({ year }) => year === selectedYear)
+            ?.months.map((month) => (
+              <TabsContent key={month.toISOString()} value={month.toISOString()}>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">
+                      {format(month, 'MMMM yyyy', { locale: ptBR })}
+                    </h3>
+                    <span className="text-sm text-muted-foreground">
+                      {filteredEvents.length} evento(s)
+                    </span>
+                  </div>
+                  
+                  <div className="grid gap-6">
+                    {filteredEvents.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        Nenhum evento encontrado para {format(month, 'MMMM yyyy', { locale: ptBR })}
                       </div>
+                    ) : (
+                      filteredEvents.map((event) => (
+                        <Card key={event.id} className="hover:shadow-lg transition-shadow">
+                          <CardHeader>
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <CardTitle className="flex items-center gap-2">
+                                  <Calendar className="h-5 w-5 text-primary" />
+                                  {event.name}
+                                </CardTitle>
+                                <CardDescription className="mt-2 space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <User className="h-4 w-4" />
+                                    <span>{event.client_name}</span>
+                                    {event.client_email && (
+                                      <span className="text-muted-foreground">• {event.client_email}</span>
+                                    )}
+                                  </div>
+                                  {event.setup_start_date && (
+                                    <div className="flex items-center gap-2">
+                                      <Clock className="h-4 w-4" />
+                                      <span>
+                                        Montagem: {format(new Date(event.setup_start_date), 'dd/MM/yyyy', { locale: ptBR })}
+                                      </span>
+                                    </div>
+                                  )}
+                                  <div className="flex items-center gap-2">
+                                    <Clock className="h-4 w-4" />
+                                    <span>
+                                      Evento: {format(new Date(event.event_date), 'dd/MM/yyyy', { locale: ptBR })}
+                                      {event.event_time && ` às ${event.event_time}`}
+                                    </span>
+                                  </div>
+                                  {event.location && (
+                                    <div className="flex items-center gap-2">
+                                      <MapPin className="h-4 w-4" />
+                                      <span>{event.location}</span>
+                                    </div>
+                                  )}
+                                </CardDescription>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge className={getEventStatusColor(event.status)}>
+                                  {getStatusText(event.status)}
+                                </Badge>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedEvent(event);
+                                    fetchEquipment(event.id);
+                                  }}
+                                >
+                                  <Package className="h-4 w-4 mr-2" />
+                                  Equipamentos
+                                </Button>
+                              </div>
+                            </div>
+                          </CardHeader>
+                        </Card>
+                      ))
                     )}
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      <span>
-                        Evento: {format(new Date(event.event_date), 'dd/MM/yyyy', { locale: ptBR })}
-                        {event.event_time && ` às ${event.event_time}`}
-                      </span>
-                    </div>
-                    {event.location && (
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4" />
-                        <span>{event.location}</span>
-                      </div>
-                    )}
-                  </CardDescription>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge className={getEventStatusColor(event.status)}>
-                    {getStatusText(event.status)}
-                  </Badge>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedEvent(event);
-                      fetchEquipment(event.id);
-                    }}
-                  >
-                    <Package className="h-4 w-4 mr-2" />
-                    Equipamentos
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
-        ))}
+              </TabsContent>
+            ))}
+        </Tabs>
       </div>
 
       {/* Equipment Management Dialog */}
@@ -335,6 +427,9 @@ export const EventEquipment = () => {
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Equipamentos - {selectedEvent?.name}</DialogTitle>
+            <DialogDescription>
+              Gerencie os equipamentos atribuídos a este evento
+            </DialogDescription>
           </DialogHeader>
           
           {selectedEvent && (
@@ -352,6 +447,9 @@ export const EventEquipment = () => {
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Novo Equipamento</DialogTitle>
+                      <DialogDescription>
+                        Adicione um novo equipamento ao evento
+                      </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                       <div>
