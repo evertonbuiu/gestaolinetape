@@ -80,10 +80,12 @@ export const EventEquipment = () => {
   const [editEquipmentDialog, setEditEquipmentDialog] = useState(false);
   const [returnedEquipmentDialog, setReturnedEquipmentDialog] = useState(false);
   const [collaboratorDialog, setCollaboratorDialog] = useState(false);
+  const [missingEquipmentDialog, setMissingEquipmentDialog] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string>('/logo-empresa.png');
   const [collaborators, setCollaborators] = useState<EventCollaborator[]>([]);
   const [availableCollaborators, setAvailableCollaborators] = useState<any[]>([]);
   const [selectedEquipmentForEdit, setSelectedEquipmentForEdit] = useState<EventEquipment | null>(null);
+  const [missingEquipmentList, setMissingEquipmentList] = useState<any[]>([]);
   const [newEquipment, setNewEquipment] = useState<Partial<EventEquipment>>({
     equipment_name: '',
     quantity: 1,
@@ -306,6 +308,131 @@ export const EventEquipment = () => {
       toast({
         title: "Erro ao remover equipamento",
         description: "Não foi possível remover o equipamento.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Calculate missing equipment for an event
+  const calculateMissingEquipment = (eventEquipment: EventEquipment[]) => {
+    const equipmentMap = new Map<string, { allocated: number; returned: number }>();
+    
+    // Group equipment by name and calculate totals
+    eventEquipment.forEach(item => {
+      if (!equipmentMap.has(item.equipment_name)) {
+        equipmentMap.set(item.equipment_name, { allocated: 0, returned: 0 });
+      }
+      
+      const current = equipmentMap.get(item.equipment_name)!;
+      if (item.status === 'returned') {
+        current.returned += item.quantity;
+      } else {
+        current.allocated += item.quantity;
+      }
+    });
+    
+    // Calculate missing equipment
+    const missingEquipment = [];
+    for (const [name, quantities] of equipmentMap) {
+      const missing = quantities.allocated - quantities.returned;
+      if (missing > 0) {
+        missingEquipment.push({
+          equipment_name: name,
+          allocated: quantities.allocated,
+          returned: quantities.returned,
+          missing: missing
+        });
+      }
+    }
+    
+    return missingEquipment;
+  };
+
+  // Generate missing equipment report for all completed events
+  const generateMissingEquipmentReport = async () => {
+    try {
+      const { data: completedEvents, error: eventsError } = await supabase
+        .from('events')
+        .select('*')
+        .eq('status', 'completed')
+        .order('event_date', { ascending: false });
+
+      if (eventsError) throw eventsError;
+
+      const missingReport = [];
+      
+      for (const event of completedEvents || []) {
+        const { data: eventEquipment, error: equipmentError } = await supabase
+          .from('event_equipment')
+          .select('*')
+          .eq('event_id', event.id);
+
+        if (equipmentError) throw equipmentError;
+
+        const missingEquipment = calculateMissingEquipment(eventEquipment || []);
+        
+        if (missingEquipment.length > 0) {
+          missingReport.push({
+            event: event,
+            missingEquipment: missingEquipment
+          });
+        }
+      }
+
+      setMissingEquipmentList(missingReport);
+      setMissingEquipmentDialog(true);
+    } catch (error) {
+      console.error('Error generating missing equipment report:', error);
+      toast({
+        title: "Erro ao gerar relatório",
+        description: "Não foi possível gerar o relatório de equipamentos faltantes.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Update stock when event is completed
+  const markEventAsCompleted = async (eventId: string) => {
+    try {
+      // First, get all equipment for this event
+      const { data: eventEquipment, error: equipmentError } = await supabase
+        .from('event_equipment')
+        .select('*')
+        .eq('event_id', eventId);
+
+      if (equipmentError) throw equipmentError;
+
+      // Update event status to completed
+      const { error: updateError } = await supabase
+        .from('events')
+        .update({ status: 'completed' })
+        .eq('id', eventId);
+
+      if (updateError) throw updateError;
+
+      // Calculate missing equipment
+      const missingEquipment = calculateMissingEquipment(eventEquipment || []);
+      
+      if (missingEquipment.length > 0) {
+        toast({
+          title: "Evento concluído com pendências",
+          description: `O evento foi marcado como concluído, mas há ${missingEquipment.length} equipamento(s) faltante(s).`,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Evento concluído",
+          description: "O evento foi marcado como concluído com sucesso.",
+        });
+      }
+
+      // Refresh events list
+      await fetchEvents();
+    } catch (error) {
+      console.error('Error marking event as completed:', error);
+      toast({
+        title: "Erro ao concluir evento",
+        description: "Não foi possível marcar o evento como concluído.",
         variant: "destructive"
       });
     }
@@ -787,6 +914,16 @@ export const EventEquipment = () => {
           <h2 className="text-3xl font-bold text-foreground">Equipamentos dos Eventos</h2>
           <p className="text-muted-foreground">Gerencie equipamentos para cada evento</p>
         </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={generateMissingEquipmentReport}
+            className="gap-2"
+          >
+            <Package className="h-4 w-4" />
+            Relatório de Faltantes
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -899,6 +1036,16 @@ export const EventEquipment = () => {
                                   <Package className="h-4 w-4 mr-2" />
                                   Equipamentos
                                 </Button>
+                                {event.status !== 'completed' && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => markEventAsCompleted(event.id)}
+                                    className="text-green-600 hover:text-green-800"
+                                  >
+                                    Concluir
+                                  </Button>
+                                )}
                               </div>
                             </div>
                           </CardHeader>
@@ -1250,6 +1397,32 @@ export const EventEquipment = () => {
                   </div>
                 </div>
 
+                {/* Missing Equipment Alert */}
+                {(() => {
+                  const missingEquipment = calculateMissingEquipment(equipment);
+                  if (missingEquipment.length > 0) {
+                    return (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Package className="h-5 w-5 text-red-600" />
+                          <h4 className="font-semibold text-red-800">Equipamentos Faltantes</h4>
+                        </div>
+                        <div className="space-y-2">
+                          {missingEquipment.map((item, index) => (
+                            <div key={index} className="flex justify-between items-center text-sm">
+                              <span className="font-medium">{item.equipment_name}</span>
+                              <Badge variant="destructive" className="text-xs">
+                                {item.missing} faltando
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
                 {/* Summary */}
                 <div className="bg-muted/50 p-4 rounded-lg">
                   <div className="grid grid-cols-3 gap-4 text-center">
@@ -1522,6 +1695,91 @@ export const EventEquipment = () => {
                 Salvar Alterações
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Missing Equipment Report Dialog */}
+      <Dialog open={missingEquipmentDialog} onOpenChange={setMissingEquipmentDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Relatório de Equipamentos Faltantes</DialogTitle>
+            <DialogDescription>
+              Eventos concluídos com equipamentos não devolvidos
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {missingEquipmentList.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Package className="h-12 w-12 mx-auto mb-4 text-green-500" />
+                <p>Nenhum equipamento faltante encontrado!</p>
+                <p className="text-sm">Todos os eventos concluídos têm equipamentos devolvidos.</p>
+              </div>
+            ) : (
+              missingEquipmentList.map((item, index) => (
+                <Card key={index} className="border-red-200">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{item.event.name}</CardTitle>
+                      <Badge variant="outline" className="bg-red-50 text-red-700">
+                        {item.missingEquipment.length} item(s) faltando
+                      </Badge>
+                    </div>
+                    <CardDescription className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        <span>{item.event.client_name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        <span>{format(new Date(item.event.event_date), 'dd/MM/yyyy', { locale: ptBR })}</span>
+                      </div>
+                      {item.event.location && (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4" />
+                          <span>{item.event.location}</span>
+                        </div>
+                      )}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="border rounded-lg">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Equipamento</TableHead>
+                            <TableHead>Alocado</TableHead>
+                            <TableHead>Devolvido</TableHead>
+                            <TableHead>Faltando</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {item.missingEquipment.map((equipment, equipIndex) => (
+                            <TableRow key={equipIndex} className="bg-red-50/50">
+                              <TableCell className="font-medium">{equipment.equipment_name}</TableCell>
+                              <TableCell>{equipment.allocated}</TableCell>
+                              <TableCell>{equipment.returned}</TableCell>
+                              <TableCell>
+                                <Badge variant="destructive">
+                                  {equipment.missing}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+          
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => setMissingEquipmentDialog(false)}>
+              Fechar
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
