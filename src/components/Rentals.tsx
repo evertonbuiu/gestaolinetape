@@ -145,6 +145,21 @@ export const Rentals = () => {
     }
   };
 
+  // Fetch bank accounts
+  const fetchBankAccounts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('bank_accounts')
+        .select('*')
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      setBankAccounts(data || []);
+    } catch (error) {
+      console.error('Error fetching bank accounts:', error);
+    }
+  };
+
   // Fetch clients
   const fetchClients = async () => {
     try {
@@ -288,6 +303,8 @@ export const Rentals = () => {
         description: newEvent.description || '',
         total_budget: newEvent.total_budget || 0,
         status: newEvent.status || 'pending',
+        is_paid: newEvent.is_paid || false,
+        payment_date: newEvent.payment_date || null,
         payment_bank_account: newEvent.payment_bank_account || null
       };
 
@@ -591,21 +608,6 @@ export const Rentals = () => {
     fetchBankAccounts();
   }, []);
 
-  // Fetch bank accounts
-  const fetchBankAccounts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('bank_accounts')
-        .select('*')
-        .order('name', { ascending: true });
-
-      if (error) throw error;
-      setBankAccounts(data || []);
-    } catch (error) {
-      console.error('Error fetching bank accounts:', error);
-    }
-  };
-
   const yearsAndMonths = generateYearsAndMonths();
   
   // Update selectedMonth when year changes
@@ -779,31 +781,20 @@ export const Rentals = () => {
                                        <Settings className="h-4 w-4" />
                                      </Button>
                                    </>
-                                 )}
-                                 {canViewFinancials && (
-                                   <>
-                                     <Button
-                                       variant={event.is_paid ? "default" : "outline"}
-                                       size="sm"
-                                       onClick={() => togglePaymentStatus(event)}
-                                       title={event.is_paid ? "Marcar como não pago" : "Marcar como pago"}
-                                     >
-                                       <DollarSign className="h-4 w-4 mr-1" />
-                                       {event.is_paid ? "Pago" : "Pagar"}
-                                     </Button>
-                                     <Button
-                                       variant="outline"
-                                       size="sm"
-                                       onClick={() => {
-                                         setSelectedEvent(event);
-                                         fetchExpenses(event.id);
-                                       }}
-                                     >
-                                       <Calculator className="h-4 w-4 mr-2" />
-                                       Despesas
-                                     </Button>
-                                   </>
-                                 )}
+                                  )}
+                                  {canViewFinancials && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedEvent(event);
+                                        fetchExpenses(event.id);
+                                      }}
+                                    >
+                                      <Calculator className="h-4 w-4 mr-2" />
+                                      Despesas
+                                    </Button>
+                                  )}
                               </div>
                             </div>
                           </CardHeader>
@@ -1264,24 +1255,6 @@ export const Rentals = () => {
                </div>
              </div>
              
-             {/* Campo de banco bancária quando status for "pago" */}
-             {newEvent.status === 'paid' && (
-               <div>
-                 <Label htmlFor="payment_bank_account">Conta Bancária Recebimento</Label>
-                 <Select value={newEvent.payment_bank_account} onValueChange={(value) => setNewEvent(prev => ({ ...prev, payment_bank_account: value }))}>
-                   <SelectTrigger>
-                     <SelectValue placeholder="Selecione a conta bancária" />
-                   </SelectTrigger>
-                   <SelectContent>
-                     {bankAccounts.map((account) => (
-                       <SelectItem key={account.id} value={account.name}>
-                         {account.name}
-                       </SelectItem>
-                     ))}
-                   </SelectContent>
-                 </Select>
-               </div>
-             )}
             
             <div>
               <Label htmlFor="description">Descrição</Label>
@@ -1388,6 +1361,56 @@ export const Rentals = () => {
                    <SelectItem value="cancelled">Cancelado</SelectItem>
                  </SelectContent>
                </Select>
+             </div>
+             
+             <Separator />
+             
+             <div className="space-y-4">
+               <h3 className="text-lg font-semibold">Pagamento</h3>
+               
+               <div className="flex items-center space-x-2">
+                 <input
+                   type="checkbox"
+                   id="is_paid"
+                   checked={newEvent.is_paid || false}
+                   onChange={(e) => setNewEvent(prev => ({ 
+                     ...prev, 
+                     is_paid: e.target.checked,
+                     payment_date: e.target.checked ? (prev.payment_date || new Date().toISOString().split('T')[0]) : ''
+                   }))}
+                   className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                 />
+                 <Label htmlFor="is_paid">Evento pago</Label>
+               </div>
+               
+               {newEvent.is_paid && (
+                 <div className="grid grid-cols-2 gap-4">
+                   <div>
+                     <Label htmlFor="payment_date">Data do Pagamento</Label>
+                     <Input
+                       id="payment_date"
+                       type="date"
+                       value={newEvent.payment_date || ''}
+                       onChange={(e) => setNewEvent(prev => ({ ...prev, payment_date: e.target.value }))}
+                     />
+                   </div>
+                   <div>
+                     <Label htmlFor="payment_bank_account">Conta Bancária</Label>
+                     <Select value={newEvent.payment_bank_account || ''} onValueChange={(value) => setNewEvent(prev => ({ ...prev, payment_bank_account: value }))}>
+                       <SelectTrigger>
+                         <SelectValue placeholder="Selecione a conta" />
+                       </SelectTrigger>
+                       <SelectContent>
+                         {bankAccounts.map((account) => (
+                           <SelectItem key={account.id} value={account.name}>
+                             {account.name} - {account.account_type}
+                           </SelectItem>
+                         ))}
+                       </SelectContent>
+                     </Select>
+                   </div>
+                 </div>
+               )}
              </div>
              
              <div className="flex justify-end gap-2">
