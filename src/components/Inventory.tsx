@@ -1,11 +1,27 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Package, TrendingDown, TrendingUp } from "lucide-react";
+import { AlertTriangle, Package, TrendingDown, TrendingUp, Shield } from "lucide-react";
 import { useEquipment } from "@/hooks/useEquipment";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export const Inventory = () => {
   const { equipment, loading, totals } = useEquipment();
+  const { hasPermission } = usePermissions();
+  const [canViewInventory, setCanViewInventory] = useState(false);
+  const [canViewPrices, setCanViewPrices] = useState(false);
+
+  // Check permissions on mount
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canViewInventoryResult = await hasPermission('inventory_view', 'view');
+      const canViewPricesResult = await hasPermission('inventory_view', 'view');
+      setCanViewInventory(canViewInventoryResult);
+      setCanViewPrices(canViewPricesResult);
+    };
+    checkPermissions();
+  }, [hasPermission]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -43,6 +59,23 @@ export const Inventory = () => {
 
   if (loading) {
     return <div className="p-6">Carregando estoque...</div>;
+  }
+
+  // Show permission warning if user has no view access
+  if (!canViewInventory) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Acesso Restrito</h3>
+            <p className="text-muted-foreground">
+              Você não tem permissão para visualizar informações do estoque.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -87,7 +120,9 @@ export const Inventory = () => {
             <CardDescription>Valor total estimado</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600">R$ {totals.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+            <div className="text-3xl font-bold text-green-600">
+              {canViewPrices ? `R$ ${totals.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : "***"}
+            </div>
             <p className="text-sm text-muted-foreground mt-1">Valor estimado mensal</p>
           </CardContent>
         </Card>

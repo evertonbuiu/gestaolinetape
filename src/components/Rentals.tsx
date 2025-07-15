@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermissions } from '@/hooks/usePermissions';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, Calendar, Clock, MapPin, User, DollarSign, FileText, Plus, Edit, Trash2, Calculator } from 'lucide-react';
+import { AlertCircle, Calendar, Clock, MapPin, User, DollarSign, FileText, Plus, Edit, Trash2, Calculator, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -49,6 +50,7 @@ interface EventExpense {
 
 export const Rentals = () => {
   const { userRole, user } = useAuth();
+  const { hasPermission } = usePermissions();
   const { toast } = useToast();
   const [events, setEvents] = useState<Event[]>([]);
   const [expenses, setExpenses] = useState<EventExpense[]>([]);
@@ -56,6 +58,9 @@ export const Rentals = () => {
   const [loading, setLoading] = useState(true);
   const [expenseDialog, setExpenseDialog] = useState(false);
   const [eventDialog, setEventDialog] = useState(false);
+  const [canViewRentals, setCanViewRentals] = useState(false);
+  const [canEditRentals, setCanEditRentals] = useState(false);
+  const [canViewFinancials, setCanViewFinancials] = useState(false);
   const [newEvent, setNewEvent] = useState<Partial<Event>>({
     name: '',
     client_name: '',
@@ -78,6 +83,18 @@ export const Rentals = () => {
     supplier: '',
     notes: ''
   });
+  // Check permissions on mount
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canViewRentalsResult = await hasPermission('rentals_view', 'view');
+      const canEditRentalsResult = await hasPermission('rentals_edit', 'edit');
+      const canViewFinancialsResult = userRole === 'admin'; // Only admin can see financials
+      setCanViewRentals(canViewRentalsResult);
+      setCanEditRentals(canEditRentalsResult);
+      setCanViewFinancials(canViewFinancialsResult);
+    };
+    checkPermissions();
+  }, [hasPermission, userRole]);
 
   // Fetch events
   const fetchEvents = async () => {
@@ -315,6 +332,23 @@ export const Rentals = () => {
     return <div className="p-6">Carregando eventos...</div>;
   }
 
+  // Show permission warning if user has no view access
+  if (!canViewRentals) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Acesso Restrito</h3>
+            <p className="text-muted-foreground">
+              Você não tem permissão para visualizar informações de eventos.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -322,10 +356,12 @@ export const Rentals = () => {
           <h2 className="text-3xl font-bold text-foreground">Locações</h2>
           <p className="text-muted-foreground">Gerencie eventos e locações</p>
         </div>
-        <Button onClick={() => setEventDialog(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Evento
-        </Button>
+        {canEditRentals && (
+          <Button onClick={() => setEventDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Evento
+          </Button>
+        )}
       </div>
 
       <div className="grid gap-6">
@@ -373,7 +409,7 @@ export const Rentals = () => {
                   <Badge className={getStatusColor(event.status)}>
                     {getStatusText(event.status)}
                   </Badge>
-                  {userRole === 'admin' && (
+                  {canViewFinancials && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -390,7 +426,7 @@ export const Rentals = () => {
               </div>
             </CardHeader>
             
-            {userRole === 'admin' && (
+            {canViewFinancials && (
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="flex items-center gap-2">

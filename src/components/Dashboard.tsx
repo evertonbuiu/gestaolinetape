@@ -6,38 +6,44 @@ import { useAuth } from "@/hooks/useAuth";
 export const Dashboard = () => {
   const { hasPermission } = useAuth();
   const [showRevenue, setShowRevenue] = useState(false);
+  const [canViewInventory, setCanViewInventory] = useState(false);
+  const [canViewRentals, setCanViewRentals] = useState(false);
 
   useEffect(() => {
     const checkPermission = async () => {
       const canViewRevenue = await hasPermission('dashboard_revenue', 'view');
+      const canViewInventoryResult = await hasPermission('inventory_view', 'view');
+      const canViewRentalsResult = await hasPermission('rentals_view', 'view');
       setShowRevenue(canViewRevenue);
+      setCanViewInventory(canViewInventoryResult);
+      setCanViewRentals(canViewRentalsResult);
     };
     
     checkPermission();
   }, [hasPermission]);
   
   const stats = [
-    {
+    ...(canViewInventory ? [{
       title: "Total de Equipamentos",
       value: "1,234",
       description: "Equipamentos cadastrados",
       icon: Package,
       color: "text-blue-600"
-    },
-    {
+    }] : []),
+    ...(canViewRentals ? [{
       title: "Equipamentos Locados",
       value: "156",
       description: "Atualmente em locação",
       icon: Calendar,
       color: "text-green-600"
-    },
-    {
+    }] : []),
+    ...(canViewInventory ? [{
       title: "Estoque Baixo",
       value: "23",
       description: "Itens com estoque crítico",
       icon: AlertTriangle,
       color: "text-red-600"
-    },
+    }] : []),
     // Mostrar receita apenas se tiver permissão
     ...(showRevenue ? [{
       title: "Receita do Mês",
@@ -70,70 +76,76 @@ export const Dashboard = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Equipamentos Mais Locados</CardTitle>
-            <CardDescription>Top 5 equipamentos em demanda</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[
-                { name: "Refletor LED 200W", rentals: 45, percentage: 90 },
-                { name: "Mesa de Som 24 Canais", rentals: 38, percentage: 76 },
-                { name: "Microfone Sem Fio", rentals: 35, percentage: 70 },
-                { name: "Caixa de Som Ativa", rentals: 28, percentage: 56 },
-                { name: "Truss Quadrada 3m", rentals: 22, percentage: 44 }
-              ].map((item, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{item.name}</p>
-                    <div className="w-full bg-muted rounded-full h-2 mt-1">
-                      <div 
-                        className="bg-primary rounded-full h-2 transition-all duration-300"
-                        style={{ width: `${item.percentage}%` }}
-                      />
+      {(canViewInventory || canViewRentals) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {canViewRentals && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Equipamentos Mais Locados</CardTitle>
+                <CardDescription>Top 5 equipamentos em demanda</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[
+                    { name: "Refletor LED 200W", rentals: 45, percentage: 90 },
+                    { name: "Mesa de Som 24 Canais", rentals: 38, percentage: 76 },
+                    { name: "Microfone Sem Fio", rentals: 35, percentage: 70 },
+                    { name: "Caixa de Som Ativa", rentals: 28, percentage: 56 },
+                    { name: "Truss Quadrada 3m", rentals: 22, percentage: 44 }
+                  ].map((item, index) => (
+                    <div key={index} className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{item.name}</p>
+                        <div className="w-full bg-muted rounded-full h-2 mt-1">
+                          <div 
+                            className="bg-primary rounded-full h-2 transition-all duration-300"
+                            style={{ width: `${item.percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                      <span className="text-sm text-muted-foreground ml-4">{item.rentals}</span>
                     </div>
-                  </div>
-                  <span className="text-sm text-muted-foreground ml-4">{item.rentals}</span>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Locações Próximas</CardTitle>
-            <CardDescription>Equipamentos que devem retornar em breve</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[
-                { client: "Evento Casamento Silva", equipment: "Kit Iluminação Completo", date: "Hoje", status: "urgent" },
-                { client: "Festa Corporativa ABC", equipment: "Som + Iluminação", date: "Amanhã", status: "warning" },
-                { client: "Aniversário Maria", equipment: "Refletores LED", date: "15/07", status: "normal" },
-                { client: "Show Banda XYZ", equipment: "Equipamento Palco", date: "18/07", status: "normal" }
-              ].map((rental, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{rental.client}</p>
-                    <p className="text-xs text-muted-foreground">{rental.equipment}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-sm font-medium ${
-                      rental.status === 'urgent' ? 'text-red-600' : 
-                      rental.status === 'warning' ? 'text-orange-600' : 'text-green-600'
-                    }`}>
-                      {rental.date}
-                    </p>
-                  </div>
+          {canViewRentals && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Locações Próximas</CardTitle>
+                <CardDescription>Equipamentos que devem retornar em breve</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[
+                    { client: "Evento Casamento Silva", equipment: "Kit Iluminação Completo", date: "Hoje", status: "urgent" },
+                    { client: "Festa Corporativa ABC", equipment: "Som + Iluminação", date: "Amanhã", status: "warning" },
+                    { client: "Aniversário Maria", equipment: "Refletores LED", date: "15/07", status: "normal" },
+                    { client: "Show Banda XYZ", equipment: "Equipamento Palco", date: "18/07", status: "normal" }
+                  ].map((rental, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{rental.client}</p>
+                        <p className="text-xs text-muted-foreground">{rental.equipment}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-sm font-medium ${
+                          rental.status === 'urgent' ? 'text-red-600' : 
+                          rental.status === 'warning' ? 'text-orange-600' : 'text-green-600'
+                        }`}>
+                          {rental.date}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
     </div>
   );
 };

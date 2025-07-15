@@ -1,14 +1,29 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Edit, Trash2, Package } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Package, Shield } from "lucide-react";
 import { useEquipment } from "@/hooks/useEquipment";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export const Equipment = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { equipment, loading } = useEquipment();
+  const { hasPermission } = usePermissions();
+  const [canViewPrices, setCanViewPrices] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
+
+  // Check permissions on mount
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canViewPricesResult = await hasPermission('inventory_view', 'view');
+      const canEditResult = await hasPermission('inventory_edit', 'edit');
+      setCanViewPrices(canViewPricesResult);
+      setCanEdit(canEditResult);
+    };
+    checkPermissions();
+  }, [hasPermission]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -45,6 +60,23 @@ export const Equipment = () => {
     return <div className="p-6">Carregando equipamentos...</div>;
   }
 
+  // Show permission warning if user has no view access
+  if (!canViewPrices) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Acesso Restrito</h3>
+            <p className="text-muted-foreground">
+              Você não tem permissão para visualizar informações de equipamentos.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -52,10 +84,12 @@ export const Equipment = () => {
           <h2 className="text-3xl font-bold text-foreground">Equipamentos</h2>
           <p className="text-muted-foreground">Gerencie todos os equipamentos do almoxarifado</p>
         </div>
-        <Button className="gap-2">
-          <Plus className="w-4 h-4" />
-          Novo Equipamento
-        </Button>
+        {canEdit && (
+          <Button className="gap-2">
+            <Plus className="w-4 h-4" />
+            Novo Equipamento
+          </Button>
+        )}
       </div>
 
       <div className="flex items-center gap-4">
@@ -99,19 +133,23 @@ export const Equipment = () => {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Preço/Dia</p>
-                  <p className="font-medium">R$ {item.price_per_day.toFixed(2)}</p>
+                  <p className="font-medium">
+                    {canViewPrices ? `R$ ${item.price_per_day.toFixed(2)}` : "***"}
+                  </p>
                 </div>
               </div>
               
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1">
-                  <Edit className="w-4 h-4 mr-2" />
-                  Editar
-                </Button>
-                <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
+              {canEdit && (
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="flex-1">
+                    <Edit className="w-4 h-4 mr-2" />
+                    Editar
+                  </Button>
+                  <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
