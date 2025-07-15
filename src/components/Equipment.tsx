@@ -23,6 +23,7 @@ export const Equipment = () => {
   const [canViewPrices, setCanViewPrices] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
   const [equipmentDialog, setEquipmentDialog] = useState(false);
+  const [editingEquipment, setEditingEquipment] = useState<any>(null);
   const [newEquipment, setNewEquipment] = useState({
     name: '',
     category: '',
@@ -119,6 +120,94 @@ export const Equipment = () => {
     }
   };
 
+  // Update equipment
+  const updateEquipment = async () => {
+    if (!editingEquipment || !editingEquipment.name || !editingEquipment.category) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha nome e categoria do equipamento.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('equipment')
+        .update({
+          name: editingEquipment.name,
+          category: editingEquipment.category,
+          description: editingEquipment.description || '',
+          total_stock: editingEquipment.total_stock || 0,
+          price_per_day: editingEquipment.price_per_day || 0
+        })
+        .eq('id', editingEquipment.id);
+
+      if (error) throw error;
+
+      await fetchEquipment();
+      setEditingEquipment(null);
+      setEquipmentDialog(false);
+
+      toast({
+        title: "Equipamento atualizado",
+        description: "O equipamento foi atualizado com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error updating equipment:', error);
+      toast({
+        title: "Erro ao atualizar equipamento",
+        description: "Não foi possível atualizar o equipamento.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Delete equipment
+  const deleteEquipment = async (equipmentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('equipment')
+        .delete()
+        .eq('id', equipmentId);
+
+      if (error) throw error;
+
+      await fetchEquipment();
+
+      toast({
+        title: "Equipamento removido",
+        description: "O equipamento foi removido com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error deleting equipment:', error);
+      toast({
+        title: "Erro ao remover equipamento",
+        description: "Não foi possível remover o equipamento.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Open edit dialog
+  const openEditDialog = (equipment: any) => {
+    setEditingEquipment(equipment);
+    setEquipmentDialog(true);
+  };
+
+  // Open add dialog
+  const openAddDialog = () => {
+    setEditingEquipment(null);
+    setNewEquipment({
+      name: '',
+      category: '',
+      description: '',
+      total_stock: 0,
+      price_per_day: 0
+    });
+    setEquipmentDialog(true);
+  };
+
   const categories = [
     { value: "equipamento", label: "Equipamento" },
     { value: "cabeamento", label: "Cabeamento" },
@@ -161,90 +250,125 @@ export const Equipment = () => {
         {canEdit && (
           <Dialog open={equipmentDialog} onOpenChange={setEquipmentDialog}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="gap-2" onClick={openAddDialog}>
                 <Plus className="w-4 h-4" />
                 Novo Equipamento
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Novo Equipamento</DialogTitle>
+                <DialogTitle>
+                  {editingEquipment ? 'Editar Equipamento' : 'Novo Equipamento'}
+                </DialogTitle>
                 <DialogDescription>
-                  Cadastre um novo equipamento no almoxarifado
+                  {editingEquipment ? 'Edite as informações do equipamento' : 'Cadastre um novo equipamento no almoxarifado'}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="name">Nome do Equipamento *</Label>
-                    <Input
-                      id="name"
-                      value={newEquipment.name}
-                      onChange={(e) => setNewEquipment(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="Ex: Mesa de Som"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="category">Categoria *</Label>
-                    <Select value={newEquipment.category} onValueChange={(value) => setNewEquipment(prev => ({ ...prev, category: value }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a categoria" />
+                    <div>
+                      <Label htmlFor="name">Nome do Equipamento *</Label>
+                      <Input
+                        id="name"
+                        value={editingEquipment ? editingEquipment.name : newEquipment.name}
+                        onChange={(e) => {
+                          if (editingEquipment) {
+                            setEditingEquipment({ ...editingEquipment, name: e.target.value });
+                          } else {
+                            setNewEquipment(prev => ({ ...prev, name: e.target.value }));
+                          }
+                        }}
+                        placeholder="Ex: Mesa de Som"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="category">Categoria *</Label>
+                      <Select 
+                        value={editingEquipment ? editingEquipment.category : newEquipment.category} 
+                        onValueChange={(value) => {
+                          if (editingEquipment) {
+                            setEditingEquipment({ ...editingEquipment, category: value });
+                          } else {
+                            setNewEquipment(prev => ({ ...prev, category: value }));
+                          }
+                        }}
+                      >
+                        <SelectTrigger>
+                      <SelectValue placeholder="Selecione a categoria" />
                       </SelectTrigger>
-                      <SelectContent className="bg-background border shadow-md z-50">
-                        {categories.map((category) => (
-                          <SelectItem key={category.value} value={category.value}>
-                            {category.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                        <SelectContent className="bg-background border shadow-md z-50">
+                          {categories.map((category) => (
+                            <SelectItem key={category.value} value={category.value}>
+                              {category.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="description">Descrição</Label>
-                  <Textarea
-                    id="description"
-                    value={newEquipment.description}
-                    onChange={(e) => setNewEquipment(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Descrição detalhada do equipamento"
-                  />
-                </div>
+                  <div>
+                    <Label htmlFor="description">Descrição</Label>
+                    <Textarea
+                      id="description"
+                      value={editingEquipment ? editingEquipment.description : newEquipment.description}
+                      onChange={(e) => {
+                        if (editingEquipment) {
+                          setEditingEquipment({ ...editingEquipment, description: e.target.value });
+                        } else {
+                          setNewEquipment(prev => ({ ...prev, description: e.target.value }));
+                        }
+                      }}
+                      placeholder="Descrição detalhada do equipamento"
+                    />
+                  </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="total_stock">Quantidade em Estoque</Label>
-                    <Input
-                      id="total_stock"
-                      type="number"
-                      min="0"
-                      value={newEquipment.total_stock}
-                      onChange={(e) => setNewEquipment(prev => ({ ...prev, total_stock: parseInt(e.target.value) || 0 }))}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="price_per_day">Preço por Dia (R$)</Label>
-                    <Input
-                      id="price_per_day"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={newEquipment.price_per_day}
-                      onChange={(e) => setNewEquipment(prev => ({ ...prev, price_per_day: parseFloat(e.target.value) || 0 }))}
-                      placeholder="0.00"
-                    />
-                  </div>
+                    <div>
+                      <Label htmlFor="total_stock">Quantidade em Estoque</Label>
+                      <Input
+                        id="total_stock"
+                        type="number"
+                        min="0"
+                        value={editingEquipment ? editingEquipment.total_stock : newEquipment.total_stock}
+                        onChange={(e) => {
+                          if (editingEquipment) {
+                            setEditingEquipment({ ...editingEquipment, total_stock: parseInt(e.target.value) || 0 });
+                          } else {
+                            setNewEquipment(prev => ({ ...prev, total_stock: parseInt(e.target.value) || 0 }));
+                          }
+                        }}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="price_per_day">Preço por Dia (R$)</Label>
+                      <Input
+                        id="price_per_day"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={editingEquipment ? editingEquipment.price_per_day : newEquipment.price_per_day}
+                        onChange={(e) => {
+                          if (editingEquipment) {
+                            setEditingEquipment({ ...editingEquipment, price_per_day: parseFloat(e.target.value) || 0 });
+                          } else {
+                            setNewEquipment(prev => ({ ...prev, price_per_day: parseFloat(e.target.value) || 0 }));
+                          }
+                        }}
+                        placeholder="0.00"
+                      />
+                    </div>
                 </div>
 
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setEquipmentDialog(false)}>
-                    Cancelar
-                  </Button>
-                  <Button onClick={addEquipment}>
-                    Cadastrar Equipamento
-                  </Button>
-                </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setEquipmentDialog(false)}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={editingEquipment ? updateEquipment : addEquipment}>
+                      {editingEquipment ? 'Salvar' : 'Cadastrar Equipamento'}
+                    </Button>
+                  </div>
               </div>
             </DialogContent>
           </Dialog>
@@ -300,11 +424,16 @@ export const Equipment = () => {
               
               {canEdit && (
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => openEditDialog(item)}>
                     <Edit className="w-4 h-4 mr-2" />
                     Editar
                   </Button>
-                  <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-red-600 hover:text-red-700"
+                    onClick={() => deleteEquipment(item.id)}
+                  >
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
