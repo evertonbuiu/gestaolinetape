@@ -55,6 +55,12 @@ export const FinancialManagement = () => {
     date: new Date().toISOString().split('T')[0]
   });
   const [isAddingEntry, setIsAddingEntry] = useState(false);
+  const [isAddingAccount, setIsAddingAccount] = useState(false);
+  const [newAccount, setNewAccount] = useState({
+    name: "",
+    type: "checking" as 'checking' | 'savings' | 'cash',
+    balance: 0
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -231,6 +237,43 @@ export const FinancialManagement = () => {
 
   const getNetResult = () => {
     return getTotalIncome() - getTotalExpenses();
+  };
+
+  const handleAddAccount = () => {
+    if (!newAccount.name || !newAccount.type) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const account: AccountBalance = {
+      id: Date.now().toString(),
+      ...newAccount,
+    };
+
+    setAccounts([...accounts, account]);
+    setNewAccount({
+      name: "",
+      type: "checking",
+      balance: 0
+    });
+    setIsAddingAccount(false);
+    
+    toast({
+      title: "Sucesso",
+      description: "Conta adicionada com sucesso!",
+    });
+  };
+
+  const handleRemoveAccount = (accountId: string) => {
+    setAccounts(accounts.filter(account => account.id !== accountId));
+    toast({
+      title: "Sucesso",
+      description: "Conta removida com sucesso!",
+    });
   };
 
   if (loading) {
@@ -541,8 +584,67 @@ export const FinancialManagement = () => {
         <TabsContent value="accounts" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Contas Bancárias</CardTitle>
-              <CardDescription>Saldos e movimentações das contas</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Contas Bancárias</CardTitle>
+                  <CardDescription>Saldos e movimentações das contas</CardDescription>
+                </div>
+                <Dialog open={isAddingAccount} onOpenChange={setIsAddingAccount}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Nova Conta
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Adicionar Conta</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="accountName">Nome da Conta</Label>
+                        <Input
+                          id="accountName"
+                          value={newAccount.name}
+                          onChange={(e) => setNewAccount({...newAccount, name: e.target.value})}
+                          placeholder="Digite o nome da conta..."
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="accountType">Tipo da Conta</Label>
+                        <Select value={newAccount.type} onValueChange={(value: 'checking' | 'savings' | 'cash') => setNewAccount({...newAccount, type: value})}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="checking">Conta Corrente</SelectItem>
+                            <SelectItem value="savings">Conta Poupança</SelectItem>
+                            <SelectItem value="cash">Dinheiro em Caixa</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="accountBalance">Saldo Inicial</Label>
+                        <Input
+                          id="accountBalance"
+                          type="number"
+                          value={newAccount.balance}
+                          onChange={(e) => setNewAccount({...newAccount, balance: parseFloat(e.target.value) || 0})}
+                          placeholder="0,00"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setIsAddingAccount(false)}>
+                          Cancelar
+                        </Button>
+                        <Button onClick={handleAddAccount}>
+                          Salvar
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -565,6 +667,14 @@ export const FinancialManagement = () => {
                         <Button variant="outline" size="sm">
                           <Edit className="h-4 w-4 mr-1" />
                           Editar
+                        </Button>
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          onClick={() => handleRemoveAccount(account.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Remover
                         </Button>
                       </div>
                     </div>
