@@ -242,6 +242,7 @@ export const FinancialManagement = () => {
         <TabsList>
           <TabsTrigger value="revenue">Receitas</TabsTrigger>
           <TabsTrigger value="expenses">Despesas</TabsTrigger>
+          <TabsTrigger value="warehouse">Almoxarifado</TabsTrigger>
           <TabsTrigger value="reports">Relatórios</TabsTrigger>
         </TabsList>
 
@@ -356,6 +357,72 @@ export const FinancialManagement = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="warehouse" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Despesas de Almoxarifado</CardTitle>
+              <CardDescription>Controle de despesas relacionadas ao almoxarifado</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Warehouse Expenses Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-sm font-medium text-muted-foreground">Total Gasto</div>
+                      <div className="text-2xl font-bold text-red-600">R$ 12.450</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-sm font-medium text-muted-foreground">Este Mês</div>
+                      <div className="text-2xl font-bold text-orange-600">R$ 2.340</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-sm font-medium text-muted-foreground">Últimos 30 Dias</div>
+                      <div className="text-2xl font-bold text-blue-600">R$ 1.890</div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Warehouse Expenses List */}
+                <div className="space-y-2">
+                  <h4 className="font-medium">Despesas Recentes</h4>
+                  {[
+                    { item: "Lâmpadas LED de reposição", category: "Manutenção", amount: 450, date: "2025-01-12", supplier: "Elétrica Central" },
+                    { item: "Cabo de força 10m", category: "Equipamento", amount: 120, date: "2025-01-10", supplier: "Casa dos Cabos" },
+                    { item: "Prateleiras metálicas", category: "Infraestrutura", amount: 890, date: "2025-01-08", supplier: "Organiza Tudo" },
+                    { item: "Kit de ferramentas", category: "Manutenção", amount: 320, date: "2025-01-05", supplier: "Ferramentas Silva" },
+                    { item: "Etiquetas para organização", category: "Organização", amount: 85, date: "2025-01-03", supplier: "Papelaria Express" }
+                  ].map((expense, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50"
+                    >
+                      <div className="flex-1">
+                        <div className="font-medium">{expense.item}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {expense.category} • {expense.supplier}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(expense.date).toLocaleDateString('pt-BR')}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-lg text-red-600">
+                          -{formatCurrency(expense.amount)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
