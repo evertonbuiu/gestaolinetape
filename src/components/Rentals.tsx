@@ -226,10 +226,7 @@ export const Rentals = () => {
         created_by: user.id
       };
 
-      // Add payment bank account if status is paid
-      if (newEvent.status === 'paid' && newEvent.payment_bank_account) {
-        eventData.payment_bank_account = newEvent.payment_bank_account;
-      }
+      // Remove old payment bank account check
 
       const { error } = await supabase
         .from('events')
@@ -327,6 +324,34 @@ export const Rentals = () => {
       toast({
         title: "Erro ao atualizar evento",
         description: "Não foi possível atualizar o evento.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Toggle payment status
+  const togglePaymentStatus = async (event: Event) => {
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({ 
+          is_paid: !event.is_paid,
+          payment_date: !event.is_paid ? new Date().toISOString().split('T')[0] : null
+        })
+        .eq('id', event.id);
+
+      if (error) throw error;
+
+      await fetchEvents();
+      toast({
+        title: event.is_paid ? "Marcado como não pago" : "Marcado como pago",
+        description: "O status de pagamento foi atualizado com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      toast({
+        title: "Erro ao atualizar pagamento",
+        description: "Não foi possível atualizar o status de pagamento.",
         variant: "destructive"
       });
     }
@@ -451,7 +476,6 @@ export const Rentals = () => {
       case 'in_progress': return 'bg-green-100 text-green-800';
       case 'completed': return 'bg-gray-100 text-gray-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
-      case 'paid': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -719,10 +743,15 @@ export const Rentals = () => {
                                   )}
                                 </CardDescription>
                               </div>
-                              <div className="flex items-center gap-2">
+                               <div className="flex items-center gap-2">
                                  <Badge className={getStatusColor(event.status)}>
                                    {getStatusText(event.status)}
                                  </Badge>
+                                 {event.is_paid && (
+                                   <Badge className="bg-green-100 text-green-800">
+                                     Pago
+                                   </Badge>
+                                 )}
                                  {canEditRentals && (
                                    <>
                                      <Button
@@ -752,17 +781,28 @@ export const Rentals = () => {
                                    </>
                                  )}
                                  {canViewFinancials && (
-                                   <Button
-                                     variant="outline"
-                                     size="sm"
-                                     onClick={() => {
-                                       setSelectedEvent(event);
-                                       fetchExpenses(event.id);
-                                     }}
-                                   >
-                                     <Calculator className="h-4 w-4 mr-2" />
-                                     Despesas
-                                   </Button>
+                                   <>
+                                     <Button
+                                       variant={event.is_paid ? "default" : "outline"}
+                                       size="sm"
+                                       onClick={() => togglePaymentStatus(event)}
+                                       title={event.is_paid ? "Marcar como não pago" : "Marcar como pago"}
+                                     >
+                                       <DollarSign className="h-4 w-4 mr-1" />
+                                       {event.is_paid ? "Pago" : "Pagar"}
+                                     </Button>
+                                     <Button
+                                       variant="outline"
+                                       size="sm"
+                                       onClick={() => {
+                                         setSelectedEvent(event);
+                                         fetchExpenses(event.id);
+                                       }}
+                                     >
+                                       <Calculator className="h-4 w-4 mr-2" />
+                                       Despesas
+                                     </Button>
+                                   </>
                                  )}
                               </div>
                             </div>
@@ -1219,7 +1259,6 @@ export const Rentals = () => {
                      <SelectItem value="in_progress">Em Andamento</SelectItem>
                      <SelectItem value="completed">Concluído</SelectItem>
                      <SelectItem value="cancelled">Cancelado</SelectItem>
-                     <SelectItem value="paid">Pago</SelectItem>
                    </SelectContent>
                  </Select>
                </div>
@@ -1341,37 +1380,17 @@ export const Rentals = () => {
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o status" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Pendente</SelectItem>
-                  <SelectItem value="confirmed">Confirmado</SelectItem>
-                  <SelectItem value="in_progress">Em Andamento</SelectItem>
-                  <SelectItem value="completed">Concluído</SelectItem>
-                  <SelectItem value="cancelled">Cancelado</SelectItem>
-                  <SelectItem value="paid">Pago</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {/* Campo de banco quando status for "pago" */}
-            {newEvent.status === 'paid' && (
-              <div>
-                <Label htmlFor="edit_payment_bank_account">Conta Bancária Recebimento</Label>
-                <Select value={newEvent.payment_bank_account} onValueChange={(value) => setNewEvent(prev => ({ ...prev, payment_bank_account: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a conta bancária" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {bankAccounts.map((account) => (
-                      <SelectItem key={account.id} value={account.name}>
-                        {account.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            
-            <div className="flex justify-end gap-2">
+                 <SelectContent>
+                   <SelectItem value="pending">Pendente</SelectItem>
+                   <SelectItem value="confirmed">Confirmado</SelectItem>
+                   <SelectItem value="in_progress">Em Andamento</SelectItem>
+                   <SelectItem value="completed">Concluído</SelectItem>
+                   <SelectItem value="cancelled">Cancelado</SelectItem>
+                 </SelectContent>
+               </Select>
+             </div>
+             
+             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setEditEventDialog(false)}>
                 Cancelar
               </Button>
