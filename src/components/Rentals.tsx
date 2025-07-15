@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, Calendar, Clock, MapPin, User, DollarSign, FileText, Plus, Edit, Trash2, Calculator, Shield } from 'lucide-react';
+import { AlertCircle, Calendar, Clock, MapPin, User, DollarSign, FileText, Plus, Edit, Trash2, Calculator, Shield, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -58,6 +58,9 @@ export const Rentals = () => {
   const [loading, setLoading] = useState(true);
   const [expenseDialog, setExpenseDialog] = useState(false);
   const [eventDialog, setEventDialog] = useState(false);
+  const [statusDialog, setStatusDialog] = useState(false);
+  const [selectedEventForStatus, setSelectedEventForStatus] = useState<Event | null>(null);
+  const [newStatus, setNewStatus] = useState('');
   const [canViewRentals, setCanViewRentals] = useState(false);
   const [canEditRentals, setCanEditRentals] = useState(false);
   const [canViewFinancials, setCanViewFinancials] = useState(false);
@@ -306,6 +309,44 @@ export const Rentals = () => {
     }
   };
 
+  // Update event status
+  const updateEventStatus = async () => {
+    if (!selectedEventForStatus || !newStatus) {
+      toast({
+        title: "Erro",
+        description: "Selecione um status válido.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({ status: newStatus })
+        .eq('id', selectedEventForStatus.id);
+
+      if (error) throw error;
+
+      await fetchEvents();
+      setStatusDialog(false);
+      setSelectedEventForStatus(null);
+      setNewStatus('');
+
+      toast({
+        title: "Status atualizado",
+        description: "O status do evento foi atualizado com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error updating event status:', error);
+      toast({
+        title: "Erro ao atualizar status",
+        description: "Não foi possível atualizar o status do evento.",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Calculate unit price when quantity changes
   const handleQuantityChange = (quantity: number) => {
     setNewExpense(prev => ({
@@ -409,6 +450,19 @@ export const Rentals = () => {
                   <Badge className={getStatusColor(event.status)}>
                     {getStatusText(event.status)}
                   </Badge>
+                  {canEditRentals && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedEventForStatus(event);
+                        setNewStatus(event.status);
+                        setStatusDialog(true);
+                      }}
+                    >
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  )}
                   {canViewFinancials && (
                     <Button
                       variant="outline"
@@ -806,6 +860,59 @@ export const Rentals = () => {
               </Button>
               <Button onClick={addEvent}>
                 Criar Evento
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Status Dialog */}
+      <Dialog open={statusDialog} onOpenChange={setStatusDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Alterar Status do Evento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="event_name_display">Evento</Label>
+              <Input
+                id="event_name_display"
+                value={selectedEventForStatus?.name || ''}
+                disabled
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="current_status">Status Atual</Label>
+              <Input
+                id="current_status"
+                value={selectedEventForStatus ? getStatusText(selectedEventForStatus.status) : ''}
+                disabled
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="new_status">Novo Status</Label>
+              <Select value={newStatus} onValueChange={setNewStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o novo status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectItem value="confirmed">Confirmado</SelectItem>
+                  <SelectItem value="in_progress">Em Andamento</SelectItem>
+                  <SelectItem value="completed">Concluído</SelectItem>
+                  <SelectItem value="cancelled">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setStatusDialog(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={updateEventStatus}>
+                Alterar Status
               </Button>
             </div>
           </div>
