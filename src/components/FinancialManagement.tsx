@@ -98,6 +98,15 @@ export const FinancialManagement = () => {
         },
         () => loadFinancialData()
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bank_accounts'
+        },
+        () => loadFinancialData()
+      )
       .subscribe();
 
     return () => {
@@ -203,31 +212,68 @@ export const FinancialManagement = () => {
       const totalExpenses = expenseEntries
         .reduce((sum, entry) => sum + entry.amount, 0);
 
-      const netBalance = totalIncome - totalExpenses;
+      // Buscar contas bancárias do banco de dados
+      const { data: bankAccountsData, error: bankAccountsError } = await supabase
+        .from('bank_accounts')
+        .select('*')
+        .order('created_at', { ascending: true });
 
-      // Contas bancárias com saldos calculados
-      const calculatedAccounts: AccountBalance[] = [
-        {
-          id: "1",
-          name: "Conta Corrente Principal",
-          balance: netBalance,
-          type: "checking"
-        },
-        {
-          id: "2",
-          name: "Conta Poupança",
-          balance: netBalance * 0.3, // 30% do saldo em poupança
-          type: "savings"
-        },
-        {
-          id: "3",
-          name: "Dinheiro em Caixa",
-          balance: netBalance * 0.1, // 10% do saldo em dinheiro
-          type: "cash"
+      if (bankAccountsError) throw bankAccountsError;
+
+      // Se não há contas no banco, criar contas padrão baseadas no saldo calculado
+      if (!bankAccountsData || bankAccountsData.length === 0) {
+        const netBalance = totalIncome - totalExpenses;
+        
+        const defaultAccounts = [
+          {
+            name: "Conta Corrente Principal",
+            account_type: "checking",
+            balance: netBalance
+          },
+          {
+            name: "Conta Poupança",
+            account_type: "savings", 
+            balance: netBalance * 0.3
+          },
+          {
+            name: "Dinheiro em Caixa",
+            account_type: "cash",
+            balance: netBalance * 0.1
+          }
+        ];
+
+        // Inserir contas padrão no banco
+        const { error: insertError } = await supabase
+          .from('bank_accounts')
+          .insert(defaultAccounts);
+
+        if (!insertError) {
+          // Buscar novamente após inserir
+          const { data: newAccountsData } = await supabase
+            .from('bank_accounts')
+            .select('*')
+            .order('created_at', { ascending: true });
+          
+          if (newAccountsData) {
+            const mappedAccounts: AccountBalance[] = newAccountsData.map(account => ({
+              id: account.id,
+              name: account.name,
+              balance: account.balance || 0,
+              type: account.account_type as 'checking' | 'savings' | 'cash'
+            }));
+            setAccounts(mappedAccounts);
+          }
         }
-      ];
-
-      setAccounts(calculatedAccounts);
+      } else {
+        // Mapear contas do banco para o formato do componente
+        const mappedAccounts: AccountBalance[] = bankAccountsData.map(account => ({
+          id: account.id,
+          name: account.name,
+          balance: account.balance || 0,
+          type: account.account_type as 'checking' | 'savings' | 'cash'
+        }));
+        setAccounts(mappedAccounts);
+      }
 
     } catch (error) {
       console.error("Error loading financial data:", error);
@@ -334,7 +380,7 @@ export const FinancialManagement = () => {
     return getTotalIncome() - getTotalExpenses();
   };
 
-  const handleAddAccount = () => {
+  const handleAddAccount = async () => {
     if (!newAccount.name || !newAccount.type) {
       toast({
         title: "Erro",
@@ -344,31 +390,61 @@ export const FinancialManagement = () => {
       return;
     }
 
-    const account: AccountBalance = {
-      id: Date.now().toString(),
-      ...newAccount,
-    };
+    try {
+      // Salvar conta no banco de dados
+      const { error } = await supabase
+        .from('bank_accounts')
+        .insert({
+          name: newAccount.name,
+          account_type: newAccount.type,
+          balance: newAccount.balance
+        });
 
-    setAccounts([...accounts, account]);
-    setNewAccount({
-      name: "",
-      type: "checking",
-      balance: 0
-    });
-    setIsAddingAccount(false);
-    
-    toast({
-      title: "Sucesso",
-      description: "Conta adicionada com sucesso!",
-    });
+      if (error) throw error;
+
+      setNewAccount({
+        name: "",
+        type: "checking",
+        balance: 0
+      });
+      setIsAddingAccount(false);
+      
+      toast({
+        title: "Sucesso",
+        description: "Conta adicionada com sucesso!",
+      });
+    } catch (error) {
+      console.error("Error adding account:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível adicionar a conta.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleRemoveAccount = (accountId: string) => {
-    setAccounts(accounts.filter(account => account.id !== accountId));
-    toast({
-      title: "Sucesso",
-      description: "Conta removida com sucesso!",
-    });
+  const handleRemoveAccount = async (accountId: string) => {
+    try {
+      // Remover conta do banco de dados
+      const { error } = await supabase
+        .from('bank_accounts')
+        .delete()
+        .eq('id', accountId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Conta removida com sucesso!",
+      });
+    } catch (error) {
+      console.error("Error removing account:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível remover a conta.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEditAccount = (account: AccountBalance) => {
@@ -381,7 +457,7 @@ export const FinancialManagement = () => {
     setIsEditingAccount(true);
   };
 
-  const handleUpdateAccount = () => {
+  const handleUpdateAccount = async () => {
     if (!selectedAccount || !newAccount.name || !newAccount.type) {
       toast({
         title: "Erro",
@@ -391,25 +467,39 @@ export const FinancialManagement = () => {
       return;
     }
 
-    const updatedAccounts = accounts.map(account =>
-      account.id === selectedAccount.id
-        ? { ...account, ...newAccount }
-        : account
-    );
+    try {
+      // Atualizar conta no banco de dados
+      const { error } = await supabase
+        .from('bank_accounts')
+        .update({
+          name: newAccount.name,
+          account_type: newAccount.type,
+          balance: newAccount.balance
+        })
+        .eq('id', selectedAccount.id);
 
-    setAccounts(updatedAccounts);
-    setNewAccount({
-      name: "",
-      type: "checking",
-      balance: 0
-    });
-    setSelectedAccount(null);
-    setIsEditingAccount(false);
-    
-    toast({
-      title: "Sucesso",
-      description: "Conta atualizada com sucesso!",
-    });
+      if (error) throw error;
+
+      setNewAccount({
+        name: "",
+        type: "checking",
+        balance: 0
+      });
+      setSelectedAccount(null);
+      setIsEditingAccount(false);
+      
+      toast({
+        title: "Sucesso",
+        description: "Conta atualizada com sucesso!",
+      });
+    } catch (error) {
+      console.error("Error updating account:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar a conta.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleViewStatement = (account: AccountBalance) => {
