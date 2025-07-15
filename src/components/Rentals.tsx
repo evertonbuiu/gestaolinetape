@@ -54,6 +54,19 @@ export const Rentals = () => {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [expenseDialog, setExpenseDialog] = useState(false);
+  const [eventDialog, setEventDialog] = useState(false);
+  const [newEvent, setNewEvent] = useState<Partial<Event>>({
+    name: '',
+    client_name: '',
+    client_email: '',
+    client_phone: '',
+    event_date: '',
+    event_time: '',
+    location: '',
+    description: '',
+    total_budget: 0,
+    status: 'pending'
+  });
   const [newExpense, setNewExpense] = useState<Partial<EventExpense>>({
     category: '',
     description: '',
@@ -83,6 +96,65 @@ export const Rentals = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Add new event
+  const addEvent = async () => {
+    if (!newEvent.name || !newEvent.client_name || !newEvent.event_date || !user) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha nome do evento, cliente e data.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('events')
+        .insert({
+          name: newEvent.name,
+          client_name: newEvent.client_name,
+          client_email: newEvent.client_email || '',
+          client_phone: newEvent.client_phone || '',
+          event_date: newEvent.event_date,
+          event_time: newEvent.event_time || '',
+          location: newEvent.location || '',
+          description: newEvent.description || '',
+          total_budget: newEvent.total_budget || 0,
+          status: newEvent.status || 'pending',
+          created_by: user.id
+        });
+
+      if (error) throw error;
+
+      await fetchEvents();
+      setNewEvent({
+        name: '',
+        client_name: '',
+        client_email: '',
+        client_phone: '',
+        event_date: '',
+        event_time: '',
+        location: '',
+        description: '',
+        total_budget: 0,
+        status: 'pending'
+      });
+      setEventDialog(false);
+
+      toast({
+        title: "Evento criado",
+        description: "O evento foi criado com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error adding event:', error);
+      toast({
+        title: "Erro ao criar evento",
+        description: "Não foi possível criar o evento.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -241,9 +313,15 @@ export const Rentals = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold text-foreground">Locações</h2>
-        <p className="text-muted-foreground">Gerencie eventos e locações</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold text-foreground">Locações</h2>
+          <p className="text-muted-foreground">Gerencie eventos e locações</p>
+        </div>
+        <Button onClick={() => setEventDialog(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Evento
+        </Button>
       </div>
 
       <div className="grid gap-6">
@@ -541,6 +619,138 @@ export const Rentals = () => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Event Dialog */}
+      <Dialog open={eventDialog} onOpenChange={setEventDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Novo Evento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="event_name">Nome do Evento *</Label>
+                <Input
+                  id="event_name"
+                  value={newEvent.name || ''}
+                  onChange={(e) => setNewEvent(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Ex: Casamento Silva"
+                />
+              </div>
+              <div>
+                <Label htmlFor="client_name">Cliente *</Label>
+                <Input
+                  id="client_name"
+                  value={newEvent.client_name || ''}
+                  onChange={(e) => setNewEvent(prev => ({ ...prev, client_name: e.target.value }))}
+                  placeholder="Nome do cliente"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="client_email">Email do Cliente</Label>
+                <Input
+                  id="client_email"
+                  type="email"
+                  value={newEvent.client_email || ''}
+                  onChange={(e) => setNewEvent(prev => ({ ...prev, client_email: e.target.value }))}
+                  placeholder="cliente@email.com"
+                />
+              </div>
+              <div>
+                <Label htmlFor="client_phone">Telefone do Cliente</Label>
+                <Input
+                  id="client_phone"
+                  value={newEvent.client_phone || ''}
+                  onChange={(e) => setNewEvent(prev => ({ ...prev, client_phone: e.target.value }))}
+                  placeholder="(11) 99999-9999"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="event_date">Data do Evento *</Label>
+                <Input
+                  id="event_date"
+                  type="date"
+                  value={newEvent.event_date || ''}
+                  onChange={(e) => setNewEvent(prev => ({ ...prev, event_date: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="event_time">Horário</Label>
+                <Input
+                  id="event_time"
+                  type="time"
+                  value={newEvent.event_time || ''}
+                  onChange={(e) => setNewEvent(prev => ({ ...prev, event_time: e.target.value }))}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="location">Local</Label>
+              <Input
+                id="location"
+                value={newEvent.location || ''}
+                onChange={(e) => setNewEvent(prev => ({ ...prev, location: e.target.value }))}
+                placeholder="Local do evento"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="total_budget">Orçamento Total</Label>
+                <Input
+                  id="total_budget"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={newEvent.total_budget || 0}
+                  onChange={(e) => setNewEvent(prev => ({ ...prev, total_budget: parseFloat(e.target.value) || 0 }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="status">Status</Label>
+                <Select value={newEvent.status} onValueChange={(value) => setNewEvent(prev => ({ ...prev, status: value }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pendente</SelectItem>
+                    <SelectItem value="confirmed">Confirmado</SelectItem>
+                    <SelectItem value="in_progress">Em Andamento</SelectItem>
+                    <SelectItem value="completed">Concluído</SelectItem>
+                    <SelectItem value="cancelled">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="description">Descrição</Label>
+              <Textarea
+                id="description"
+                value={newEvent.description || ''}
+                onChange={(e) => setNewEvent(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Descrição do evento"
+              />
+            </div>
+            
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setEventDialog(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={addEvent}>
+                Criar Evento
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
