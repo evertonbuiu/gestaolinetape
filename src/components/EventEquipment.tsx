@@ -77,10 +77,12 @@ export const EventEquipment = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [equipmentDialog, setEquipmentDialog] = useState(false);
+  const [editEquipmentDialog, setEditEquipmentDialog] = useState(false);
   const [collaboratorDialog, setCollaboratorDialog] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string>('/logo-empresa.png');
   const [collaborators, setCollaborators] = useState<EventCollaborator[]>([]);
   const [availableCollaborators, setAvailableCollaborators] = useState<any[]>([]);
+  const [selectedEquipmentForEdit, setSelectedEquipmentForEdit] = useState<EventEquipment | null>(null);
   const [newEquipment, setNewEquipment] = useState<Partial<EventEquipment>>({
     equipment_name: '',
     quantity: 1,
@@ -181,6 +183,54 @@ export const EventEquipment = () => {
       toast({
         title: "Erro ao adicionar equipamento",
         description: "Não foi possível adicionar o equipamento.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Edit equipment
+  const updateEquipment = async () => {
+    if (!selectedEquipmentForEdit || !newEquipment.equipment_name || !user) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha o nome do equipamento.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('event_equipment')
+        .update({
+          equipment_name: newEquipment.equipment_name,
+          quantity: newEquipment.quantity || 1,
+          description: newEquipment.description || '',
+          status: newEquipment.status || 'pending'
+        })
+        .eq('id', selectedEquipmentForEdit.id);
+
+      if (error) throw error;
+
+      await fetchEquipment(selectedEvent!.id);
+      setNewEquipment({
+        equipment_name: '',
+        quantity: 1,
+        description: '',
+        status: 'pending'
+      });
+      setEditEquipmentDialog(false);
+      setSelectedEquipmentForEdit(null);
+
+      toast({
+        title: "Equipamento atualizado",
+        description: "O equipamento foi atualizado com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error updating equipment:', error);
+      toast({
+        title: "Erro ao atualizar equipamento",
+        description: "Não foi possível atualizar o equipamento.",
         variant: "destructive"
       });
     }
@@ -957,14 +1007,33 @@ export const EventEquipment = () => {
                           </TableCell>
                           <TableCell>{item.description || '-'}</TableCell>
                           <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteEquipment(item.id)}
-                              className="text-red-600 hover:text-red-800"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedEquipmentForEdit(item);
+                                  setNewEquipment({
+                                    equipment_name: item.equipment_name,
+                                    quantity: item.quantity,
+                                    description: item.description,
+                                    status: item.status
+                                  });
+                                  setEditEquipmentDialog(true);
+                                }}
+                                className="text-blue-600 hover:text-blue-800"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => deleteEquipment(item.id)}
+                                className="text-red-600 hover:text-red-800"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))
@@ -1146,6 +1215,81 @@ export const EventEquipment = () => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+      {/* Edit Equipment Dialog */}
+      <Dialog open={editEquipmentDialog} onOpenChange={setEditEquipmentDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Equipamento</DialogTitle>
+            <DialogDescription>
+              Edite as informações do equipamento
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit_equipment_name">Nome do Equipamento *</Label>
+              <Select value={newEquipment.equipment_name} onValueChange={(value) => setNewEquipment(prev => ({ ...prev, equipment_name: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um equipamento" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableEquipment.map((item) => (
+                    <SelectItem key={item.id} value={item.name}>
+                      {item.name} - {item.category} ({item.available} disponíveis)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit_quantity">Quantidade</Label>
+                <Input
+                  id="edit_quantity"
+                  type="number"
+                  min="1"
+                  value={newEquipment.quantity || 1}
+                  onChange={(e) => setNewEquipment(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="edit_status">Status</Label>
+                <Select value={newEquipment.status} onValueChange={(value) => setNewEquipment(prev => ({ ...prev, status: value }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pendente</SelectItem>
+                    <SelectItem value="confirmed">Confirmado</SelectItem>
+                    <SelectItem value="allocated">Alocado</SelectItem>
+                    <SelectItem value="returned">Devolvido</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="edit_description">Descrição</Label>
+              <Textarea
+                id="edit_description"
+                value={newEquipment.description || ''}
+                onChange={(e) => setNewEquipment(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Detalhes sobre o equipamento..."
+              />
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setEditEquipmentDialog(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={updateEquipment}>
+                Salvar Alterações
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
