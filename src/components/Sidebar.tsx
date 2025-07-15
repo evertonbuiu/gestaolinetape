@@ -13,14 +13,17 @@ interface SidebarProps {
 export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
   const { signOut, userRole, hasPermission } = useAuth();
   const [canAccessSettings, setCanAccessSettings] = useState(false);
+  const [canAccessClients, setCanAccessClients] = useState(false);
   
   useEffect(() => {
-    const checkSettingsPermission = async () => {
-      const canAccess = await hasPermission('settings_access', 'view');
-      setCanAccessSettings(canAccess);
+    const checkPermissions = async () => {
+      const canAccessSettingsResult = await hasPermission('settings_access', 'view');
+      const canAccessClientsResult = await hasPermission('clients_view', 'view');
+      setCanAccessSettings(canAccessSettingsResult);
+      setCanAccessClients(canAccessClientsResult);
     };
     
-    checkSettingsPermission();
+    checkPermissions();
   }, [hasPermission]);
   
   const menuItems = [
@@ -29,7 +32,7 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
     { id: "inventory", label: "Estoque", icon: BarChart3 },
     ...(userRole === 'admin' ? [{ id: "rentals", label: "Locações", icon: Calendar }] : []),
     { id: "event-equipment", label: "Equipamentos Eventos", icon: Cog },
-    { id: "clients", label: "Clientes", icon: Users },
+    ...(canAccessClients ? [{ id: "clients", label: "Clientes", icon: Users }] : []),
     { id: "maintenance", label: "Manutenção", icon: Wrench },
     ...(canAccessSettings ? [{ id: "settings", label: "Configurações", icon: Settings }] : []),
   ];
