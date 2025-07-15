@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, Package, TrendingDown, TrendingUp, Shield } from "lucide-react";
 import { useEquipment } from "@/hooks/useEquipment";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Inventory = () => {
   const { equipment, loading, totals } = useEquipment();
   const { hasPermission } = usePermissions();
+  const { userRole } = useAuth();
   const [canViewInventory, setCanViewInventory] = useState(false);
   const [canViewPrices, setCanViewPrices] = useState(false);
 
@@ -16,12 +18,12 @@ export const Inventory = () => {
   useEffect(() => {
     const checkPermissions = async () => {
       const canViewInventoryResult = await hasPermission('inventory_view', 'view');
-      const canViewPricesResult = await hasPermission('inventory_view', 'view');
+      const canViewPricesResult = userRole === 'admin'; // Only admin can see prices
       setCanViewInventory(canViewInventoryResult);
       setCanViewPrices(canViewPricesResult);
     };
     checkPermissions();
-  }, [hasPermission]);
+  }, [hasPermission, userRole]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -114,18 +116,20 @@ export const Inventory = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Valor do Estoque</CardTitle>
-            <CardDescription>Valor total estimado</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-600">
-              {canViewPrices ? `R$ ${totals.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : "***"}
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">Valor estimado mensal</p>
-          </CardContent>
-        </Card>
+{canViewPrices && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Valor do Estoque</CardTitle>
+              <CardDescription>Valor total estimado</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-green-600">
+                R$ {totals.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">Valor estimado mensal</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <Card>

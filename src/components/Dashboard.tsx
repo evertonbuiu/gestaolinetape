@@ -4,14 +4,14 @@ import { AlertTriangle, Package, Calendar, TrendingUp } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export const Dashboard = () => {
-  const { hasPermission } = useAuth();
+  const { hasPermission, userRole } = useAuth();
   const [showRevenue, setShowRevenue] = useState(false);
   const [canViewInventory, setCanViewInventory] = useState(false);
   const [canViewRentals, setCanViewRentals] = useState(false);
 
   useEffect(() => {
     const checkPermission = async () => {
-      const canViewRevenue = await hasPermission('dashboard_revenue', 'view');
+      const canViewRevenue = userRole === 'admin'; // Only admin can see revenue
       const canViewInventoryResult = await hasPermission('inventory_view', 'view');
       const canViewRentalsResult = await hasPermission('rentals_view', 'view');
       setShowRevenue(canViewRevenue);
@@ -20,7 +20,7 @@ export const Dashboard = () => {
     };
     
     checkPermission();
-  }, [hasPermission]);
+  }, [hasPermission, userRole]);
   
   const stats = [
     ...(canViewInventory ? [{
