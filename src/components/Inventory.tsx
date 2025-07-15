@@ -1,74 +1,111 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Package, TrendingDown, TrendingUp } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+interface Equipment {
+  id: string;
+  name: string;
+  category: string;
+  total_stock: number;
+  available: number;
+  rented: number;
+  price_per_day: number;
+  status: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export const Inventory = () => {
-  const inventoryItems = [
-    {
-      id: 1,
-      name: "Refletor LED 200W",
-      category: "Iluminação",
-      current: 18,
-      minimum: 15,
-      maximum: 30,
-      status: "normal",
-      lastMovement: "2024-07-14",
-      movementType: "entrada"
-    },
-    {
-      id: 2,
-      name: "Mesa de Som 24 Canais",
-      category: "Áudio",
-      current: 5,
-      minimum: 3,
-      maximum: 10,
-      status: "normal",
-      lastMovement: "2024-07-13",
-      movementType: "saída"
-    },
-    {
-      id: 3,
-      name: "Microfone Sem Fio",
-      category: "Áudio",
-      current: 2,
-      minimum: 8,
-      maximum: 25,
-      status: "critical",
-      lastMovement: "2024-07-12",
-      movementType: "saída"
-    },
-    {
-      id: 4,
-      name: "Caixa de Som Ativa 500W",
-      category: "Áudio",
-      current: 12,
-      minimum: 10,
-      maximum: 20,
-      status: "normal",
-      lastMovement: "2024-07-11",
-      movementType: "entrada"
-    },
-    {
-      id: 5,
-      name: "Truss Quadrada 3m",
-      category: "Estrutura",
-      current: 22,
-      minimum: 20,
-      maximum: 40,
-      status: "normal",
-      lastMovement: "2024-07-10",
-      movementType: "saída"
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  const fetchEquipment = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('equipment')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      setEquipment(data || []);
+    } catch (error) {
+      console.error('Error fetching equipment:', error);
+      toast({
+        title: "Erro ao carregar estoque",
+        description: "Não foi possível carregar os dados do estoque.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  useEffect(() => {
+    fetchEquipment();
+
+    // Set up real-time subscription for equipment changes
+    const channel = supabase
+      .channel('inventory-equipment-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'equipment'
+        },
+        (payload) => {
+          console.log('Inventory equipment change detected:', payload);
+          fetchEquipment(); // Refetch data when changes occur
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // Also listen for event_equipment changes to update stock
+  useEffect(() => {
+    const eventEquipmentChannel = supabase
+      .channel('inventory-event-equipment-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'event_equipment'
+        },
+        (payload) => {
+          console.log('Inventory event equipment change detected:', payload);
+          fetchEquipment(); // Refetch to update available/rented counts
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(eventEquipmentChannel);
+    };
+  }, []);
+
+  // Calculate totals
+  const totalItems = equipment.reduce((sum, item) => sum + item.total_stock, 0);
+  const criticalItems = equipment.filter(item => item.status === 'out_of_stock' || item.status === 'low_stock').length;
+  const totalValue = equipment.reduce((sum, item) => sum + (item.total_stock * item.price_per_day * 30), 0); // Estimated monthly value
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "normal":
+      case "available":
         return "bg-green-100 text-green-800";
-      case "low":
+      case "low_stock":
         return "bg-yellow-100 text-yellow-800";
-      case "critical":
+      case "out_of_stock":
         return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
@@ -77,24 +114,28 @@ export const Inventory = () => {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case "normal":
+      case "available":
         return "Normal";
-      case "low":
+      case "low_stock":
         return "Baixo";
-      case "critical":
+      case "out_of_stock":
         return "Crítico";
       default:
         return "Desconhecido";
     }
   };
 
-  const getMovementIcon = (type: string) => {
-    return type === "entrada" ? TrendingUp : TrendingDown;
+  const getMovementIcon = (available: number, rented: number) => {
+    return rented > available ? TrendingDown : TrendingUp;
   };
 
-  const getMovementColor = (type: string) => {
-    return type === "entrada" ? "text-green-600" : "text-red-600";
+  const getMovementColor = (available: number, rented: number) => {
+    return rented > available ? "text-red-600" : "text-green-600";
   };
+
+  if (loading) {
+    return <div className="p-6">Carregando estoque...</div>;
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -116,7 +157,7 @@ export const Inventory = () => {
             <CardDescription>Quantidade atual</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-primary">1,234</div>
+            <div className="text-3xl font-bold text-primary">{totalItems}</div>
             <p className="text-sm text-muted-foreground mt-1">Itens em estoque</p>
           </CardContent>
         </Card>
@@ -127,7 +168,7 @@ export const Inventory = () => {
             <CardDescription>Abaixo do mínimo</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-red-600">23</div>
+            <div className="text-3xl font-bold text-red-600">{criticalItems}</div>
             <p className="text-sm text-muted-foreground mt-1">Itens críticos</p>
           </CardContent>
         </Card>
@@ -138,8 +179,8 @@ export const Inventory = () => {
             <CardDescription>Valor total estimado</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600">R$ 125.480</div>
-            <p className="text-sm text-muted-foreground mt-1">Valor patrimonial</p>
+            <div className="text-3xl font-bold text-green-600">R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+            <p className="text-sm text-muted-foreground mt-1">Valor estimado mensal</p>
           </CardContent>
         </Card>
       </div>
@@ -156,17 +197,18 @@ export const Inventory = () => {
                 <tr className="border-b">
                   <th className="text-left py-3 px-4">Equipamento</th>
                   <th className="text-left py-3 px-4">Categoria</th>
-                  <th className="text-center py-3 px-4">Atual</th>
-                  <th className="text-center py-3 px-4">Mínimo</th>
-                  <th className="text-center py-3 px-4">Máximo</th>
+                  <th className="text-center py-3 px-4">Total</th>
+                  <th className="text-center py-3 px-4">Disponível</th>
+                  <th className="text-center py-3 px-4">Locado</th>
                   <th className="text-center py-3 px-4">Status</th>
-                  <th className="text-center py-3 px-4">Último Movimento</th>
+                  <th className="text-center py-3 px-4">Última Atualização</th>
                   <th className="text-center py-3 px-4">Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {inventoryItems.map((item) => {
-                  const MovementIcon = getMovementIcon(item.movementType);
+                {equipment.map((item) => {
+                  const MovementIcon = getMovementIcon(item.available, item.rented);
+                  const movementColor = getMovementColor(item.available, item.rented);
                   return (
                     <tr key={item.id} className="border-b hover:bg-muted/50">
                       <td className="py-3 px-4">
@@ -176,19 +218,19 @@ export const Inventory = () => {
                         </div>
                       </td>
                       <td className="py-3 px-4 text-muted-foreground">{item.category}</td>
-                      <td className="py-3 px-4 text-center font-medium">{item.current}</td>
-                      <td className="py-3 px-4 text-center text-muted-foreground">{item.minimum}</td>
-                      <td className="py-3 px-4 text-center text-muted-foreground">{item.maximum}</td>
+                      <td className="py-3 px-4 text-center font-medium">{item.total_stock}</td>
+                      <td className="py-3 px-4 text-center font-medium text-green-600">{item.available}</td>
+                      <td className="py-3 px-4 text-center font-medium text-orange-600">{item.rented}</td>
                       <td className="py-3 px-4 text-center">
                         <Badge className={getStatusColor(item.status)}>
-                          {item.status === "critical" && <AlertTriangle className="w-3 h-3 mr-1" />}
+                          {item.status === "out_of_stock" && <AlertTriangle className="w-3 h-3 mr-1" />}
                           {getStatusText(item.status)}
                         </Badge>
                       </td>
                       <td className="py-3 px-4 text-center">
                         <div className="flex items-center justify-center gap-1">
-                          <MovementIcon className={`w-4 h-4 ${getMovementColor(item.movementType)}`} />
-                          <span className="text-sm">{item.lastMovement}</span>
+                          <MovementIcon className={`w-4 h-4 ${movementColor}`} />
+                          <span className="text-sm">{new Date(item.updated_at).toLocaleDateString('pt-BR')}</span>
                         </div>
                       </td>
                       <td className="py-3 px-4 text-center">

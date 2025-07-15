@@ -48,6 +48,50 @@ export const Equipment = () => {
 
   useEffect(() => {
     fetchEquipment();
+
+    // Set up real-time subscription for equipment changes
+    const channel = supabase
+      .channel('equipment-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'equipment'
+        },
+        (payload) => {
+          console.log('Equipment change detected:', payload);
+          fetchEquipment(); // Refetch data when changes occur
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // Also listen for event_equipment changes to update stock
+  useEffect(() => {
+    const eventEquipmentChannel = supabase
+      .channel('event-equipment-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'event_equipment'
+        },
+        (payload) => {
+          console.log('Event equipment change detected:', payload);
+          fetchEquipment(); // Refetch to update available/rented counts
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(eventEquipmentChannel);
+    };
   }, []);
 
   const getStatusColor = (status: string) => {
