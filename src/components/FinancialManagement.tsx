@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import jsPDF from 'jspdf';
+import * as XLSX from 'xlsx';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLogo } from "@/hooks/useLogo";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
@@ -1892,15 +1893,125 @@ export const FinancialManagement = () => {
     };
   };
 
-  // Download report as PDF/Excel (placeholder function)
+  // Download report as PDF/Excel
   const downloadReport = (format: 'pdf' | 'excel') => {
     if (!reportData) return;
     
-    // This would integrate with a PDF/Excel generation library
-    toast({
-      title: `Download ${format.toUpperCase()}`,
-      description: `Relatório baixado em formato ${format.toUpperCase()}`,
-    });
+    if (format === 'excel') {
+      // Criar workbook do Excel
+      const wb = XLSX.utils.book_new();
+      
+      // Dados do resumo
+      const summaryData = [
+        ['RELATÓRIO FINANCEIRO'],
+        ['Data de Geração:', new Date().toLocaleDateString('pt-BR')],
+        [''],
+        ['RESUMO GERAL'],
+        ['Total de Receitas:', `R$ ${reportData.summary.totalIncome.toFixed(2).replace('.', ',')}`],
+        ['Total de Despesas:', `R$ ${reportData.summary.totalExpenses.toFixed(2).replace('.', ',')}`],
+        ['Lucro Líquido:', `R$ ${reportData.summary.netProfit.toFixed(2).replace('.', ',')}`],
+        ['Margem de Lucro:', `${reportData.summary.profitMargin.toFixed(1)}%`],
+        ['']
+      ];
+
+      // Adicionar receitas por categoria se disponível
+      if (reportData.incomeByCategory && Object.keys(reportData.incomeByCategory).length > 0) {
+        summaryData.push(['RECEITAS POR CATEGORIA']);
+        Object.entries(reportData.incomeByCategory).forEach(([category, amount]) => {
+          summaryData.push([category, `R$ ${Number(amount).toFixed(2).replace('.', ',')}`]);
+        });
+        summaryData.push(['']);
+      }
+
+      // Adicionar despesas por categoria se disponível
+      if (reportData.expensesByCategory && Object.keys(reportData.expensesByCategory).length > 0) {
+        summaryData.push(['DESPESAS POR CATEGORIA']);
+        Object.entries(reportData.expensesByCategory).forEach(([category, amount]) => {
+          summaryData.push([category, `R$ ${Number(amount).toFixed(2).replace('.', ',')}`]);
+        });
+      }
+
+      const ws = XLSX.utils.aoa_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(wb, ws, 'Relatório');
+      
+      // Download do arquivo
+      XLSX.writeFile(wb, `relatorio_financeiro_${new Date().toISOString().split('T')[0]}.xlsx`);
+      
+      toast({
+        title: "Excel baixado",
+        description: "Relatório baixado em formato Excel com sucesso!",
+      });
+    } else if (format === 'pdf') {
+      // Criar PDF
+      const doc = new jsPDF();
+      
+      // Título
+      doc.setFontSize(20);
+      doc.text('RELATÓRIO FINANCEIRO', 20, 30);
+      
+      // Data
+      doc.setFontSize(12);
+      doc.text(`Data de Geração: ${new Date().toLocaleDateString('pt-BR')}`, 20, 45);
+      
+      // Linha separadora
+      doc.line(20, 50, 190, 50);
+      
+      let y = 70;
+      
+      // Resumo geral
+      doc.setFontSize(16);
+      doc.text('RESUMO GERAL', 20, y);
+      y += 15;
+      
+      doc.setFontSize(12);
+      doc.text(`Total de Receitas: R$ ${Number(reportData.summary.totalIncome).toFixed(2).replace('.', ',')}`, 20, y);
+      y += 10;
+      doc.text(`Total de Despesas: R$ ${Number(reportData.summary.totalExpenses).toFixed(2).replace('.', ',')}`, 20, y);
+      y += 10;
+      doc.text(`Lucro Líquido: R$ ${Number(reportData.summary.netProfit).toFixed(2).replace('.', ',')}`, 20, y);
+      y += 10;
+      doc.text(`Margem de Lucro: ${Number(reportData.summary.profitMargin).toFixed(1)}%`, 20, y);
+      y += 20;
+
+      // Receitas por categoria
+      if (reportData.incomeByCategory && Object.keys(reportData.incomeByCategory).length > 0) {
+        doc.setFontSize(14);
+        doc.text('RECEITAS POR CATEGORIA', 20, y);
+        y += 15;
+        
+        doc.setFontSize(10);
+        Object.entries(reportData.incomeByCategory).forEach(([category, amount]) => {
+          doc.text(`${category}: R$ ${Number(amount).toFixed(2).replace('.', ',')}`, 25, y);
+          y += 8;
+        });
+        y += 10;
+      }
+
+      // Despesas por categoria
+      if (reportData.expensesByCategory && Object.keys(reportData.expensesByCategory).length > 0) {
+        doc.setFontSize(14);
+        doc.text('DESPESAS POR CATEGORIA', 20, y);
+        y += 15;
+        
+        doc.setFontSize(10);
+        Object.entries(reportData.expensesByCategory).forEach(([category, amount]) => {
+          if (y > 270) { // Nova página se necessário
+            doc.addPage();
+            y = 30;
+          }
+          doc.text(`${category}: R$ ${Number(amount).toFixed(2).replace('.', ',')}`, 25, y);
+          y += 8;
+        });
+      }
+      
+      // Download do PDF
+      doc.save(`relatorio_financeiro_${new Date().toISOString().split('T')[0]}.pdf`);
+      
+      toast({
+        title: "PDF baixado",
+        description: "Relatório baixado em formato PDF com sucesso!",
+      });
+    }
   };
 
   if (loading) {
