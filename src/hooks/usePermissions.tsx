@@ -80,7 +80,7 @@ export const usePermissions = () => {
     }
   };
 
-  // Check if user has specific permission
+  // Check if user has specific permission - usando useCustomAuth diretamente
   const hasPermission = async (permissionName: string, accessType: 'view' | 'edit' = 'view') => {
     if (!user) return false;
     

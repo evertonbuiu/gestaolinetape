@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+// Hook customizado de autenticação - versão 2.0
+
 interface User {
   id: string;
   username: string;
