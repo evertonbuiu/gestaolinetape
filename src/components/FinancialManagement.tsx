@@ -2340,7 +2340,7 @@ export const FinancialManagement = () => {
                       <CardTitle className="text-sm font-medium text-muted-foreground">Total de Itens</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">156</div>
+                      <div className="text-2xl font-bold">{inventory.reduce((total, item) => total + item.quantity, 0)}</div>
                     </CardContent>
                   </Card>
                   <Card>
@@ -2348,7 +2348,9 @@ export const FinancialManagement = () => {
                       <CardTitle className="text-sm font-medium text-muted-foreground">Valor Total</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold text-green-600">{formatCurrency(285500)}</div>
+                      <div className="text-2xl font-bold text-green-600">
+                        {formatCurrency(inventory.reduce((total, item) => total + (item.acquisitionValue * item.quantity), 0))}
+                      </div>
                     </CardContent>
                   </Card>
                   <Card>
@@ -2356,7 +2358,15 @@ export const FinancialManagement = () => {
                       <CardTitle className="text-sm font-medium text-muted-foreground">Depreciação Acumulada</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold text-orange-600">{formatCurrency(45200)}</div>
+                      <div className="text-2xl font-bold text-orange-600">
+                        {formatCurrency(inventory.reduce((total, item) => {
+                          const yearsOld = (new Date().getFullYear() - new Date(item.acquisitionDate).getFullYear());
+                          const depreciationRate = item.category === 'veiculos' ? 0.20 : item.category === 'informatica' ? 0.33 : 0.10;
+                          const maxDepreciationYears = item.category === 'veiculos' ? 5 : item.category === 'informatica' ? 3 : 10;
+                          const depreciation = Math.min(yearsOld * depreciationRate, 1) * item.acquisitionValue * item.quantity;
+                          return total + depreciation;
+                        }, 0))}
+                      </div>
                     </CardContent>
                   </Card>
                   <Card>
@@ -2364,7 +2374,15 @@ export const FinancialManagement = () => {
                       <CardTitle className="text-sm font-medium text-muted-foreground">Valor Atual</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold text-blue-600">{formatCurrency(240300)}</div>
+                      <div className="text-2xl font-bold text-blue-600">
+                        {formatCurrency(inventory.reduce((total, item) => {
+                          const yearsOld = (new Date().getFullYear() - new Date(item.acquisitionDate).getFullYear());
+                          const depreciationRate = item.category === 'veiculos' ? 0.20 : item.category === 'informatica' ? 0.33 : 0.10;
+                          const depreciation = Math.min(yearsOld * depreciationRate, 1) * item.acquisitionValue;
+                          const currentValue = Math.max(item.acquisitionValue - depreciation, item.acquisitionValue * 0.1);
+                          return total + (currentValue * item.quantity);
+                        }, 0))}
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
