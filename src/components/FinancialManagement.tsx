@@ -238,9 +238,9 @@ export const FinancialManagement = () => {
       const { data: expensesData, error: expensesError } = await supabase
         .from('event_expenses')
         .select('*')
-        .gte('created_at', startDate)
-        .lte('created_at', endDate)
-        .order('created_at', { ascending: false });
+        .gte('expense_date', startDate)
+        .lte('expense_date', endDate)
+        .order('expense_date', { ascending: false });
 
       if (expensesError) throw expensesError;
 
@@ -267,7 +267,7 @@ export const FinancialManagement = () => {
       // Transformar despesas em entradas do fluxo de caixa
       const expenseEntries: CashFlowEntry[] = expensesData?.map(expense => ({
         id: expense.id,
-        date: expense.created_at.split('T')[0],
+        date: expense.expense_date || expense.created_at.split('T')[0],
         description: expense.description,
         category: expense.category,
         type: "expense" as const,
