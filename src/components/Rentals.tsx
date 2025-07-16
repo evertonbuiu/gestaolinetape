@@ -846,12 +846,33 @@ export const Rentals = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="client_name">Cliente *</Label>
-                <Input
-                  id="client_name"
+                <Select
                   value={newEvent.client_name || ''}
-                  onChange={(e) => setNewEvent({...newEvent, client_name: e.target.value})}
-                  placeholder="Nome do cliente"
-                />
+                  onValueChange={(value) => {
+                    const selectedClient = clients.find(client => client.name === value);
+                    if (selectedClient) {
+                      setNewEvent({
+                        ...newEvent,
+                        client_name: selectedClient.name,
+                        client_email: selectedClient.email || '',
+                        client_phone: selectedClient.phone || ''
+                      });
+                    } else {
+                      setNewEvent({...newEvent, client_name: value});
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.name}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             
