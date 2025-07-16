@@ -440,6 +440,41 @@ export const EventEquipment = () => {
     }
   };
 
+  // Edit event
+  const editEvent = (event: Event) => {
+    toast({
+      title: "Funcionalidade não implementada",
+      description: "A edição de eventos será implementada em breve.",
+      variant: "default"
+    });
+  };
+
+  // Delete event
+  const deleteEvent = async (eventId: string) => {
+    try {
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId);
+
+      if (error) throw error;
+
+      setEvents(events.filter(event => event.id !== eventId));
+      toast({
+        title: "Evento removido",
+        description: "O evento foi removido com sucesso.",
+        variant: "default"
+      });
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      toast({
+        title: "Erro ao remover evento",
+        description: "Não foi possível remover o evento.",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Fetch collaborators for selected event
   const fetchCollaborators = async (eventId: string) => {
     try {
@@ -1048,6 +1083,21 @@ export const EventEquipment = () => {
                                     Concluir
                                   </Button>
                                 )}
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => editEvent(event)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => deleteEvent(event.id)}
+                                  className="text-red-600 hover:text-red-800"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               </div>
                             </div>
                           </CardHeader>
