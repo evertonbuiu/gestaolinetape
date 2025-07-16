@@ -473,6 +473,10 @@ export type Database = {
         Args: { user_email: string }
         Returns: undefined
       }
+      update_bank_account_balances: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "funcionario"

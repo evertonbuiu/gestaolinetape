@@ -465,60 +465,13 @@ export const Rentals = () => {
 
       if (error) throw error;
 
-      // Update bank account balance if there's a payment amount
-      if (paymentAmount > 0 && paymentAccount) {
-        // Find the bank account by name
-        const { data: bankAccount, error: bankFetchError } = await supabase
-          .from('bank_accounts')
-          .select('*')
-          .eq('name', paymentAccount)
-          .maybeSingle();
-
-        if (!bankFetchError && bankAccount) {
-          const currentBalance = Number(bankAccount.balance) || 0;
-          const adjustmentAmount = Number(paymentAmount);
-          
-          // Calculate new balance based on payment status
-          const newBalance = newPaidStatus 
-            ? currentBalance + adjustmentAmount  // Add money when marking as paid
-            : currentBalance - adjustmentAmount; // Subtract money when marking as unpaid
-          
-          console.log(`Updating bank account ${paymentAccount}: ${currentBalance} -> ${newBalance} (${newPaidStatus ? '+' : '-'}${adjustmentAmount})`);
-          
-          // Add validation to prevent negative balances from going too negative
-          if (newBalance < -100000) {
-            console.warn('Preventing excessive negative balance:', newBalance);
-            toast({
-              title: "Aviso",
-              description: "Operação resultaria em saldo muito negativo. Verifique os valores.",
-              variant: "destructive"
-            });
-            return;
-          }
-          
-          const { error: bankUpdateError } = await supabase
-            .from('bank_accounts')
-            .update({ 
-              balance: newBalance,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', bankAccount.id);
-
-          if (bankUpdateError) {
-            console.error('Error updating bank account balance:', bankUpdateError);
-            throw bankUpdateError;
-          }
-        } else if (bankFetchError) {
-          console.error('Error finding bank account:', bankFetchError);
-        } else {
-          console.warn(`Bank account "${paymentAccount}" not found`);
-        }
-      }
+      // Os saldos das contas bancárias serão atualizados automaticamente pelos triggers do banco
+      console.log(`Payment status toggled for event ${event.name}: ${event.is_paid} -> ${newPaidStatus}, amount: ${paymentAmount}, account: ${paymentAccount}`);
 
       await fetchEvents();
       toast({
         title: event.is_paid ? "Marcado como não pago" : "Marcado como pago",
-        description: `O status de pagamento foi atualizado com sucesso. Saldo ${newPaidStatus ? 'aumentado' : 'diminuído'} em ${formatCurrency(paymentAmount)}.`,
+        description: `O status de pagamento foi atualizado. Os saldos das contas foram recalculados automaticamente.`,
       });
     } catch (error) {
       console.error('Error updating payment status:', error);
