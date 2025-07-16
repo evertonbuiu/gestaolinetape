@@ -646,12 +646,10 @@ export const Rentals = () => {
           <h2 className="text-3xl font-bold text-foreground">Locações</h2>
           <p className="text-muted-foreground">Gerencie eventos e locações</p>
         </div>
-        {canEditRentals && (
-          <Button onClick={() => setEventDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Evento
-          </Button>
-        )}
+        <Button onClick={() => setEventDialog(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Evento
+        </Button>
       </div>
 
       <div className="space-y-4">
