@@ -51,6 +51,7 @@ interface InventoryItem {
   acquisitionValue: number;
   acquisitionDate: string;
   condition: string;
+  quantity: number;
   serialNumber?: string;
   location: string;
   description?: string;
@@ -90,6 +91,7 @@ export const FinancialManagement = () => {
     acquisitionValue: 0,
     acquisitionDate: new Date().toISOString().split('T')[0],
     condition: "",
+    quantity: 1,
     serialNumber: "",
     location: "",
     description: ""
@@ -141,6 +143,7 @@ export const FinancialManagement = () => {
         acquisitionValue: 15000,
         acquisitionDate: "2024-03-15",
         condition: "novo",
+        quantity: 1,
         serialNumber: "BX32-2024-001",
         location: "Almoxarifado A",
         description: "Mesa de som digital profissional",
@@ -153,6 +156,7 @@ export const FinancialManagement = () => {
         acquisitionValue: 3500,
         acquisitionDate: "2023-08-20",
         condition: "otimo",
+        quantity: 4,
         serialNumber: "LED-MH-2023-045",
         location: "Estoque Equipamentos",
         description: "Refletor LED com movimento automático",
@@ -165,6 +169,7 @@ export const FinancialManagement = () => {
         acquisitionValue: 120000,
         acquisitionDate: "2022-01-10",
         condition: "bom",
+        quantity: 1,
         serialNumber: "ABC-1234",
         location: "Garagem Principal",
         description: "Veículo para transporte de equipamentos",
@@ -177,6 +182,7 @@ export const FinancialManagement = () => {
         acquisitionValue: 4500,
         acquisitionDate: "2023-06-05",
         condition: "bom",
+        quantity: 2,
         serialNumber: "DLL-INS-2023-012",
         location: "Escritório",
         description: "Computador desktop para uso administrativo",
@@ -711,6 +717,7 @@ export const FinancialManagement = () => {
       acquisitionValue: item.acquisitionValue,
       acquisitionDate: item.acquisitionDate,
       condition: item.condition,
+      quantity: item.quantity,
       serialNumber: item.serialNumber || "",
       location: item.location,
       description: item.description || ""
@@ -735,6 +742,7 @@ export const FinancialManagement = () => {
       acquisitionValue: newInventoryItem.acquisitionValue,
       acquisitionDate: newInventoryItem.acquisitionDate,
       condition: newInventoryItem.condition,
+      quantity: newInventoryItem.quantity,
       serialNumber: newInventoryItem.serialNumber,
       location: newInventoryItem.location,
       description: newInventoryItem.description,
@@ -750,6 +758,7 @@ export const FinancialManagement = () => {
       acquisitionValue: 0,
       acquisitionDate: new Date().toISOString().split('T')[0],
       condition: "",
+      quantity: 1,
       serialNumber: "",
       location: "",
       description: ""
@@ -796,6 +805,7 @@ export const FinancialManagement = () => {
       acquisitionValue: 0,
       acquisitionDate: new Date().toISOString().split('T')[0],
       condition: "",
+      quantity: 1,
       serialNumber: "",
       location: "",
       description: ""
@@ -2228,7 +2238,7 @@ export const FinancialManagement = () => {
                           </Select>
                         </div>
                       </div>
-                      <div className="grid grid-cols-3 gap-4">
+                      <div className="grid grid-cols-4 gap-4">
                         <div>
                           <Label htmlFor="acquisitionValue">Valor de Aquisição</Label>
                           <Input
@@ -2246,6 +2256,17 @@ export const FinancialManagement = () => {
                             type="date"
                             value={newInventoryItem.acquisitionDate}
                             onChange={(e) => setNewInventoryItem({...newInventoryItem, acquisitionDate: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="quantity">Quantidade</Label>
+                          <Input
+                            id="quantity"
+                            type="number"
+                            min="1"
+                            value={newInventoryItem.quantity}
+                            onChange={(e) => setNewInventoryItem({...newInventoryItem, quantity: parseInt(e.target.value) || 1})}
+                            placeholder="1"
                           />
                         </div>
                         <div>
@@ -2884,6 +2905,7 @@ export const FinancialManagement = () => {
                     acquisitionValue: 0,
                     acquisitionDate: new Date().toISOString().split('T')[0],
                     condition: "",
+                    quantity: 1,
                     serialNumber: "",
                     location: "",
                     description: ""
