@@ -1,5 +1,6 @@
 import logoImage from "@/assets/logo.png";
 import { useLogo } from "@/hooks/useLogo";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg";
@@ -8,6 +9,7 @@ interface LogoProps {
 
 export const Logo = ({ size = "md", showText = true }: LogoProps) => {
   const { logoUrl, isLoading } = useLogo();
+  const { settings } = useCompanySettings();
   const sizeClasses = {
     sm: "h-8",
     md: "h-12",
@@ -30,10 +32,12 @@ export const Logo = ({ size = "md", showText = true }: LogoProps) => {
       {showText && (
         <div>
           <h1 className={`${textSizeClasses[size]} font-bold text-primary`}>
-            Luz Locação
+            {settings?.company_name || 'Luz Locação'}
           </h1>
           {size !== "sm" && (
-            <p className="text-sm text-muted-foreground">Controle de Estoque</p>
+            <p className="text-sm text-muted-foreground">
+              {settings?.tagline || 'Controle de Estoque'}
+            </p>
           )}
         </div>
       )}

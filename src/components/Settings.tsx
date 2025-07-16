@@ -12,14 +12,23 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Settings2, Shield, Eye, Edit3, Save, UserPlus, Mail, Lock, User, Users, Circle, Upload, Image, Trash2 } from 'lucide-react';
+import { Loader2, Settings2, Shield, Eye, Edit3, Save, UserPlus, Mail, Lock, User, Users, Circle, Upload, Image, Trash2, Palette } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useCompanySettings } from '@/hooks/useCompanySettings';
 
 export const SettingsPage = () => {
   const { userRole } = useAuth();
   const { rolePermissions, loading, updateRolePermission } = usePermissions();
   const { onlineUsers, loading: loadingOnlineUsers } = useOnlineUsers();
   const { toast } = useToast();
+  const { settings: companySettings, updateSettings: updateCompanySettings } = useCompanySettings();
+  
+  // Company settings state
+  const [companyName, setCompanyName] = useState("");
+  const [companyTagline, setCompanyTagline] = useState("");
+  const [savingCompany, setSavingCompany] = useState(false);
+
+  // Other state
   const [saving, setSaving] = useState(false);
   const [changes, setChanges] = useState<Record<string, { can_view: boolean; can_edit: boolean }>>({});
   const [createUserDialog, setCreateUserDialog] = useState(false);
@@ -91,6 +100,30 @@ export const SettingsPage = () => {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Company settings handlers
+  const saveCompanySettings = async () => {
+    setSavingCompany(true);
+    try {
+      const success = await updateCompanySettings(companyName, companyTagline);
+      if (success) {
+        toast({
+          title: "Configurações salvas",
+          description: "As configurações da empresa foram atualizadas com sucesso.",
+        });
+      } else {
+        throw new Error("Falha ao salvar");
+      }
+    } catch (error) {
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar as configurações da empresa.",
+        variant: "destructive"
+      });
+    } finally {
+      setSavingCompany(false);
     }
   };
 
@@ -230,10 +263,14 @@ export const SettingsPage = () => {
     }
   };
 
-  // Load logos on component mount
+  // Load data on component mount
   useEffect(() => {
     fetchLogos();
-  }, []);
+    if (companySettings) {
+      setCompanyName(companySettings.company_name);
+      setCompanyTagline(companySettings.tagline || "");
+    }
+  }, [companySettings]);
 
   if (userRole !== 'admin') {
     return (
@@ -379,6 +416,56 @@ export const SettingsPage = () => {
             <p>• Por padrão, funcionários têm papel de "funcionario" no sistema</p>
             <p>• As permissões podem ser ajustadas na seção abaixo</p>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Company Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Palette className="w-5 h-5" />
+            Configurações da Empresa
+          </CardTitle>
+          <CardDescription>
+            Personalize o nome e slogan da sua empresa
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="company-name">Nome da Empresa</Label>
+            <Input
+              id="company-name"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              placeholder="Nome da sua empresa"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="company-tagline">Slogan/Descrição</Label>
+            <Input
+              id="company-tagline"
+              value={companyTagline}
+              onChange={(e) => setCompanyTagline(e.target.value)}
+              placeholder="Ex: Controle de Estoque"
+            />
+          </div>
+          <Button 
+            onClick={saveCompanySettings}
+            disabled={savingCompany || (!companyName.trim())}
+            className="w-full"
+          >
+            {savingCompany ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Salvando...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" />
+                Salvar Configurações
+              </>
+            )}
+          </Button>
         </CardContent>
       </Card>
 

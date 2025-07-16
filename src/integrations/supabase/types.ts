@@ -124,6 +124,30 @@ export type Database = {
         }
         Relationships: []
       }
+      company_settings: {
+        Row: {
+          company_name: string
+          created_at: string
+          id: string
+          tagline: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_name?: string
+          created_at?: string
+          id?: string
+          tagline?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          id?: string
+          tagline?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       equipment: {
         Row: {
           available: number
