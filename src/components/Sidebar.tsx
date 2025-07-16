@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Package, Settings, BarChart3, Calendar, Home, Users, Wrench, LogOut, Cog, UserCheck, DollarSign } from "lucide-react";
+import { Package, Settings, BarChart3, Calendar, Home, Users, Wrench, LogOut, Cog, UserCheck, DollarSign, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
@@ -33,6 +33,7 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
     ...(userRole === 'admin' ? [{ id: "clients", label: "Clientes", icon: Users }] : []),
     { id: "collaborators", label: "Colaboradores", icon: UserCheck },
     ...(userRole === 'admin' ? [{ id: "financial", label: "Gestão Financeira", icon: DollarSign }] : []),
+    ...(userRole === 'admin' ? [{ id: "user-management", label: "Gerenciar Usuários", icon: UserCog }] : []),
     { id: "maintenance", label: "Manutenção", icon: Wrench },
     ...(canAccessSettings ? [{ id: "settings", label: "Configurações", icon: Settings }] : []),
   ];
@@ -42,8 +43,8 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
     <div className="p-6 border-b border-border">
       <Logo size="md" />
       <div className="mt-3">
-        <Badge variant={userRole === 'admin' ? 'default' : 'secondary'}>
-          {userRole === 'admin' ? 'Administrador' : 'Funcionário'}
+        <Badge variant={userRole === 'admin' ? 'default' : userRole === 'financeiro' ? 'secondary' : 'outline'}>
+          {userRole === 'admin' ? 'Administrador' : userRole === 'financeiro' ? 'Financeiro' : 'Funcionário'}
         </Badge>
       </div>
     </div>
