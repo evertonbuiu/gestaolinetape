@@ -38,20 +38,28 @@ export const CustomAuthProvider = ({ children }: { children: React.ReactNode }) 
 
   const signIn = async (username: string, password: string) => {
     try {
+      console.log('Tentando fazer login com:', username);
+      
       const { data, error } = await supabase.rpc('authenticate_user', {
         p_username: username,
         p_password: password
       });
 
+      console.log('Resposta da autenticação:', { data, error });
+
       if (error) {
+        console.error('Erro na autenticação:', error);
         return { error };
       }
 
       if (!data || data.length === 0) {
+        console.log('Nenhum usuário encontrado ou credenciais inválidas');
         return { error: { message: 'Credenciais inválidas' } };
       }
 
       const userData = data[0];
+      console.log('Dados do usuário autenticado:', userData);
+      
       const userSession = {
         id: userData.user_id,
         username: userData.username,
@@ -62,8 +70,10 @@ export const CustomAuthProvider = ({ children }: { children: React.ReactNode }) 
       setUser(userSession);
       localStorage.setItem('custom_auth_user', JSON.stringify(userSession));
       
+      console.log('Login realizado com sucesso:', userSession);
       return { error: null };
     } catch (error) {
+      console.error('Erro no processo de login:', error);
       return { error: { message: 'Erro ao fazer login' } };
     }
   };
