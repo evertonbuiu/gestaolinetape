@@ -36,6 +36,7 @@ const Index = () => {
       case "collaborators":
         return <Collaborators key="collaborators" />;
       case "financial":
+        console.log('Loading FinancialManagement component');
         return <FinancialManagement key="financial" />;
       case "user-management":
         return <UserManagement key="user-management" />;

@@ -64,6 +64,7 @@ interface InventoryItem {
 }
 
 export const FinancialManagement = () => {
+  console.log('FinancialManagement component initialized');
   const [cashFlow, setCashFlow] = useState<CashFlowEntry[]>([]);
   const [budget, setBudget] = useState<BudgetEntry[]>([]);
   const [accounts, setAccounts] = useState<AccountBalance[]>([]);
