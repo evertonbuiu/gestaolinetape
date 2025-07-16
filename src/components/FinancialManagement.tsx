@@ -272,7 +272,7 @@ export const FinancialManagement = () => {
         category: expense.category,
         type: "expense" as const,
         amount: expense.total_price,
-        account: "Conta Corrente Principal",
+        account: expense.expense_bank_account || "Conta Corrente Principal",
         status: "confirmed" as const
       })) || [];
 
