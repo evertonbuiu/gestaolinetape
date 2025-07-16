@@ -11,7 +11,7 @@ interface Permission {
 
 interface RolePermission {
   id: string;
-  role: 'admin' | 'funcionario';
+  role: 'admin' | 'funcionario' | 'financeiro';
   permission_id: string;
   can_view: boolean;
   can_edit: boolean;

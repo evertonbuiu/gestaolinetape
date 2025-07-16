@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Settings2, Shield, Eye, Edit3, Save, UserPlus, Mail, Lock, User, Users, Circle, Upload, Image, Trash2, Palette, EyeOff } from 'lucide-react';
@@ -40,7 +41,8 @@ export const SettingsPage = () => {
   const [newUser, setNewUser] = useState({
     name: '',
     username: '',
-    password: ''
+    password: '',
+    role: 'funcionario' as 'admin' | 'funcionario' | 'financeiro'
   });
 
   // Group permissions by category
@@ -148,7 +150,8 @@ export const SettingsPage = () => {
         body: {
           name: newUser.name,
           username: newUser.username,
-          password: newUser.password
+          password: newUser.password,
+          role: newUser.role
         }
       });
 
@@ -156,12 +159,15 @@ export const SettingsPage = () => {
         throw new Error(error.message);
       }
 
-      setNewUser({ name: '', username: '', password: '' });
+      const roleLabel = newUser.role === 'admin' ? 'Administrador' : 
+                       newUser.role === 'financeiro' ? 'Financeiro' : 'Funcionário';
+
+      setNewUser({ name: '', username: '', password: '', role: 'funcionario' });
       setCreateUserDialog(false);
       
       toast({
         title: "Funcionário criado",
-        description: "O funcionário foi criado com sucesso e pode fazer login.",
+        description: `${newUser.name} foi criado como ${roleLabel} e pode fazer login.`,
       });
     } catch (error) {
       console.error('Error creating employee:', error);
@@ -394,6 +400,46 @@ export const SettingsPage = () => {
                         )}
                       </button>
                     </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="role">Nível de Acesso</Label>
+                    <Select
+                      value={newUser.role}
+                      onValueChange={(value: 'admin' | 'funcionario' | 'financeiro') => 
+                        setNewUser(prev => ({ ...prev, role: value }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="funcionario">
+                          <div className="flex flex-col items-start">
+                            <span>Funcionário</span>
+                            <span className="text-xs text-muted-foreground">
+                              Acesso básico conforme permissões
+                            </span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="financeiro">
+                          <div className="flex flex-col items-start">
+                            <span>Financeiro</span>
+                            <span className="text-xs text-muted-foreground">
+                              Acesso completo às áreas financeiras
+                            </span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="admin">
+                          <div className="flex flex-col items-start">
+                            <span>Administrador</span>
+                            <span className="text-xs text-muted-foreground">
+                              Acesso completo ao sistema
+                            </span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="flex justify-end gap-3 pt-4">

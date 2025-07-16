@@ -45,10 +45,15 @@ serve(async (req) => {
       throw new Error('Only admins can create employee accounts')
     }
 
-    const { username, password, name } = await req.json()
+    const { username, password, name, role = 'funcionario' } = await req.json()
 
     if (!username || !password || !name) {
       throw new Error('Username, password, and name are required')
+    }
+
+    // Validate role
+    if (!['admin', 'funcionario', 'financeiro'].includes(role)) {
+      throw new Error('Invalid role specified')
     }
 
     // Check if username already exists
@@ -82,12 +87,12 @@ serve(async (req) => {
       throw createError
     }
 
-    // Create user role as funcionario
+    // Create user role with specified role
     const { error: roleInsertError } = await supabaseAdmin
       .from('user_roles')
       .insert({
         user_id: newUser.id,
-        role: 'funcionario'
+        role: role
       })
 
     if (roleInsertError) {

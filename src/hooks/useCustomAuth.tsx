@@ -7,7 +7,7 @@ interface User {
   id: string;
   username: string;
   name: string;
-  role: 'admin' | 'funcionario';
+  role: 'admin' | 'funcionario' | 'financeiro';
 }
 
 interface AuthContextType {
@@ -15,7 +15,7 @@ interface AuthContextType {
   isLoading: boolean;
   signIn: (username: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
-  userRole: 'admin' | 'funcionario' | null;
+  userRole: 'admin' | 'funcionario' | 'financeiro' | null;
   hasPermission: (permissionName: string, accessType?: 'view' | 'edit') => Promise<boolean>;
 }
 
