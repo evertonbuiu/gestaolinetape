@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, cn } from "@/lib/utils";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { isSameMonth, addMonths } from 'date-fns';
 
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -93,8 +94,8 @@ export const Rentals = () => {
   const [canViewRentals, setCanViewRentals] = useState(false);
   const [canEditRentals, setCanEditRentals] = useState(false);
   const [canViewFinancials, setCanViewFinancials] = useState(false);
-  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
-  const [selectedMonth, setSelectedMonth] = useState<string>('all');
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [newEvent, setNewEvent] = useState<Partial<Event>>({
     name: '',
     client_name: '',
@@ -132,6 +133,11 @@ export const Rentals = () => {
     checkPermissions();
   }, [hasPermission, userRole]);
 
+  // Update selectedMonth when year changes
+  useEffect(() => {
+    setSelectedMonth(new Date(selectedYear, selectedMonth.getMonth(), 1));
+  }, [selectedYear]);
+
   // Fetch events
   const fetchEvents = async () => {
     try {
@@ -154,16 +160,26 @@ export const Rentals = () => {
     }
   };
 
-  // Filter events by year and month
+  // Generate years and months for tabs
+  const generateYearsAndMonths = () => {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    
+    for (let year = currentYear - 2; year <= currentYear + 2; year++) {
+      const months = [];
+      for (let month = 0; month < 12; month++) {
+        months.push(new Date(year, month, 1));
+      }
+      years.push({ year, months });
+    }
+    
+    return years;
+  };
+
+  // Filter events by selected month
   const filteredEvents = events.filter(event => {
     const eventDate = new Date(event.event_date);
-    const eventYear = eventDate.getFullYear().toString();
-    const eventMonth = (eventDate.getMonth() + 1).toString();
-
-    const yearMatches = selectedYear === 'all' || eventYear === selectedYear;
-    const monthMatches = selectedMonth === 'all' || eventMonth === selectedMonth;
-
-    return yearMatches && monthMatches;
+    return isSameMonth(eventDate, selectedMonth);
   });
 
   // Fetch bank accounts
@@ -843,58 +859,52 @@ export const Rentals = () => {
       </div>
 
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Todos os Eventos</h3>
-          <span className="text-sm text-muted-foreground">
-            {filteredEvents.length} evento(s) de {events.length}
-          </span>
+        {/* Year Selection */}
+        <div className="flex items-center gap-4">
+          <Label className="text-sm font-medium">Ano:</Label>
+          <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {generateYearsAndMonths().map(({ year }) => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* Filtros de Mês e Ano */}
-        <div className="flex gap-4 p-4 bg-muted/30 rounded-lg">
-          <div className="flex-1">
-            <Label htmlFor="year-filter">Ano</Label>
-            <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o ano" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os anos</SelectItem>
-                {Array.from(new Set(events.map(event => new Date(event.event_date).getFullYear())))
-                  .sort((a, b) => b - a)
-                  .map(year => (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Month Tabs */}
+        <Tabs value={selectedMonth.toISOString()} onValueChange={(value) => setSelectedMonth(new Date(value))}>
+          <TabsList className="grid w-full grid-cols-12 gap-1">
+            {generateYearsAndMonths()
+              .find(({ year }) => year === selectedYear)
+              ?.months.map((month) => (
+                <TabsTrigger
+                  key={month.toISOString()}
+                  value={month.toISOString()}
+                  className="text-xs p-2"
+                >
+                  {format(month, 'MMM', { locale: ptBR })}
+                </TabsTrigger>
+              ))}
+          </TabsList>
           
-          <div className="flex-1">
-            <Label htmlFor="month-filter">Mês</Label>
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o mês" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os meses</SelectItem>
-                <SelectItem value="1">Janeiro</SelectItem>
-                <SelectItem value="2">Fevereiro</SelectItem>
-                <SelectItem value="3">Março</SelectItem>
-                <SelectItem value="4">Abril</SelectItem>
-                <SelectItem value="5">Maio</SelectItem>
-                <SelectItem value="6">Junho</SelectItem>
-                <SelectItem value="7">Julho</SelectItem>
-                <SelectItem value="8">Agosto</SelectItem>
-                <SelectItem value="9">Setembro</SelectItem>
-                <SelectItem value="10">Outubro</SelectItem>
-                <SelectItem value="11">Novembro</SelectItem>
-                <SelectItem value="12">Dezembro</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+          {generateYearsAndMonths()
+            .find(({ year }) => year === selectedYear)
+            ?.months.map((month) => (
+              <TabsContent key={month.toISOString()} value={month.toISOString()}>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">
+                      {format(month, 'MMMM yyyy', { locale: ptBR })}
+                    </h3>
+                    <span className="text-sm text-muted-foreground">
+                      {filteredEvents.length} evento(s)
+                    </span>
+                  </div>
         
         <div className="grid gap-6">
           {filteredEvents.length === 0 ? (
