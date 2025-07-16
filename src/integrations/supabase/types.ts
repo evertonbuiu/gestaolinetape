@@ -508,6 +508,17 @@ export type Database = {
         Args: { account_id_param: string }
         Returns: number
       }
+      get_account_statement: {
+        Args: { account_name_param: string }
+        Returns: {
+          transaction_date: string
+          description: string
+          amount: number
+          transaction_type: string
+          category: string
+          running_balance: number
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -542,6 +553,17 @@ export type Database = {
       sync_bank_transactions: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      update_all_account_balances_from_transactions: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          account_name: string
+          old_balance: number
+          new_balance: number
+          total_income: number
+          total_expenses: number
+          transaction_count: number
+        }[]
       }
       update_bank_account_balances: {
         Args: Record<PropertyKey, never>
