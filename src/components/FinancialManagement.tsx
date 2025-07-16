@@ -790,14 +790,99 @@ export const FinancialManagement = () => {
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     
+    // Função para adicionar papel timbrado
+    const addLetterhead = () => {
+      // Borda superior decorativa
+      doc.setDrawColor(0, 102, 204);
+      doc.setLineWidth(3);
+      doc.line(10, 15, pageWidth - 10, 15);
+      
+      // Borda lateral esquerda
+      doc.setLineWidth(1);
+      doc.line(10, 15, 10, pageHeight - 15);
+      
+      // Borda lateral direita
+      doc.line(pageWidth - 10, 15, pageWidth - 10, pageHeight - 15);
+      
+      // Borda inferior
+      doc.line(10, pageHeight - 15, pageWidth - 10, pageHeight - 15);
+    };
+
+    // Função para adicionar cabeçalho oficial
+    const addOfficialHeader = async () => {
+      // Adicionar logo se disponível
+      if (logoUrl) {
+        try {
+          const logoImg = new Image();
+          logoImg.crossOrigin = 'anonymous';
+          
+          await new Promise((resolve, reject) => {
+            logoImg.onload = resolve;
+            logoImg.onerror = reject;
+            logoImg.src = logoUrl;
+          });
+          
+          // Logo no canto superior esquerdo
+          const logoSize = 20;
+          doc.addImage(logoImg, 'JPEG', 15, 20, logoSize, logoSize);
+        } catch (error) {
+          console.error('Erro ao carregar logo:', error);
+        }
+      }
+      
+      // Cabeçalho da empresa (lado direito)
+      const companyName = settings?.company_name || 'LUZ LOCAÇÃO';
+      const tagline = settings?.tagline || 'Controle de Estoque e Patrimônio';
+      
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 102, 204);
+      doc.text(companyName, pageWidth - 15, 25, { align: 'right' });
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(102, 102, 102);
+      doc.text(tagline, pageWidth - 15, 32, { align: 'right' });
+      
+      // Linha divisória
+      doc.setDrawColor(0, 102, 204);
+      doc.setLineWidth(0.5);
+      doc.line(15, 45, pageWidth - 15, 45);
+    };
+
+    // Função para adicionar rodapé oficial
+    const addOfficialFooter = () => {
+      const footerY = pageHeight - 25;
+      
+      // Linha divisória superior
+      doc.setDrawColor(0, 102, 204);
+      doc.setLineWidth(0.5);
+      doc.line(15, footerY - 5, pageWidth - 15, footerY - 5);
+      
+      // Informações da empresa
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(102, 102, 102);
+      
+      const companyInfo = [
+        `${settings?.company_name || 'Luz Locação'} - ${settings?.tagline || 'Controle de Estoque e Patrimônio'}`,
+        'Documento gerado automaticamente pelo sistema de gestão patrimonial',
+        `Data de emissão: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`
+      ];
+      
+      companyInfo.forEach((line, index) => {
+        doc.text(line, pageWidth / 2, footerY + (index * 4), { align: 'center' });
+      });
+    };
+
     // Função para adicionar marca d'água
     const addWatermark = () => {
       doc.saveGraphicsState();
-      doc.setTextColor(128, 128, 128);
-      doc.setFontSize(60);
+      doc.setTextColor(220, 220, 220);
+      doc.setFontSize(50);
       doc.setFont('helvetica', 'bold');
       
-      const watermarkText = settings?.company_name || 'CONFIDENCIAL';
+      const watermarkText = 'CONFIDENCIAL';
       
       // Rotacionar e posicionar a marca d'água
       doc.text(watermarkText, pageWidth / 2, pageHeight / 2, {
@@ -809,45 +894,27 @@ export const FinancialManagement = () => {
       doc.restoreGraphicsState();
     };
 
-    // Adicionar logo se disponível
-    if (logoUrl) {
-      try {
-        const logoImg = new Image();
-        logoImg.crossOrigin = 'anonymous';
-        
-        await new Promise((resolve, reject) => {
-          logoImg.onload = resolve;
-          logoImg.onerror = reject;
-          logoImg.src = logoUrl;
-        });
-        
-        // Adicionar logo no canto superior esquerdo
-        const logoSize = 25;
-        doc.addImage(logoImg, 'JPEG', 15, 10, logoSize, logoSize);
-      } catch (error) {
-        console.error('Erro ao carregar logo:', error);
-      }
-    }
-    
-    // Adicionar marca d'água na primeira página
+    // Inicializar primeira página
+    addLetterhead();
+    await addOfficialHeader();
     addWatermark();
+    addOfficialFooter();
     
-    // Cabeçalho
+    // Título principal
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text('RELATÓRIO PATRIMONIAL', pageWidth / 2, 20, { align: 'center' });
-    
-    // Adicionar nome da empresa se disponível
-    if (settings?.company_name) {
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'normal');
-      doc.text(settings.company_name, pageWidth / 2, 35, { align: 'center' });
-    }
+    doc.setTextColor(0, 51, 102);
+    doc.text('RELATÓRIO PATRIMONIAL', pageWidth / 2, 65, { align: 'center' });
     
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text('Para fins bancários e financeiros', pageWidth / 2, settings?.company_name ? 45 : 30, { align: 'center' });
-    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, pageWidth / 2, settings?.company_name ? 55 : 40, { align: 'center' });
+    doc.setTextColor(102, 102, 102);
+    doc.text('Para Fins Bancários e Financeiros', pageWidth / 2, 75, { align: 'center' });
+    
+    // Número do documento
+    const docNumber = `REL-PAT-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+    doc.setFontSize(10);
+    doc.text(`Documento Nº: ${docNumber}`, pageWidth / 2, 85, { align: 'center' });
     
     // Resumo geral
     const totalItems = inventory.reduce((total, item) => total + item.quantity, 0);
@@ -860,27 +927,40 @@ export const FinancialManagement = () => {
     }, 0);
     const currentValue = totalValue - totalDepreciation;
     
-    let yPosition = 60;
+    let yPosition = 100;
+    
+    // Caixa de resumo com fundo
+    doc.setFillColor(245, 248, 255);
+    doc.rect(20, yPosition - 5, pageWidth - 40, 45, 'F');
+    doc.setDrawColor(0, 102, 204);
+    doc.setLineWidth(0.5);
+    doc.rect(20, yPosition - 5, pageWidth - 40, 45);
     
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('RESUMO EXECUTIVO', 20, yPosition);
+    doc.setTextColor(0, 51, 102);
+    doc.text('RESUMO EXECUTIVO', 25, yPosition + 5);
+    
     yPosition += 15;
     
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Total de Itens: ${totalItems}`, 20, yPosition);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text(`• Total de Itens: ${totalItems} unidades`, 25, yPosition);
     yPosition += 8;
-    doc.text(`Valor Total de Aquisição: R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 20, yPosition);
+    doc.text(`• Valor Total de Aquisição: R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 25, yPosition);
     yPosition += 8;
-    doc.text(`Depreciação Acumulada: R$ ${totalDepreciation.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 20, yPosition);
+    doc.text(`• Depreciação Acumulada: R$ ${totalDepreciation.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 25, yPosition);
     yPosition += 8;
-    doc.text(`Valor Patrimonial Atual: R$ ${currentValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 20, yPosition);
-    yPosition += 20;
+    doc.setFontSize(12);
+    doc.setTextColor(0, 102, 0);
+    doc.text(`• Valor Patrimonial Atual: R$ ${currentValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 25, yPosition);
+    yPosition += 25;
     
     // Detalhamento por categoria
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 51, 102);
     doc.text('DETALHAMENTO POR CATEGORIA', 20, yPosition);
     yPosition += 15;
     
@@ -906,10 +986,12 @@ export const FinancialManagement = () => {
         'outros': 'Outros'
       }[category] || category;
       
-      if (yPosition > pageHeight - 30) {
+      if (yPosition > pageHeight - 60) {
         doc.addPage();
+        addLetterhead();
         addWatermark();
-        yPosition = 20;
+        addOfficialFooter();
+        yPosition = 55;
       }
       
       doc.setFontSize(12);
@@ -928,10 +1010,12 @@ export const FinancialManagement = () => {
     });
     
     // Lista detalhada de itens
-    if (yPosition > pageHeight - 50) {
+    if (yPosition > pageHeight - 80) {
       doc.addPage();
+      addLetterhead();
       addWatermark();
-      yPosition = 20;
+      addOfficialFooter();
+      yPosition = 55;
     }
     
     doc.setFontSize(14);
@@ -951,10 +1035,12 @@ export const FinancialManagement = () => {
     doc.setFont('helvetica', 'normal');
     
     inventory.forEach((item) => {
-      if (yPosition > pageHeight - 20) {
+      if (yPosition > pageHeight - 50) {
         doc.addPage();
+        addLetterhead();
         addWatermark();
-        yPosition = 20;
+        addOfficialFooter();
+        yPosition = 55;
       }
       
       const yearsOld = (new Date().getFullYear() - new Date(item.acquisitionDate).getFullYear());
