@@ -577,6 +577,10 @@ export type Database = {
         Args: { account_id_param: string }
         Returns: number
       }
+      force_recalculate_equipment_stock: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_account_statement: {
         Args: { account_name_param: string }
         Returns: {
