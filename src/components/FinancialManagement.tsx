@@ -134,62 +134,8 @@ export const FinancialManagement = () => {
   };
 
   const loadInventoryData = () => {
-    // Dados de exemplo para o inventário
-    const mockInventory: InventoryItem[] = [
-      {
-        id: "1",
-        name: "Mesa de Som Behringer X32",
-        category: "equipamentos-som",
-        acquisitionValue: 15000,
-        acquisitionDate: "2024-03-15",
-        condition: "novo",
-        quantity: 1,
-        serialNumber: "BX32-2024-001",
-        location: "Almoxarifado A",
-        description: "Mesa de som digital profissional",
-        currentValue: 14500
-      },
-      {
-        id: "2",
-        name: "Refletor LED Moving Head",
-        category: "equipamentos-iluminacao",
-        acquisitionValue: 3500,
-        acquisitionDate: "2023-08-20",
-        condition: "otimo",
-        quantity: 4,
-        serialNumber: "LED-MH-2023-045",
-        location: "Estoque Equipamentos",
-        description: "Refletor LED com movimento automático",
-        currentValue: 3200
-      },
-      {
-        id: "3",
-        name: "Fiat Ducato Cargo 2022",
-        category: "veiculos",
-        acquisitionValue: 120000,
-        acquisitionDate: "2022-01-10",
-        condition: "bom",
-        quantity: 1,
-        serialNumber: "ABC-1234",
-        location: "Garagem Principal",
-        description: "Veículo para transporte de equipamentos",
-        currentValue: 95000
-      },
-      {
-        id: "4",
-        name: "Computador Dell Inspiron",
-        category: "informatica",
-        acquisitionValue: 4500,
-        acquisitionDate: "2023-06-05",
-        condition: "bom",
-        quantity: 2,
-        serialNumber: "DLL-INS-2023-012",
-        location: "Escritório",
-        description: "Computador desktop para uso administrativo",
-        currentValue: 3800
-      }
-    ];
-    setInventory(mockInventory);
+    // Inventário vazio para dados reais
+    setInventory([]);
   };
 
   useEffect(() => {
