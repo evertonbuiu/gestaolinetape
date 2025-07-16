@@ -1108,6 +1108,83 @@ export const Rentals = () => {
               />
             </div>
 
+            {/* Seção de Pagamento */}
+            <div className="space-y-4 border-t pt-4">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="edit_is_paid"
+                  checked={selectedEventForEdit?.is_paid || false}
+                  onChange={(e) => setSelectedEventForEdit(prev => prev ? {...prev, is_paid: e.target.checked} : null)}
+                  className="rounded"
+                />
+                <Label htmlFor="edit_is_paid" className="font-medium">Marcar como Pago</Label>
+              </div>
+
+              {selectedEventForEdit?.is_paid && (
+                <div className="grid gap-4 pl-6 border-l-2 border-green-200">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit_payment_type">Tipo de Pagamento</Label>
+                      <Select
+                        value={selectedEventForEdit?.payment_type || 'total'}
+                        onValueChange={(value) => setSelectedEventForEdit(prev => prev ? {...prev, payment_type: value} : null)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o tipo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="total">Valor Total</SelectItem>
+                          <SelectItem value="entrada">Entrada</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit_payment_amount">Valor Pago</Label>
+                      <Input
+                        id="edit_payment_amount"
+                        type="number"
+                        step="0.01"
+                        value={selectedEventForEdit?.payment_amount || ''}
+                        onChange={(e) => setSelectedEventForEdit(prev => prev ? {...prev, payment_amount: parseFloat(e.target.value) || 0} : null)}
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit_payment_bank_account">Conta de Recebimento</Label>
+                      <Select
+                        value={selectedEventForEdit?.payment_bank_account || ''}
+                        onValueChange={(value) => setSelectedEventForEdit(prev => prev ? {...prev, payment_bank_account: value} : null)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a conta" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {bankAccounts.map((account) => (
+                            <SelectItem key={account.id} value={account.name}>
+                              {account.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit_payment_date">Data do Pagamento</Label>
+                      <Input
+                        id="edit_payment_date"
+                        type="date"
+                        value={selectedEventForEdit?.payment_date || ''}
+                        onChange={(e) => setSelectedEventForEdit(prev => prev ? {...prev, payment_date: e.target.value} : null)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="edit_description">Descrição</Label>
               <Textarea
