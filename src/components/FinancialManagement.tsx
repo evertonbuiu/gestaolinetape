@@ -1536,10 +1536,11 @@ export const FinancialManagement = () => {
 
       {/* Tabs das Planilhas */}
       <Tabs defaultValue="cashflow" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="cashflow">Fluxo de Caixa</TabsTrigger>
           <TabsTrigger value="budget">Orçamento</TabsTrigger>
           <TabsTrigger value="accounts">Contas</TabsTrigger>
+          <TabsTrigger value="inventory">Inventário</TabsTrigger>
           <TabsTrigger value="reports">Relatórios</TabsTrigger>
         </TabsList>
 
@@ -1941,6 +1942,344 @@ export const FinancialManagement = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="inventory" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Inventário Patrimonial</CardTitle>
+                  <CardDescription>Controle de bens e patrimônio da empresa</CardDescription>
+                </div>
+                <Dialog open={isAddingEntry} onOpenChange={setIsAddingEntry}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Novo Item
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Adicionar Item ao Patrimônio</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="itemName">Nome do Item</Label>
+                          <Input
+                            id="itemName"
+                            placeholder="Ex: Computador Dell, Mesa de Som..."
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="itemCategory">Categoria</Label>
+                          <Select>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="equipamentos-som">Equipamentos de Som</SelectItem>
+                              <SelectItem value="equipamentos-iluminacao">Equipamentos de Iluminação</SelectItem>
+                              <SelectItem value="moveis">Móveis e Utensílios</SelectItem>
+                              <SelectItem value="veiculos">Veículos</SelectItem>
+                              <SelectItem value="informatica">Informática</SelectItem>
+                              <SelectItem value="ferramentas">Ferramentas</SelectItem>
+                              <SelectItem value="outros">Outros</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <Label htmlFor="acquisitionValue">Valor de Aquisição</Label>
+                          <Input
+                            id="acquisitionValue"
+                            type="number"
+                            placeholder="0,00"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="acquisitionDate">Data de Aquisição</Label>
+                          <Input
+                            id="acquisitionDate"
+                            type="date"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="condition">Estado de Conservação</Label>
+                          <Select>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="novo">Novo</SelectItem>
+                              <SelectItem value="otimo">Ótimo</SelectItem>
+                              <SelectItem value="bom">Bom</SelectItem>
+                              <SelectItem value="regular">Regular</SelectItem>
+                              <SelectItem value="ruim">Ruim</SelectItem>
+                              <SelectItem value="pessimo">Péssimo</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="serialNumber">Número de Série</Label>
+                          <Input
+                            id="serialNumber"
+                            placeholder="Opcional"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="location">Localização</Label>
+                          <Input
+                            id="location"
+                            placeholder="Ex: Escritório, Almoxarifado..."
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="description">Descrição/Observações</Label>
+                        <Input
+                          id="description"
+                          placeholder="Detalhes adicionais, marca, modelo..."
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setIsAddingEntry(false)}>
+                          Cancelar
+                        </Button>
+                        <Button>
+                          Salvar
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Resumo do Patrimônio */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Total de Itens</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">156</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Valor Total</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-green-600">{formatCurrency(285500)}</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Depreciação Acumulada</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-orange-600">{formatCurrency(45200)}</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Valor Atual</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-blue-600">{formatCurrency(240300)}</div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Filtros */}
+                <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Search className="h-4 w-4" />
+                    <Input
+                      placeholder="Buscar item..."
+                      className="w-64"
+                    />
+                  </div>
+                  <Select>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todas as Categorias</SelectItem>
+                      <SelectItem value="equipamentos-som">Equipamentos de Som</SelectItem>
+                      <SelectItem value="equipamentos-iluminacao">Equipamentos de Iluminação</SelectItem>
+                      <SelectItem value="moveis">Móveis e Utensílios</SelectItem>
+                      <SelectItem value="veiculos">Veículos</SelectItem>
+                      <SelectItem value="informatica">Informática</SelectItem>
+                      <SelectItem value="ferramentas">Ferramentas</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os Estados</SelectItem>
+                      <SelectItem value="novo">Novo</SelectItem>
+                      <SelectItem value="otimo">Ótimo</SelectItem>
+                      <SelectItem value="bom">Bom</SelectItem>
+                      <SelectItem value="regular">Regular</SelectItem>
+                      <SelectItem value="ruim">Ruim</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Tabela de Itens */}
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Item</TableHead>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead>Valor Aquisição</TableHead>
+                      <TableHead>Data Aquisição</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Localização</TableHead>
+                      <TableHead>Valor Atual</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {/* Exemplos de itens */}
+                    <TableRow>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">Mesa de Som Behringer X32</div>
+                          <div className="text-sm text-muted-foreground">SN: BX32-2024-001</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">Equipamentos de Som</Badge>
+                      </TableCell>
+                      <TableCell>{formatCurrency(15000)}</TableCell>
+                      <TableCell>15/03/2024</TableCell>
+                      <TableCell>
+                        <Badge variant="default">Novo</Badge>
+                      </TableCell>
+                      <TableCell>Almoxarifado A</TableCell>
+                      <TableCell className="font-medium">{formatCurrency(14500)}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="sm">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">Refletor LED Moving Head</div>
+                          <div className="text-sm text-muted-foreground">SN: LED-MH-2023-045</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">Equipamentos de Iluminação</Badge>
+                      </TableCell>
+                      <TableCell>{formatCurrency(3500)}</TableCell>
+                      <TableCell>20/08/2023</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">Ótimo</Badge>
+                      </TableCell>
+                      <TableCell>Estoque Equipamentos</TableCell>
+                      <TableCell className="font-medium">{formatCurrency(3200)}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="sm">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">Fiat Ducato Cargo 2022</div>
+                          <div className="text-sm text-muted-foreground">Placa: ABC-1234</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">Veículos</Badge>
+                      </TableCell>
+                      <TableCell>{formatCurrency(120000)}</TableCell>
+                      <TableCell>10/01/2022</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">Bom</Badge>
+                      </TableCell>
+                      <TableCell>Garagem Principal</TableCell>
+                      <TableCell className="font-medium">{formatCurrency(95000)}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="sm">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">Computador Dell Inspiron</div>
+                          <div className="text-sm text-muted-foreground">SN: DLL-INS-2023-012</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">Informática</Badge>
+                      </TableCell>
+                      <TableCell>{formatCurrency(4500)}</TableCell>
+                      <TableCell>05/06/2023</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">Bom</Badge>
+                      </TableCell>
+                      <TableCell>Escritório</TableCell>
+                      <TableCell className="font-medium">{formatCurrency(3800)}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="sm">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
               </div>
             </CardContent>
           </Card>
