@@ -13,14 +13,11 @@ interface SidebarProps {
 export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
   const { signOut, userRole, hasPermission } = useAuth();
   const [canAccessSettings, setCanAccessSettings] = useState(false);
-  const [canAccessClients, setCanAccessClients] = useState(false);
   
   useEffect(() => {
     const checkPermissions = async () => {
       const canAccessSettingsResult = await hasPermission('settings_access', 'view');
-      const canAccessClientsResult = await hasPermission('clients_view', 'view');
       setCanAccessSettings(canAccessSettingsResult);
-      setCanAccessClients(canAccessClientsResult);
     };
     
     checkPermissions();
@@ -32,7 +29,7 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
     { id: "inventory", label: "Estoque", icon: BarChart3 },
     ...(userRole === 'admin' ? [{ id: "rentals", label: "Locações", icon: Calendar }] : []),
     { id: "event-equipment", label: "Equipamentos Eventos", icon: Cog },
-    ...(canAccessClients ? [{ id: "clients", label: "Clientes", icon: Users }] : []),
+    ...(userRole === 'admin' ? [{ id: "clients", label: "Clientes", icon: Users }] : []),
     { id: "collaborators", label: "Colaboradores", icon: UserCheck },
     ...(userRole === 'admin' ? [{ id: "financial", label: "Gestão Financeira", icon: DollarSign }] : []),
     { id: "maintenance", label: "Manutenção", icon: Wrench },
