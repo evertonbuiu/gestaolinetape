@@ -329,6 +329,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "event_expenses_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_credentials"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "event_expenses_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
@@ -410,7 +417,15 @@ export type Database = {
           total_expenses?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_credentials"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       permissions: {
         Row: {
