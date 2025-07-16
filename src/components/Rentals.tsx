@@ -775,6 +775,17 @@ export const Rentals = () => {
                                     >
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedEvent(event);
+                                        fetchExpenses(event.id);
+                                      }}
+                                    >
+                                      <Plus className="h-4 w-4 mr-1" />
+                                      Despesas
+                                    </Button>
                                   </>
                                 )}
                               </div>
@@ -795,23 +806,12 @@ export const Rentals = () => {
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <FileText className="h-4 w-4 text-red-600" />
-                                  <div className="flex-1">
+                                  <div>
                                     <p className="text-sm font-medium">Despesas</p>
                                     <p className="text-lg font-bold text-red-600">
                                       R$ {event.total_expenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                     </p>
                                   </div>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      setSelectedEvent(event);
-                                      fetchExpenses(event.id);
-                                    }}
-                                  >
-                                    <Plus className="h-4 w-4 mr-1" />
-                                    Despesas
-                                  </Button>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <Calculator className="h-4 w-4 text-blue-600" />
