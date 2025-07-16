@@ -1,4 +1,5 @@
 import logoImage from "@/assets/logo.png";
+import { useLogo } from "@/hooks/useLogo";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg";
@@ -6,6 +7,7 @@ interface LogoProps {
 }
 
 export const Logo = ({ size = "md", showText = true }: LogoProps) => {
+  const { logoUrl, isLoading } = useLogo();
   const sizeClasses = {
     sm: "h-8",
     md: "h-12",
@@ -21,7 +23,7 @@ export const Logo = ({ size = "md", showText = true }: LogoProps) => {
   return (
     <div className="flex items-center gap-3">
       <img 
-        src={logoImage} 
+        src={logoUrl || logoImage} 
         alt="Luz Locação" 
         className={`${sizeClasses[size]} w-auto object-contain`}
       />
