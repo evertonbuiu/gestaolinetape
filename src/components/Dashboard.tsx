@@ -3,13 +3,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import { AlertTriangle, Package, Calendar, TrendingUp, BarChart3, Activity, Zap } from "lucide-react";
+import { AlertTriangle, Package, Calendar, TrendingUp, BarChart3, Activity, Zap, PieChart, TrendingDown } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { isSameMonth } from 'date-fns';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart as RechartsPieChart, Cell, LineChart, Line, Area, AreaChart, Pie } from "recharts";
 
 export const Dashboard = ({ onNavigate }: { onNavigate?: (tab: string) => void }) => {
   const { hasPermission, userRole } = useAuth();
@@ -151,6 +153,63 @@ export const Dashboard = ({ onNavigate }: { onNavigate?: (tab: string) => void }
     }] : [])
   ];
 
+  // Dados para gráficos
+  const chartColors = [
+    "hsl(var(--primary))",
+    "hsl(var(--accent))", 
+    "hsl(var(--secondary))",
+    "hsl(var(--muted))",
+    "hsl(var(--destructive))"
+  ];
+
+  // Gráfico de distribuição de equipamentos por categoria
+  const equipmentCategoryData = equipmentData?.reduce((acc: any[], item) => {
+    const existingCategory = acc.find(cat => cat.name === item.category);
+    if (existingCategory) {
+      existingCategory.total += item.total_stock;
+      existingCategory.available += item.available;
+      existingCategory.rented += item.rented;
+    } else {
+      acc.push({
+        name: item.category,
+        total: item.total_stock,
+        available: item.available,
+        rented: item.rented
+      });
+    }
+    return acc;
+  }, []) || [];
+
+  // Gráfico de receita por mês dos últimos 6 meses
+  const revenueData = [];
+  for (let i = 5; i >= 0; i--) {
+    const monthDate = new Date(selectedYear, selectedMonth.getMonth() - i, 1);
+    const monthRevenue = eventsData?.filter(event => {
+      const eventDate = new Date(event.event_date);
+      return eventDate.getMonth() === monthDate.getMonth() && 
+             eventDate.getFullYear() === monthDate.getFullYear() &&
+             event.is_paid;
+    }).reduce((sum, event) => sum + (event.payment_amount || event.total_budget || 0), 0) || 0;
+    
+    revenueData.push({
+      month: format(monthDate, 'MMM', { locale: ptBR }),
+      receita: monthRevenue
+    });
+  }
+
+  // Gráfico de pizza - Status dos equipamentos
+  const equipmentStatusData = [
+    { name: "Disponível", value: totalStock - currentlyRented, fill: chartColors[0] },
+    { name: "Locado", value: currentlyRented, fill: chartColors[1] },
+  ];
+
+  const chartConfig = {
+    total: { label: "Total", color: chartColors[0] },
+    available: { label: "Disponível", color: chartColors[1] },
+    rented: { label: "Locado", color: chartColors[2] },
+    receita: { label: "Receita", color: chartColors[0] }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
       {/* Hero Section */}
@@ -253,6 +312,115 @@ export const Dashboard = ({ onNavigate }: { onNavigate?: (tab: string) => void }
                       </Card>
                     ))}
                   </div>
+
+                  {/* Charts Section */}
+                  {(canViewInventory || canViewRentals || showRevenue) && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+                      {/* Equipment by Category Chart */}
+                      {canViewInventory && equipmentCategoryData.length > 0 && (
+                        <Card className="bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-sm border-border/50">
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <BarChart3 className="w-5 h-5 text-primary" />
+                              Equipamentos por Categoria
+                            </CardTitle>
+                            <CardDescription>Distribuição de estoque disponível e locado</CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <ChartContainer config={chartConfig} className="h-[300px]">
+                              <BarChart data={equipmentCategoryData}>
+                                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                                <XAxis dataKey="name" className="text-xs" />
+                                <YAxis className="text-xs" />
+                                <ChartTooltip content={<ChartTooltipContent />} />
+                                <ChartLegend content={<ChartLegendContent />} />
+                                <Bar dataKey="available" name="Disponível" fill={chartColors[1]} radius={[2, 2, 0, 0]} />
+                                <Bar dataKey="rented" name="Locado" fill={chartColors[2]} radius={[2, 2, 0, 0]} />
+                              </BarChart>
+                            </ChartContainer>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {/* Equipment Status Pie Chart */}
+                      {canViewInventory && totalStock > 0 && (
+                        <Card className="bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-sm border-border/50">
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <PieChart className="w-5 h-5 text-primary" />
+                              Status dos Equipamentos
+                            </CardTitle>
+                            <CardDescription>Proporção entre equipamentos disponíveis e locados</CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <ChartContainer config={chartConfig} className="h-[300px]">
+                              <RechartsPieChart>
+                                <ChartTooltip content={<ChartTooltipContent />} />
+                                <Pie
+                                  data={equipmentStatusData}
+                                  dataKey="value"
+                                  nameKey="name"
+                                  cx="50%"
+                                  cy="50%"
+                                  outerRadius={80}
+                                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                >
+                                  {equipmentStatusData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                                  ))}
+                                </Pie>
+                                <ChartLegend content={<ChartLegendContent />} />
+                              </RechartsPieChart>
+                            </ChartContainer>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {/* Revenue Trend Chart */}
+                      {showRevenue && revenueData.length > 0 && (
+                        <Card className="bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-sm border-border/50 lg:col-span-2">
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <TrendingUp className="w-5 h-5 text-primary" />
+                              Evolução da Receita
+                            </CardTitle>
+                            <CardDescription>Receita dos últimos 6 meses</CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <ChartContainer config={chartConfig} className="h-[300px]">
+                              <AreaChart data={revenueData}>
+                                <defs>
+                                  <linearGradient id="colorReceita" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor={chartColors[0]} stopOpacity={0.3}/>
+                                    <stop offset="95%" stopColor={chartColors[0]} stopOpacity={0}/>
+                                  </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                                <XAxis dataKey="month" className="text-xs" />
+                                <YAxis 
+                                  className="text-xs" 
+                                  tickFormatter={(value) => `R$ ${value.toLocaleString('pt-BR', { notation: 'compact' })}`}
+                                />
+                                <ChartTooltip 
+                                  content={<ChartTooltipContent 
+                                    formatter={(value) => [`R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'Receita']}
+                                  />} 
+                                />
+                                <Area 
+                                  type="monotone" 
+                                  dataKey="receita" 
+                                  stroke={chartColors[0]} 
+                                  fillOpacity={1} 
+                                  fill="url(#colorReceita)"
+                                  strokeWidth={3}
+                                />
+                              </AreaChart>
+                            </ChartContainer>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  )}
 
                   {/* Quick Actions */}
                   {stats.length > 0 && (
