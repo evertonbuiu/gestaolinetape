@@ -460,17 +460,10 @@ export const Rentals = () => {
 
       if (error) throw error;
 
-      // Sincronizar transações bancárias após mudança de status de pagamento
-      const { error: syncError } = await supabase.rpc('sync_bank_transactions');
-      
-      if (syncError) {
-        console.error('Error syncing bank transactions:', syncError);
-      }
-
       await fetchEvents();
       toast({
         title: event.is_paid ? "Marcado como não pago" : "Marcado como pago",
-        description: `Status atualizado e saldo da conta ${accountName} recalculado.`,
+        description: `Status atualizado. Os saldos das contas serão atualizados automaticamente.`,
       });
     } catch (error) {
       console.error('Error updating payment status:', error);
