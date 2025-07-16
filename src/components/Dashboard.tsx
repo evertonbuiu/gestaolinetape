@@ -5,6 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { AlertTriangle, Package, Calendar, TrendingUp, BarChart3, Activity, Zap } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { isSameMonth } from 'date-fns';
@@ -16,6 +18,46 @@ export const Dashboard = () => {
   const [canViewRentals, setCanViewRentals] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  // Queries para dados reais
+  const { data: equipmentData } = useQuery({
+    queryKey: ['equipment'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('equipment')
+        .select('*');
+      if (error) throw error;
+      return data;
+    },
+    enabled: canViewInventory,
+  });
+
+  const { data: eventsData } = useQuery({
+    queryKey: ['events', selectedMonth],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .gte('event_date', format(new Date(selectedYear, selectedMonth.getMonth(), 1), 'yyyy-MM-dd'))
+        .lt('event_date', format(new Date(selectedYear, selectedMonth.getMonth() + 1, 1), 'yyyy-MM-dd'));
+      if (error) throw error;
+      return data;
+    },
+    enabled: canViewRentals,
+  });
+
+  const { data: eventEquipmentData } = useQuery({
+    queryKey: ['event_equipment'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('event_equipment')
+        .select('*, events!inner(*)')
+        .in('status', ['confirmed', 'active']);
+      if (error) throw error;
+      return data;
+    },
+    enabled: canViewRentals,
+  });
 
   useEffect(() => {
     const checkPermission = async () => {
@@ -29,7 +71,23 @@ export const Dashboard = () => {
     
     checkPermission();
   }, [hasPermission, userRole]);
+
+  // Calcular estatísticas reais
+  const totalEquipments = equipmentData?.length || 0;
+  const totalStock = equipmentData?.reduce((sum, item) => sum + item.total_stock, 0) || 0;
+  const currentlyRented = equipmentData?.reduce((sum, item) => sum + item.rented, 0) || 0;
+  const lowStockItems = equipmentData?.filter(item => 
+    item.available <= item.total_stock * 0.2 && item.total_stock > 0
+  ).length || 0;
   
+  // Receita do mês selecionado
+  const monthlyRevenue = eventsData?.filter(event => event.is_paid)
+    .reduce((sum, event) => sum + (event.payment_amount || event.total_budget || 0), 0) || 0;
+  
+  // Eventos ativos no mês
+  const activeEvents = eventsData?.filter(event => 
+    event.status === 'confirmed' || event.status === 'active'
+  ).length || 0;
   // Generate years and months for tabs
   const generateYearsAndMonths = () => {
     const currentYear = new Date().getFullYear();
@@ -52,36 +110,44 @@ export const Dashboard = () => {
   useEffect(() => {
     setSelectedMonth(new Date(selectedYear, selectedMonth.getMonth(), 1));
   }, [selectedYear]);
-  
+
+  // Configurar estatísticas dinâmicas
   const stats = [
     ...(canViewInventory ? [{
       title: "Total de Equipamentos",
-      value: "1,234",
-      description: "Equipamentos cadastrados",
+      value: totalEquipments.toLocaleString('pt-BR'),
+      description: `${totalStock.toLocaleString('pt-BR')} itens em estoque`,
       icon: Package,
       color: "text-blue-600"
     }] : []),
     ...(canViewRentals ? [{
       title: "Equipamentos Locados",
-      value: "156",
+      value: currentlyRented.toLocaleString('pt-BR'),
       description: "Atualmente em locação",
       icon: Calendar,
       color: "text-green-600"
     }] : []),
-    ...(canViewInventory ? [{
+    ...(canViewInventory && lowStockItems > 0 ? [{
       title: "Estoque Baixo",
-      value: "23",
+      value: lowStockItems.toLocaleString('pt-BR'),
       description: "Itens com estoque crítico",
       icon: AlertTriangle,
       color: "text-red-600"
     }] : []),
+    ...(canViewRentals ? [{
+      title: "Eventos Ativos",
+      value: activeEvents.toLocaleString('pt-BR'),
+      description: "Eventos no mês selecionado",
+      icon: Activity,
+      color: "text-purple-600"
+    }] : []),
     // Mostrar receita apenas se tiver permissão
     ...(showRevenue ? [{
       title: "Receita do Mês",
-      value: "R$ 45.230",
-      description: "Faturamento atual",
+      value: `R$ ${monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      description: "Faturamento do período",
       icon: TrendingUp,
-      color: "text-purple-600"
+      color: "text-emerald-600"
     }] : [])
   ];
 
