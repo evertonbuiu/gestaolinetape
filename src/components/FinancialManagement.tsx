@@ -2788,7 +2788,7 @@ export const FinancialManagement = () => {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               <div>
                 <Label htmlFor="editAcquisitionValue">Valor de Aquisição</Label>
                 <Input
@@ -2806,6 +2806,17 @@ export const FinancialManagement = () => {
                   type="date"
                   value={newInventoryItem.acquisitionDate}
                   onChange={(e) => setNewInventoryItem({...newInventoryItem, acquisitionDate: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label htmlFor="editQuantity">Quantidade</Label>
+                <Input
+                  id="editQuantity"
+                  type="number"
+                  min="1"
+                  value={newInventoryItem.quantity}
+                  onChange={(e) => setNewInventoryItem({...newInventoryItem, quantity: parseInt(e.target.value) || 1})}
+                  placeholder="1"
                 />
               </div>
               <div>
