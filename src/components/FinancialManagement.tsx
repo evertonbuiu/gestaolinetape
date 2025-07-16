@@ -78,8 +78,10 @@ export const FinancialManagement = () => {
   const [isEditingAccount, setIsEditingAccount] = useState(false);
   const [isViewingStatement, setIsViewingStatement] = useState(false);
   const [isEditingInventoryItem, setIsEditingInventoryItem] = useState(false);
+  const [isViewingInventoryItem, setIsViewingInventoryItem] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<AccountBalance | null>(null);
   const [selectedInventoryItem, setSelectedInventoryItem] = useState<InventoryItem | null>(null);
+  const [viewInventoryItem, setViewInventoryItem] = useState<InventoryItem | null>(null);
   const [newAccount, setNewAccount] = useState({
     name: "",
     type: "checking" as 'checking' | 'savings' | 'cash',
@@ -770,6 +772,11 @@ export const FinancialManagement = () => {
       title: "Sucesso",
       description: "Item removido do inventário com sucesso!",
     });
+  };
+
+  const handleViewInventoryItem = (item: InventoryItem) => {
+    setViewInventoryItem(item);
+    setIsViewingInventoryItem(true);
   };
 
   const getConditionBadgeVariant = (condition: string) => {
@@ -2411,7 +2418,11 @@ export const FinancialManagement = () => {
                         <TableCell className="font-medium">{formatCurrency(item.currentValue)}</TableCell>
                         <TableCell>
                           <div className="flex gap-2">
-                            <Button variant="ghost" size="sm">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleViewInventoryItem(item)}
+                            >
                               <Eye className="h-4 w-4" />
                             </Button>
                             <Button 
@@ -2895,6 +2906,100 @@ export const FinancialManagement = () => {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para visualizar item do inventário */}
+      <Dialog open={isViewingInventoryItem} onOpenChange={setIsViewingInventoryItem}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Item</DialogTitle>
+          </DialogHeader>
+          {viewInventoryItem && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Nome do Item</Label>
+                  <div className="p-2 bg-muted rounded-md">{viewInventoryItem.name}</div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Categoria</Label>
+                  <div className="p-2 bg-muted rounded-md">
+                    {viewInventoryItem.category === 'equipamentos-som' && 'Equipamentos de Som'}
+                    {viewInventoryItem.category === 'equipamentos-iluminacao' && 'Equipamentos de Iluminação'}
+                    {viewInventoryItem.category === 'moveis' && 'Móveis e Utensílios'}
+                    {viewInventoryItem.category === 'veiculos' && 'Veículos'}
+                    {viewInventoryItem.category === 'informatica' && 'Informática'}
+                    {viewInventoryItem.category === 'ferramentas' && 'Ferramentas'}
+                    {viewInventoryItem.category === 'outros' && 'Outros'}
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Valor de Aquisição</Label>
+                  <div className="p-2 bg-muted rounded-md">{formatCurrency(viewInventoryItem.acquisitionValue)}</div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Data de Aquisição</Label>
+                  <div className="p-2 bg-muted rounded-md">{new Date(viewInventoryItem.acquisitionDate).toLocaleDateString('pt-BR')}</div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Quantidade</Label>
+                  <div className="p-2 bg-muted rounded-md">{viewInventoryItem.quantity}</div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Estado de Conservação</Label>
+                  <div className="p-2 bg-muted rounded-md">
+                    <Badge variant={getConditionBadgeVariant(viewInventoryItem.condition)}>
+                      {getConditionLabel(viewInventoryItem.condition)}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Número de Série</Label>
+                  <div className="p-2 bg-muted rounded-md">{viewInventoryItem.serialNumber || 'Não informado'}</div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Localização</Label>
+                  <div className="p-2 bg-muted rounded-md">{viewInventoryItem.location}</div>
+                </div>
+              </div>
+              {viewInventoryItem.description && (
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Descrição/Observações</Label>
+                  <div className="p-2 bg-muted rounded-md">{viewInventoryItem.description}</div>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Valor Total de Aquisição</Label>
+                  <div className="text-lg font-semibold text-green-600">
+                    {formatCurrency(viewInventoryItem.acquisitionValue * viewInventoryItem.quantity)}
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Valor Atual Estimado</Label>
+                  <div className="text-lg font-semibold text-blue-600">
+                    {formatCurrency((() => {
+                      const yearsOld = (new Date().getFullYear() - new Date(viewInventoryItem.acquisitionDate).getFullYear());
+                      const depreciationRate = viewInventoryItem.category === 'veiculos' ? 0.20 : viewInventoryItem.category === 'informatica' ? 0.33 : 0.10;
+                      const depreciation = Math.min(yearsOld * depreciationRate, 1) * viewInventoryItem.acquisitionValue;
+                      const currentValue = Math.max(viewInventoryItem.acquisitionValue - depreciation, viewInventoryItem.acquisitionValue * 0.1);
+                      return currentValue * viewInventoryItem.quantity;
+                    })())}
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={() => setIsViewingInventoryItem(false)}>
+                  Fechar
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
