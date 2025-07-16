@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useCustomAuth } from '@/hooks/useCustomAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -67,7 +67,7 @@ interface EventCollaborator {
 }
 
 export const EventEquipment = () => {
-  const { user } = useAuth();
+  const { user } = useCustomAuth();
   const { toast } = useToast();
   const [events, setEvents] = useState<Event[]>([]);
   const [equipment, setEquipment] = useState<EventEquipment[]>([]);

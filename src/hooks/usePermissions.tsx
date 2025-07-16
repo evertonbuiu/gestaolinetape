@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './useAuth';
+import { useCustomAuth } from './useCustomAuth';
 
 interface Permission {
   id: string;
@@ -19,7 +19,7 @@ interface RolePermission {
 }
 
 export const usePermissions = () => {
-  const { user, userRole } = useAuth();
+  const { user, userRole } = useCustomAuth();
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [rolePermissions, setRolePermissions] = useState<RolePermission[]>([]);
   const [loading, setLoading] = useState(true);

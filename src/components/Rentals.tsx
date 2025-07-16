@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useCustomAuth } from '@/hooks/useCustomAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,7 +71,7 @@ interface Collaborator {
 }
 
 export const Rentals = () => {
-  const { userRole, user } = useAuth();
+  const { userRole, user } = useCustomAuth();
   const { hasPermission } = usePermissions();
   const { toast } = useToast();
   const [events, setEvents] = useState<Event[]>([]);

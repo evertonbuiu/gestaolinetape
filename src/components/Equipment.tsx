@@ -12,14 +12,14 @@ import { useEquipment } from "@/hooks/useEquipment";
 import { usePermissions } from "@/hooks/usePermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 
 export const Equipment = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { equipment, loading, fetchEquipment } = useEquipment();
   const { hasPermission } = usePermissions();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user } = useCustomAuth();
   const [canViewPrices, setCanViewPrices] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
   const [equipmentDialog, setEquipmentDialog] = useState(false);

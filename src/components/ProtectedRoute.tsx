@@ -1,4 +1,4 @@
-import { useAuth } from '@/hooks/useAuth';
+import { useCustomAuth } from '@/hooks/useCustomAuth';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ReactNode } from 'react';
@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps) => {
-  const { user, userRole, isLoading } = useAuth();
+  const { user, userRole, isLoading } = useCustomAuth();
 
   if (isLoading) {
     return (

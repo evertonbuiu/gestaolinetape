@@ -10,14 +10,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, Package, TrendingDown, TrendingUp, Shield, Filter, Plus, Minus } from "lucide-react";
 import { useEquipment } from "@/hooks/useEquipment";
 import { usePermissions } from "@/hooks/usePermissions";
-import { useAuth } from "@/hooks/useAuth";
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 export const Inventory = () => {
   const { equipment, loading, totals, fetchEquipment } = useEquipment();
   const { hasPermission } = usePermissions();
-  const { userRole } = useAuth();
+  const { userRole } = useCustomAuth();
   const { toast } = useToast();
   const [canViewInventory, setCanViewInventory] = useState(false);
   const [canViewPrices, setCanViewPrices] = useState(false);

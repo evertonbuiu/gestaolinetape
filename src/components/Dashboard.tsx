@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { AlertTriangle, Package, Calendar, TrendingUp, BarChart3, Activity, Zap, PieChart, TrendingDown } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { format } from 'date-fns';
@@ -14,7 +14,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLe
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart as RechartsPieChart, Cell, LineChart, Line, Area, AreaChart, Pie } from "recharts";
 
 export const Dashboard = ({ onNavigate }: { onNavigate?: (tab: string) => void }) => {
-  const { hasPermission, userRole } = useAuth();
+  const { hasPermission, userRole } = useCustomAuth();
   const [showRevenue, setShowRevenue] = useState(false);
   const [canViewInventory, setCanViewInventory] = useState(false);
   const [canViewRentals, setCanViewRentals] = useState(false);

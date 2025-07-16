@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useCustomAuth } from '@/hooks/useCustomAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,7 +26,7 @@ interface Client {
 }
 
 export const Clients = () => {
-  const { userRole } = useAuth();
+  const { userRole } = useCustomAuth();
   const { hasPermission } = usePermissions();
   const { toast } = useToast();
   const [clients, setClients] = useState<Client[]>([]);
