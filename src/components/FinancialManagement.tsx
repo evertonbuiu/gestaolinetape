@@ -75,6 +75,7 @@ export const FinancialManagement = () => {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [reportData, setReportData] = useState<any>(null);
   const [activeReport, setActiveReport] = useState<string | null>(null);
+  const [lastUpdate, setLastUpdate] = useState(Date.now()); // Para forçar re-render
   const { toast } = useToast();
 
   const loadBankAccounts = async () => {
@@ -95,6 +96,7 @@ export const FinancialManagement = () => {
         }));
 
         setAccounts(accountBalances);
+        setLastUpdate(Date.now()); // Forçar re-render do saldo total
       }
     } catch (error) {
       console.error("Error loading bank accounts:", error);
@@ -114,7 +116,10 @@ export const FinancialManagement = () => {
           schema: 'public',
           table: 'events'
         },
-        () => loadFinancialData()
+        () => {
+          console.log('Event change detected, reloading financial data');
+          loadFinancialData();
+        }
       )
       .on(
         'postgres_changes',
@@ -123,7 +128,10 @@ export const FinancialManagement = () => {
           schema: 'public',
           table: 'event_expenses'
         },
-        () => loadFinancialData()
+        () => {
+          console.log('Expense change detected, reloading financial data');
+          loadFinancialData();
+        }
       )
       .on(
         'postgres_changes',
@@ -134,7 +142,20 @@ export const FinancialManagement = () => {
         },
         (payload) => {
           console.log('Bank account change detected:', payload);
-          // Atualizar apenas as contas bancárias, não todos os dados
+          // Recarregar apenas as contas bancárias para atualizar saldos
+          loadBankAccounts();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bank_transactions'
+        },
+        (payload) => {
+          console.log('Bank transaction change detected:', payload);
+          // Quando transações mudam, recarregar contas para atualizar saldos
           loadBankAccounts();
         }
       )
@@ -143,7 +164,7 @@ export const FinancialManagement = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedPeriod]);
+  }, []);
 
   const loadFinancialData = async () => {
     try {
@@ -394,7 +415,9 @@ export const FinancialManagement = () => {
   };
 
   const getTotalBalance = () => {
-    return accounts.reduce((total, account) => total + account.balance, 0);
+    const total = accounts.reduce((total, account) => total + account.balance, 0);
+    console.log('Calculating total balance:', { accounts: accounts.length, total, lastUpdate });
+    return total;
   };
 
   const getTotalIncome = () => {
