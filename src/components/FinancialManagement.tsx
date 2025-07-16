@@ -664,6 +664,9 @@ export const FinancialManagement = () => {
         case 'tax-report':
           generatedData = generateTaxReport();
           break;
+        case 'deductible-expenses':
+          generatedData = generateDeductibleExpensesReport();
+          break;
         default:
           throw new Error('Tipo de relatório não suportado');
       }
@@ -1065,9 +1068,283 @@ export const FinancialManagement = () => {
           </div>
         );
 
+      case 'deductible-expenses':
+        return (
+          <div className="space-y-6">
+            {/* Resumo das Despesas Dedutíveis */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Total Dedutível</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">
+                    {formatCurrency(reportData.data.totalDeductible)}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {reportData.data.deductiblePercentage.toFixed(1)}% do total
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Não Dedutível</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-600">
+                    {formatCurrency(reportData.data.totalNonDeductible)}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {(100 - reportData.data.deductiblePercentage).toFixed(1)}% do total
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Total de Despesas</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {formatCurrency(reportData.data.totalExpenses)}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Economia Fiscal</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-purple-600">
+                    {formatCurrency(reportData.data.totalDeductible * 0.15)}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Est. 15% de redução
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Resumo por Categoria */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Resumo por Categoria Dedutível</CardTitle>
+                <CardDescription>Despesas organizadas por categoria fiscal</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead className="text-right">Quantidade</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead className="text-right">% do Dedutível</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {reportData.data.categoryTotals.map((category: any) => (
+                      <TableRow key={category.category}>
+                        <TableCell className="font-medium">{category.category}</TableCell>
+                        <TableCell className="text-right">{category.count}</TableCell>
+                        <TableCell className="text-right text-green-600">
+                          {formatCurrency(category.total)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {((category.total / reportData.data.totalDeductible) * 100).toFixed(1)}%
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            {/* Detalhamento por Categoria */}
+            <div className="space-y-4">
+              <h4 className="text-lg font-semibold">Detalhamento de Despesas Dedutíveis</h4>
+              
+              {Object.entries(reportData.data.deductibleByCategory).map(([category, expenses]) => (
+                <Card key={category} className="mb-4">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base text-green-700">{category}</CardTitle>
+                    <CardDescription>
+                      {(expenses as CashFlowEntry[]).length} lançamentos - Total: {formatCurrency((expenses as CashFlowEntry[]).reduce((sum: number, exp: CashFlowEntry) => sum + exp.amount, 0))}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Descrição</TableHead>
+                          <TableHead>Conta</TableHead>
+                          <TableHead className="text-right">Valor</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(expenses as CashFlowEntry[]).map((expense: CashFlowEntry) => (
+                          <TableRow key={expense.id}>
+                            <TableCell>
+                              {new Date(expense.date).toLocaleDateString('pt-BR')}
+                            </TableCell>
+                            <TableCell>{expense.description}</TableCell>
+                            <TableCell>{expense.account}</TableCell>
+                            <TableCell className="text-right text-green-600">
+                              {formatCurrency(expense.amount)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Despesas Não Dedutíveis */}
+            {reportData.data.nonDeductibleExpenses.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-orange-700">Despesas Não Dedutíveis</CardTitle>
+                  <CardDescription>
+                    {reportData.data.nonDeductibleExpenses.length} lançamentos - Total: {formatCurrency(reportData.data.totalNonDeductible)}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Descrição</TableHead>
+                        <TableHead>Categoria</TableHead>
+                        <TableHead>Conta</TableHead>
+                        <TableHead className="text-right">Valor</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {reportData.data.nonDeductibleExpenses.slice(0, 10).map((expense: any) => (
+                        <TableRow key={expense.id}>
+                          <TableCell>
+                            {new Date(expense.date).toLocaleDateString('pt-BR')}
+                          </TableCell>
+                          <TableCell>{expense.description}</TableCell>
+                          <TableCell>{expense.category}</TableCell>
+                          <TableCell>{expense.account}</TableCell>
+                          <TableCell className="text-right text-orange-600">
+                            {formatCurrency(expense.amount)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {reportData.data.nonDeductibleExpenses.length > 10 && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      E mais {reportData.data.nonDeductibleExpenses.length - 10} despesas...
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Observações Legais */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h5 className="font-semibold text-blue-800 mb-2">Categorias Consideradas Dedutíveis:</h5>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm text-blue-700">
+                {reportData.data.deductibleCategories.map((category: string) => (
+                  <div key={category} className="flex items-center">
+                    <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                    {category}
+                  </div>
+                ))}
+              </div>
+              <p className="text-sm text-blue-800 mt-3">
+                <strong>Importante:</strong> Esta classificação é baseada na legislação geral. 
+                Consulte sempre um contador qualificado para orientações específicas do seu caso.
+              </p>
+            </div>
+          </div>
+        );
+
       default:
         return <div>Tipo de relatório não reconhecido.</div>;
     }
+  };
+
+  // Generate Deductible Expenses Report
+  const generateDeductibleExpensesReport = () => {
+    const currentMonth = new Date();
+    const startOfYear = new Date(currentMonth.getFullYear(), 0, 1);
+    const endOfYear = new Date(currentMonth.getFullYear(), 11, 31);
+    
+    // Categorias dedutíveis segundo a legislação brasileira
+    const deductibleCategories = [
+      'Equipamentos',
+      'Despesas Operacionais', 
+      'Marketing',
+      'Transporte',
+      'Pessoal',
+      'Alimentação', // Para viagens de negócios
+      'Manutenção',
+      'Combustível',
+      'Telefone',
+      'Internet',
+      'Material de Escritório',
+      'Seguros',
+      'Depreciação'
+    ];
+    
+    const yearTransactions = cashFlow.filter(entry => {
+      const entryDate = new Date(entry.date);
+      return entryDate >= startOfYear && 
+             entryDate <= endOfYear && 
+             entry.status === 'confirmed' &&
+             entry.type === 'expense';
+    });
+    
+    // Separar despesas dedutíveis e não dedutíveis
+    const deductibleExpenses = yearTransactions.filter(expense => 
+      deductibleCategories.includes(expense.category)
+    );
+    
+    const nonDeductibleExpenses = yearTransactions.filter(expense => 
+      !deductibleCategories.includes(expense.category)
+    );
+    
+    // Agrupar despesas dedutíveis por categoria
+    const deductibleByCategory = deductibleExpenses.reduce((acc, expense) => {
+      if (!acc[expense.category]) {
+        acc[expense.category] = [];
+      }
+      acc[expense.category].push(expense);
+      return acc;
+    }, {} as Record<string, CashFlowEntry[]>);
+    
+    // Calcular totais por categoria
+    const categoryTotals = Object.entries(deductibleByCategory).map(([category, expenses]) => ({
+      category,
+      total: expenses.reduce((sum, exp) => sum + exp.amount, 0),
+      count: expenses.length,
+      expenses
+    })).sort((a, b) => b.total - a.total);
+    
+    const totalDeductible = deductibleExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const totalNonDeductible = nonDeductibleExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const totalExpenses = totalDeductible + totalNonDeductible;
+    
+    return {
+      type: 'deductible-expenses',
+      title: 'Relatório de Despesas Dedutíveis',
+      period: `Ano ${currentMonth.getFullYear()}`,
+      data: {
+        totalDeductible,
+        totalNonDeductible,
+        totalExpenses,
+        deductiblePercentage: totalExpenses > 0 ? (totalDeductible / totalExpenses) * 100 : 0,
+        categoryTotals,
+        deductibleByCategory,
+        nonDeductibleExpenses,
+        deductibleCategories
+      }
+    };
   };
 
   // Generate Tax Report
@@ -1623,7 +1900,7 @@ export const FinancialManagement = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <Button 
                   variant="outline" 
                   className="h-24 flex flex-col items-center justify-center"
@@ -1659,6 +1936,15 @@ export const FinancialManagement = () => {
                 >
                   <FileText className="h-8 w-8 mb-2" />
                   <span>Relatório Fiscal</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="h-24 flex flex-col items-center justify-center"
+                  onClick={() => generateReport('deductible-expenses')}
+                  disabled={isGeneratingReport}
+                >
+                  <Calculator className="h-8 w-8 mb-2" />
+                  <span>Despesas Dedutíveis</span>
                 </Button>
               </div>
               
