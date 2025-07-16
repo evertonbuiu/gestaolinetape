@@ -795,12 +795,23 @@ export const Rentals = () => {
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <FileText className="h-4 w-4 text-red-600" />
-                                  <div>
+                                  <div className="flex-1">
                                     <p className="text-sm font-medium">Despesas</p>
                                     <p className="text-lg font-bold text-red-600">
                                       R$ {event.total_expenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                     </p>
                                   </div>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedEvent(event);
+                                      fetchExpenses(event.id);
+                                    }}
+                                  >
+                                    <Plus className="h-4 w-4 mr-1" />
+                                    Despesas
+                                  </Button>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <Calculator className="h-4 w-4 text-blue-600" />
@@ -1201,6 +1212,365 @@ export const Rentals = () => {
               Cancelar
             </Button>
             <Button onClick={() => selectedEventForEdit && updateEvent(selectedEventForEdit.id, selectedEventForEdit)}>
+              Salvar Alterações
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para Gerenciar Despesas */}
+      {selectedEvent && (
+        <Dialog open={!!selectedEvent} onOpenChange={() => setSelectedEvent(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Despesas do Evento: {selectedEvent.name}</DialogTitle>
+              <DialogDescription>
+                Gerencie as despesas deste evento
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Lista de Despesas</h3>
+                <Button onClick={() => setExpenseDialog(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nova Despesa
+                </Button>
+              </div>
+
+              {expenses.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhuma despesa cadastrada para este evento
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead>Quantidade</TableHead>
+                      <TableHead>Valor Unit.</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Fornecedor</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {expenses.map((expense) => (
+                      <TableRow key={expense.id}>
+                        <TableCell>{expense.description}</TableCell>
+                        <TableCell>{expense.category}</TableCell>
+                        <TableCell>{expense.quantity}</TableCell>
+                        <TableCell>R$ {expense.unit_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell>R$ {expense.total_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell>{expense.supplier}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedExpenseForEdit(expense);
+                                setEditExpenseDialog(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteExpense(expense.id)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+
+              <div className="flex justify-between items-center pt-4 border-t">
+                <div className="text-lg font-semibold">
+                  Total das Despesas: R$ {expenses.reduce((acc, exp) => acc + exp.total_price, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </div>
+                <Button variant="outline" onClick={() => setSelectedEvent(null)}>
+                  Fechar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Dialog para Criar Nova Despesa */}
+      <Dialog open={expenseDialog} onOpenChange={setExpenseDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Nova Despesa</DialogTitle>
+            <DialogDescription>
+              Adicione uma nova despesa ao evento
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="expense_description">Descrição *</Label>
+                <Input
+                  id="expense_description"
+                  value={newExpense.description || ''}
+                  onChange={(e) => setNewExpense({...newExpense, description: e.target.value})}
+                  placeholder="Descrição da despesa"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="expense_category">Categoria *</Label>
+                <Select
+                  value={newExpense.category || ''}
+                  onValueChange={(value) => setNewExpense({...newExpense, category: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Iluminação">Iluminação</SelectItem>
+                    <SelectItem value="Som">Som</SelectItem>
+                    <SelectItem value="Cenografia">Cenografia</SelectItem>
+                    <SelectItem value="Transporte">Transporte</SelectItem>
+                    <SelectItem value="Alimentação">Alimentação</SelectItem>
+                    <SelectItem value="Material">Material</SelectItem>
+                    <SelectItem value="Outros">Outros</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="expense_quantity">Quantidade</Label>
+                <Input
+                  id="expense_quantity"
+                  type="number"
+                  min="1"
+                  value={newExpense.quantity || 1}
+                  onChange={(e) => {
+                    const quantity = parseInt(e.target.value) || 1;
+                    const unit_price = newExpense.unit_price || 0;
+                    setNewExpense({
+                      ...newExpense, 
+                      quantity,
+                      total_price: quantity * unit_price
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="expense_unit_price">Valor Unitário</Label>
+                <Input
+                  id="expense_unit_price"
+                  type="number"
+                  step="0.01"
+                  value={newExpense.unit_price || ''}
+                  onChange={(e) => {
+                    const unit_price = parseFloat(e.target.value) || 0;
+                    const quantity = newExpense.quantity || 1;
+                    setNewExpense({
+                      ...newExpense, 
+                      unit_price,
+                      total_price: quantity * unit_price
+                    });
+                  }}
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="expense_total_price">Valor Total</Label>
+                <Input
+                  id="expense_total_price"
+                  type="number"
+                  step="0.01"
+                  value={newExpense.total_price || ''}
+                  onChange={(e) => setNewExpense({...newExpense, total_price: parseFloat(e.target.value) || 0})}
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="expense_supplier">Fornecedor</Label>
+                <Input
+                  id="expense_supplier"
+                  value={newExpense.supplier || ''}
+                  onChange={(e) => setNewExpense({...newExpense, supplier: e.target.value})}
+                  placeholder="Nome do fornecedor"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="expense_date">Data da Despesa</Label>
+                <Input
+                  id="expense_date"
+                  type="date"
+                  value={newExpense.expense_date || ''}
+                  onChange={(e) => setNewExpense({...newExpense, expense_date: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="expense_notes">Observações</Label>
+              <Textarea
+                id="expense_notes"
+                value={newExpense.notes || ''}
+                onChange={(e) => setNewExpense({...newExpense, notes: e.target.value})}
+                placeholder="Observações adicionais..."
+                className="min-h-[80px]"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setExpenseDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => createExpense(newExpense)}>
+              Criar Despesa
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para Editar Despesa */}
+      <Dialog open={editExpenseDialog} onOpenChange={setEditExpenseDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Editar Despesa</DialogTitle>
+            <DialogDescription>
+              Modifique os dados da despesa
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit_expense_description">Descrição *</Label>
+                <Input
+                  id="edit_expense_description"
+                  value={selectedExpenseForEdit?.description || ''}
+                  onChange={(e) => setSelectedExpenseForEdit(prev => prev ? {...prev, description: e.target.value} : null)}
+                  placeholder="Descrição da despesa"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_expense_category">Categoria *</Label>
+                <Select
+                  value={selectedExpenseForEdit?.category || ''}
+                  onValueChange={(value) => setSelectedExpenseForEdit(prev => prev ? {...prev, category: value} : null)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Iluminação">Iluminação</SelectItem>
+                    <SelectItem value="Som">Som</SelectItem>
+                    <SelectItem value="Cenografia">Cenografia</SelectItem>
+                    <SelectItem value="Transporte">Transporte</SelectItem>
+                    <SelectItem value="Alimentação">Alimentação</SelectItem>
+                    <SelectItem value="Material">Material</SelectItem>
+                    <SelectItem value="Outros">Outros</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit_expense_quantity">Quantidade</Label>
+                <Input
+                  id="edit_expense_quantity"
+                  type="number"
+                  min="1"
+                  value={selectedExpenseForEdit?.quantity || 1}
+                  onChange={(e) => {
+                    const quantity = parseInt(e.target.value) || 1;
+                    const unit_price = selectedExpenseForEdit?.unit_price || 0;
+                    setSelectedExpenseForEdit(prev => prev ? {
+                      ...prev, 
+                      quantity,
+                      total_price: quantity * unit_price
+                    } : null);
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_expense_unit_price">Valor Unitário</Label>
+                <Input
+                  id="edit_expense_unit_price"
+                  type="number"
+                  step="0.01"
+                  value={selectedExpenseForEdit?.unit_price || ''}
+                  onChange={(e) => {
+                    const unit_price = parseFloat(e.target.value) || 0;
+                    const quantity = selectedExpenseForEdit?.quantity || 1;
+                    setSelectedExpenseForEdit(prev => prev ? {
+                      ...prev, 
+                      unit_price,
+                      total_price: quantity * unit_price
+                    } : null);
+                  }}
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_expense_total_price">Valor Total</Label>
+                <Input
+                  id="edit_expense_total_price"
+                  type="number"
+                  step="0.01"
+                  value={selectedExpenseForEdit?.total_price || ''}
+                  onChange={(e) => setSelectedExpenseForEdit(prev => prev ? {...prev, total_price: parseFloat(e.target.value) || 0} : null)}
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit_expense_supplier">Fornecedor</Label>
+                <Input
+                  id="edit_expense_supplier"
+                  value={selectedExpenseForEdit?.supplier || ''}
+                  onChange={(e) => setSelectedExpenseForEdit(prev => prev ? {...prev, supplier: e.target.value} : null)}
+                  placeholder="Nome do fornecedor"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_expense_date">Data da Despesa</Label>
+                <Input
+                  id="edit_expense_date"
+                  type="date"
+                  value={selectedExpenseForEdit?.expense_date || ''}
+                  onChange={(e) => setSelectedExpenseForEdit(prev => prev ? {...prev, expense_date: e.target.value} : null)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit_expense_notes">Observações</Label>
+              <Textarea
+                id="edit_expense_notes"
+                value={selectedExpenseForEdit?.notes || ''}
+                onChange={(e) => setSelectedExpenseForEdit(prev => prev ? {...prev, notes: e.target.value} : null)}
+                placeholder="Observações adicionais..."
+                className="min-h-[80px]"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setEditExpenseDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => selectedExpenseForEdit && updateExpense(selectedExpenseForEdit.id, selectedExpenseForEdit)}>
               Salvar Alterações
             </Button>
           </div>
