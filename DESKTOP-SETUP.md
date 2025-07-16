@@ -1,7 +1,22 @@
-# 🖥️ Configuração para Aplicação Desktop (.exe)
+# 🖥️ Soluções para Aplicação Desktop
 
-## 📋 Pré-requisitos
+## 🚀 Opção 1: PWA (Progressive Web App) - FUNCIONA AGORA
 
+**Vantagens:**
+- ✅ Instalável diretamente do navegador
+- ✅ Funciona offline
+- ✅ Aparece na área de trabalho como aplicativo
+- ✅ Atualizações automáticas
+
+**Como instalar:**
+1. Abra o site no Chrome/Edge
+2. Clique no ícone de instalação na barra de endereços
+3. Selecione "Instalar aplicativo"
+4. O app aparecerá na área de trabalho
+
+## 🖥️ Opção 2: Electron (.exe) - SOMENTE LOCAL
+
+**Pré-requisitos:**
 - Node.js 18+ instalado
 - Git instalado
 - Windows 10/11 (para gerar .exe)
