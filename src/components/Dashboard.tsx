@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { isSameMonth } from 'date-fns';
 
-export const Dashboard = () => {
+export const Dashboard = ({ onNavigate }: { onNavigate?: (tab: string) => void }) => {
   const { hasPermission, userRole } = useAuth();
   const [showRevenue, setShowRevenue] = useState(false);
   const [canViewInventory, setCanViewInventory] = useState(false);
@@ -257,7 +257,10 @@ export const Dashboard = () => {
                   {/* Quick Actions */}
                   {stats.length > 0 && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-                      <Card className="p-6 bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-200/50 hover:border-blue-400/50 transition-all duration-300 cursor-pointer group">
+                      <Card 
+                        className="p-6 bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-200/50 hover:border-blue-400/50 transition-all duration-300 cursor-pointer group"
+                        onClick={() => onNavigate?.('inventory')}
+                      >
                         <div className="flex items-center gap-3">
                           <div className="p-2 bg-blue-500/20 rounded-lg group-hover:scale-110 transition-transform">
                             <Package className="w-5 h-5 text-blue-600" />
@@ -269,7 +272,10 @@ export const Dashboard = () => {
                         </div>
                       </Card>
                       
-                      <Card className="p-6 bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-200/50 hover:border-green-400/50 transition-all duration-300 cursor-pointer group">
+                      <Card 
+                        className="p-6 bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-200/50 hover:border-green-400/50 transition-all duration-300 cursor-pointer group"
+                        onClick={() => onNavigate?.('rentals')}
+                      >
                         <div className="flex items-center gap-3">
                           <div className="p-2 bg-green-500/20 rounded-lg group-hover:scale-110 transition-transform">
                             <Calendar className="w-5 h-5 text-green-600" />
@@ -281,7 +287,10 @@ export const Dashboard = () => {
                         </div>
                       </Card>
                       
-                      <Card className="p-6 bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-200/50 hover:border-purple-400/50 transition-all duration-300 cursor-pointer group">
+                      <Card 
+                        className="p-6 bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-200/50 hover:border-purple-400/50 transition-all duration-300 cursor-pointer group"
+                        onClick={() => onNavigate?.('financial')}
+                      >
                         <div className="flex items-center gap-3">
                           <div className="p-2 bg-purple-500/20 rounded-lg group-hover:scale-110 transition-transform">
                             <TrendingUp className="w-5 h-5 text-purple-600" />

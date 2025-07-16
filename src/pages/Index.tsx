@@ -16,7 +16,7 @@ const Index = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
-        return <Dashboard />;
+        return <Dashboard onNavigate={setActiveTab} />;
       case "equipment":
         return <Equipment />;
       case "inventory":
@@ -36,7 +36,7 @@ const Index = () => {
       case "settings":
         return <SettingsPage />;
       default:
-        return <Dashboard />;
+        return <Dashboard onNavigate={setActiveTab} />;
     }
   };
 
