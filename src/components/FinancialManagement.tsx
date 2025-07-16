@@ -166,16 +166,63 @@ export const FinancialManagement = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear, selectedPeriod]);
 
   const loadFinancialData = async () => {
     try {
       setLoading(true);
       
-      // Construir filtros de data baseados no mês e ano selecionados
-      const startDate = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}-01`;
-      const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
-      const endDate = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}-${lastDay}`;
+      let startDate: string;
+      let endDate: string;
+      
+      // Determinar as datas baseadas no filtro de período ou nos filtros específicos
+      if (selectedPeriod !== "custom") {
+        const now = new Date();
+        
+        switch (selectedPeriod) {
+          case "week":
+            const startOfWeek = new Date(now);
+            startOfWeek.setDate(now.getDate() - now.getDay());
+            startDate = startOfWeek.toISOString().split('T')[0];
+            
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            endDate = endOfWeek.toISOString().split('T')[0];
+            break;
+            
+          case "month":
+            startDate = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-01`;
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            endDate = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${lastDay}`;
+            break;
+            
+          case "quarter":
+            const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
+            startDate = `${now.getFullYear()}-${(quarterStartMonth + 1).toString().padStart(2, '0')}-01`;
+            const quarterEndMonth = quarterStartMonth + 2;
+            const quarterLastDay = new Date(now.getFullYear(), quarterEndMonth + 1, 0).getDate();
+            endDate = `${now.getFullYear()}-${(quarterEndMonth + 1).toString().padStart(2, '0')}-${quarterLastDay}`;
+            break;
+            
+          case "year":
+            startDate = `${now.getFullYear()}-01-01`;
+            endDate = `${now.getFullYear()}-12-31`;
+            break;
+            
+          default:
+            // Usar filtros específicos de mês e ano
+            startDate = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}-01`;
+            const customLastDay = new Date(selectedYear, selectedMonth, 0).getDate();
+            endDate = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}-${customLastDay}`;
+        }
+      } else {
+        // Usar filtros específicos de mês e ano quando "custom" está selecionado
+        startDate = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}-01`;
+        const customLastDay = new Date(selectedYear, selectedMonth, 0).getDate();
+        endDate = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}-${customLastDay}`;
+      }
+      
+      console.log(`Loading financial data for period: ${startDate} to ${endDate}`);
       
       // Buscar eventos (receitas) do período selecionado
       const { data: eventsData, error: eventsError } = await supabase
@@ -1041,37 +1088,41 @@ export const FinancialManagement = () => {
           <p className="text-muted-foreground">Planilhas e controles financeiros completos</p>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
-            <SelectTrigger className="w-36">
-              <SelectValue placeholder="Mês" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1">Janeiro</SelectItem>
-              <SelectItem value="2">Fevereiro</SelectItem>
-              <SelectItem value="3">Março</SelectItem>
-              <SelectItem value="4">Abril</SelectItem>
-              <SelectItem value="5">Maio</SelectItem>
-              <SelectItem value="6">Junho</SelectItem>
-              <SelectItem value="7">Julho</SelectItem>
-              <SelectItem value="8">Agosto</SelectItem>
-              <SelectItem value="9">Setembro</SelectItem>
-              <SelectItem value="10">Outubro</SelectItem>
-              <SelectItem value="11">Novembro</SelectItem>
-              <SelectItem value="12">Dezembro</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
-            <SelectTrigger className="w-24">
-              <SelectValue placeholder="Ano" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="2023">2023</SelectItem>
-              <SelectItem value="2024">2024</SelectItem>
-              <SelectItem value="2025">2025</SelectItem>
-              <SelectItem value="2026">2026</SelectItem>
-            </SelectContent>
-          </Select>
+          {selectedPeriod === "custom" && (
+            <>
+              <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
+                <SelectTrigger className="w-36">
+                  <SelectValue placeholder="Mês" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">Janeiro</SelectItem>
+                  <SelectItem value="2">Fevereiro</SelectItem>
+                  <SelectItem value="3">Março</SelectItem>
+                  <SelectItem value="4">Abril</SelectItem>
+                  <SelectItem value="5">Maio</SelectItem>
+                  <SelectItem value="6">Junho</SelectItem>
+                  <SelectItem value="7">Julho</SelectItem>
+                  <SelectItem value="8">Agosto</SelectItem>
+                  <SelectItem value="9">Setembro</SelectItem>
+                  <SelectItem value="10">Outubro</SelectItem>
+                  <SelectItem value="11">Novembro</SelectItem>
+                  <SelectItem value="12">Dezembro</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+                <SelectTrigger className="w-24">
+                  <SelectValue placeholder="Ano" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="2023">2023</SelectItem>
+                  <SelectItem value="2024">2024</SelectItem>
+                  <SelectItem value="2025">2025</SelectItem>
+                  <SelectItem value="2026">2026</SelectItem>
+                </SelectContent>
+              </Select>
+            </>
+          )}
           
           <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
             <SelectTrigger className="w-32">
@@ -1082,6 +1133,7 @@ export const FinancialManagement = () => {
               <SelectItem value="month">Este mês</SelectItem>
               <SelectItem value="quarter">Este trimestre</SelectItem>
               <SelectItem value="year">Este ano</SelectItem>
+              <SelectItem value="custom">Personalizado</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline" size="sm">
