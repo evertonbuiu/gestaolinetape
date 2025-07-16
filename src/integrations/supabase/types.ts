@@ -450,6 +450,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_account_balance: {
+        Args: { account_name_param: string }
+        Returns: number
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -484,6 +488,10 @@ export type Database = {
       update_bank_account_balances: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      update_single_account_balance: {
+        Args: { account_name_param: string }
+        Returns: number
       }
     }
     Enums: {

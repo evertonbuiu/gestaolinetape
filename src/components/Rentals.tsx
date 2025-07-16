@@ -445,14 +445,9 @@ export const Rentals = () => {
     try {
       const newPaidStatus = !event.is_paid;
       const paymentAmount = Number(event.payment_amount) || Number(event.total_budget) || 0;
-      const paymentAccount = event.payment_bank_account || "Conta Corrente Principal";
+      const accountName = event.payment_bank_account || "Conta Corrente Principal";
 
-      console.log(`Toggling payment status for event ${event.name}: ${event.is_paid} -> ${newPaidStatus}, amount: ${paymentAmount}, account: ${paymentAccount}`);
-
-      // Check if this toggle would create a duplicate operation
-      if (paymentAmount <= 0) {
-        console.warn('No payment amount found for event:', event.name);
-      }
+      console.log(`Toggling payment status for event ${event.name}: ${event.is_paid} -> ${newPaidStatus}, amount: ${paymentAmount}, account: ${accountName}`);
 
       // Update event payment status first
       const { error } = await supabase
@@ -465,10 +460,19 @@ export const Rentals = () => {
 
       if (error) throw error;
 
+      // Atualizar saldo da conta bancária após mudança de status
+      const { error: balanceError } = await supabase.rpc('update_single_account_balance', {
+        account_name_param: accountName
+      });
+      
+      if (balanceError) {
+        console.error('Error updating account balance:', balanceError);
+      }
+
       await fetchEvents();
       toast({
         title: event.is_paid ? "Marcado como não pago" : "Marcado como pago",
-        description: "Status de pagamento atualizado com sucesso.",
+        description: `Status atualizado e saldo da conta ${accountName} recalculado.`,
       });
     } catch (error) {
       console.error('Error updating payment status:', error);
