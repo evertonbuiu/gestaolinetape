@@ -823,6 +823,134 @@ export const Rentals = () => {
             ))}
         </Tabs>
       </div>
+
+      {/* Dialog para Criar Novo Evento */}
+      <Dialog open={eventDialog} onOpenChange={setEventDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Criar Novo Evento</DialogTitle>
+            <DialogDescription>
+              Preencha os dados do evento
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome do Evento *</Label>
+                <Input
+                  id="name"
+                  value={newEvent.name || ''}
+                  onChange={(e) => setNewEvent({...newEvent, name: e.target.value})}
+                  placeholder="Nome do evento"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="client_name">Cliente *</Label>
+                <Input
+                  id="client_name"
+                  value={newEvent.client_name || ''}
+                  onChange={(e) => setNewEvent({...newEvent, client_name: e.target.value})}
+                  placeholder="Nome do cliente"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="client_email">Email do Cliente</Label>
+                <Input
+                  id="client_email"
+                  type="email"
+                  value={newEvent.client_email || ''}
+                  onChange={(e) => setNewEvent({...newEvent, client_email: e.target.value})}
+                  placeholder="email@exemplo.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="client_phone">Telefone do Cliente</Label>
+                <Input
+                  id="client_phone"
+                  value={newEvent.client_phone || ''}
+                  onChange={(e) => setNewEvent({...newEvent, client_phone: e.target.value})}
+                  placeholder="(11) 99999-9999"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="event_date">Data do Evento *</Label>
+                <Input
+                  id="event_date"
+                  type="date"
+                  value={newEvent.event_date || ''}
+                  onChange={(e) => setNewEvent({...newEvent, event_date: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="event_time">Horário do Evento</Label>
+                <Input
+                  id="event_time"
+                  type="time"
+                  value={newEvent.event_time || ''}
+                  onChange={(e) => setNewEvent({...newEvent, event_time: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="setup_start_date">Data de Montagem</Label>
+              <Input
+                id="setup_start_date"
+                type="date"
+                value={newEvent.setup_start_date || ''}
+                onChange={(e) => setNewEvent({...newEvent, setup_start_date: e.target.value})}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="location">Local do Evento</Label>
+              <Input
+                id="location"
+                value={newEvent.location || ''}
+                onChange={(e) => setNewEvent({...newEvent, location: e.target.value})}
+                placeholder="Endereço do evento"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="total_budget">Orçamento Total</Label>
+              <Input
+                id="total_budget"
+                type="number"
+                step="0.01"
+                value={newEvent.total_budget || ''}
+                onChange={(e) => setNewEvent({...newEvent, total_budget: parseFloat(e.target.value) || 0})}
+                placeholder="0.00"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Descrição</Label>
+              <Textarea
+                id="description"
+                value={newEvent.description || ''}
+                onChange={(e) => setNewEvent({...newEvent, description: e.target.value})}
+                placeholder="Detalhes do evento..."
+                className="min-h-[100px]"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setEventDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => createEvent(newEvent)}>
+              Criar Evento
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
