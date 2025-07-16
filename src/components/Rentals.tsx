@@ -1252,6 +1252,7 @@ export const Rentals = () => {
                       <TableHead>Valor Unit.</TableHead>
                       <TableHead>Total</TableHead>
                       <TableHead>Fornecedor</TableHead>
+                      <TableHead>Conta</TableHead>
                       <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1264,6 +1265,7 @@ export const Rentals = () => {
                         <TableCell>R$ {expense.unit_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
                         <TableCell>R$ {expense.total_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
                         <TableCell>{expense.supplier}</TableCell>
+                        <TableCell>{expense.expense_bank_account || 'Não informado'}</TableCell>
                         <TableCell>
                           <div className="flex gap-2">
                             <Button
@@ -1409,14 +1411,33 @@ export const Rentals = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="expense_date">Data da Despesa</Label>
-                <Input
-                  id="expense_date"
-                  type="date"
-                  value={newExpense.expense_date || ''}
-                  onChange={(e) => setNewExpense({...newExpense, expense_date: e.target.value})}
-                />
+                <Label htmlFor="expense_bank_account">Conta de Débito</Label>
+                <Select
+                  value={newExpense.expense_bank_account || ''}
+                  onValueChange={(value) => setNewExpense({...newExpense, expense_bank_account: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a conta" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bankAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.name}>
+                        {account.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="expense_date">Data da Despesa</Label>
+              <Input
+                id="expense_date"
+                type="date"
+                value={newExpense.expense_date || ''}
+                onChange={(e) => setNewExpense({...newExpense, expense_date: e.target.value})}
+              />
             </div>
 
             <div className="space-y-2">
@@ -1545,14 +1566,33 @@ export const Rentals = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit_expense_date">Data da Despesa</Label>
-                <Input
-                  id="edit_expense_date"
-                  type="date"
-                  value={selectedExpenseForEdit?.expense_date || ''}
-                  onChange={(e) => setSelectedExpenseForEdit(prev => prev ? {...prev, expense_date: e.target.value} : null)}
-                />
+                <Label htmlFor="edit_expense_bank_account">Conta de Débito</Label>
+                <Select
+                  value={selectedExpenseForEdit?.expense_bank_account || ''}
+                  onValueChange={(value) => setSelectedExpenseForEdit(prev => prev ? {...prev, expense_bank_account: value} : null)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a conta" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bankAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.name}>
+                        {account.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit_expense_date">Data da Despesa</Label>
+              <Input
+                id="edit_expense_date"
+                type="date"
+                value={selectedExpenseForEdit?.expense_date || ''}
+                onChange={(e) => setSelectedExpenseForEdit(prev => prev ? {...prev, expense_date: e.target.value} : null)}
+              />
             </div>
 
             <div className="space-y-2">
