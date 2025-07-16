@@ -1343,11 +1343,43 @@ export const Rentals = () => {
                     <SelectItem value="Transporte">Transporte</SelectItem>
                     <SelectItem value="Alimentação">Alimentação</SelectItem>
                     <SelectItem value="Material">Material</SelectItem>
+                    <SelectItem value="Colaborador">Colaborador</SelectItem>
                     <SelectItem value="Outros">Outros</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
+
+            {/* Campo para selecionar colaborador quando categoria é "Colaborador" */}
+            {newExpense.category === 'Colaborador' && (
+              <div className="space-y-2">
+                <Label htmlFor="expense_collaborator">Colaborador</Label>
+                <Select
+                  value={newExpense.supplier || ''}
+                  onValueChange={(value) => {
+                    const selectedCollaborator = collaborators.find(c => c.name === value);
+                    if (selectedCollaborator) {
+                      setNewExpense({
+                        ...newExpense, 
+                        supplier: selectedCollaborator.name,
+                        description: `Pagamento - ${selectedCollaborator.name}`
+                      });
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um colaborador" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {collaborators.map((collaborator) => (
+                      <SelectItem key={collaborator.id} value={collaborator.name}>
+                        {collaborator.name} - {collaborator.role}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
@@ -1498,11 +1530,43 @@ export const Rentals = () => {
                     <SelectItem value="Transporte">Transporte</SelectItem>
                     <SelectItem value="Alimentação">Alimentação</SelectItem>
                     <SelectItem value="Material">Material</SelectItem>
+                    <SelectItem value="Colaborador">Colaborador</SelectItem>
                     <SelectItem value="Outros">Outros</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
+
+            {/* Campo para selecionar colaborador quando categoria é "Colaborador" */}
+            {selectedExpenseForEdit?.category === 'Colaborador' && (
+              <div className="space-y-2">
+                <Label htmlFor="edit_expense_collaborator">Colaborador</Label>
+                <Select
+                  value={selectedExpenseForEdit?.supplier || ''}
+                  onValueChange={(value) => {
+                    const selectedCollaborator = collaborators.find(c => c.name === value);
+                    if (selectedCollaborator && selectedExpenseForEdit) {
+                      setSelectedExpenseForEdit({
+                        ...selectedExpenseForEdit, 
+                        supplier: selectedCollaborator.name,
+                        description: `Pagamento - ${selectedCollaborator.name}`
+                      });
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um colaborador" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {collaborators.map((collaborator) => (
+                      <SelectItem key={collaborator.id} value={collaborator.name}>
+                        {collaborator.name} - {collaborator.role}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
