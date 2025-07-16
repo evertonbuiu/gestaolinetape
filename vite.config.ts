@@ -27,12 +27,6 @@ export default defineConfig(({ mode }) => ({
     global: 'globalThis',
   },
   optimizeDeps: {
-    exclude: ["@electron/node-gyp", "electron", "electron-builder", "@capacitor/core", "@capacitor/android", "@capacitor/ios"],
     include: ["react", "react-dom", "react-router-dom"]
-  },
-  build: {
-    rollupOptions: {
-      external: ["@electron/node-gyp", "electron", "electron-builder"],
-    }
   }
 }));
