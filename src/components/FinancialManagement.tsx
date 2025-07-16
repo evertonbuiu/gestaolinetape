@@ -44,10 +44,24 @@ interface AccountBalance {
   type: 'checking' | 'savings' | 'cash';
 }
 
+interface InventoryItem {
+  id: string;
+  name: string;
+  category: string;
+  acquisitionValue: number;
+  acquisitionDate: string;
+  condition: string;
+  serialNumber?: string;
+  location: string;
+  description?: string;
+  currentValue: number;
+}
+
 export const FinancialManagement = () => {
   const [cashFlow, setCashFlow] = useState<CashFlowEntry[]>([]);
   const [budget, setBudget] = useState<BudgetEntry[]>([]);
   const [accounts, setAccounts] = useState<AccountBalance[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [newEntry, setNewEntry] = useState({
@@ -62,11 +76,23 @@ export const FinancialManagement = () => {
   const [isAddingAccount, setIsAddingAccount] = useState(false);
   const [isEditingAccount, setIsEditingAccount] = useState(false);
   const [isViewingStatement, setIsViewingStatement] = useState(false);
+  const [isEditingInventoryItem, setIsEditingInventoryItem] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<AccountBalance | null>(null);
+  const [selectedInventoryItem, setSelectedInventoryItem] = useState<InventoryItem | null>(null);
   const [newAccount, setNewAccount] = useState({
     name: "",
     type: "checking" as 'checking' | 'savings' | 'cash',
     balance: 0
+  });
+  const [newInventoryItem, setNewInventoryItem] = useState({
+    name: "",
+    category: "",
+    acquisitionValue: 0,
+    acquisitionDate: new Date().toISOString().split('T')[0],
+    condition: "",
+    serialNumber: "",
+    location: "",
+    description: ""
   });
   const [dateFilter, setDateFilter] = useState({
     startDate: null as Date | null,
@@ -105,8 +131,64 @@ export const FinancialManagement = () => {
     }
   };
 
+  const loadInventoryData = () => {
+    // Dados de exemplo para o inventário
+    const mockInventory: InventoryItem[] = [
+      {
+        id: "1",
+        name: "Mesa de Som Behringer X32",
+        category: "equipamentos-som",
+        acquisitionValue: 15000,
+        acquisitionDate: "2024-03-15",
+        condition: "novo",
+        serialNumber: "BX32-2024-001",
+        location: "Almoxarifado A",
+        description: "Mesa de som digital profissional",
+        currentValue: 14500
+      },
+      {
+        id: "2",
+        name: "Refletor LED Moving Head",
+        category: "equipamentos-iluminacao",
+        acquisitionValue: 3500,
+        acquisitionDate: "2023-08-20",
+        condition: "otimo",
+        serialNumber: "LED-MH-2023-045",
+        location: "Estoque Equipamentos",
+        description: "Refletor LED com movimento automático",
+        currentValue: 3200
+      },
+      {
+        id: "3",
+        name: "Fiat Ducato Cargo 2022",
+        category: "veiculos",
+        acquisitionValue: 120000,
+        acquisitionDate: "2022-01-10",
+        condition: "bom",
+        serialNumber: "ABC-1234",
+        location: "Garagem Principal",
+        description: "Veículo para transporte de equipamentos",
+        currentValue: 95000
+      },
+      {
+        id: "4",
+        name: "Computador Dell Inspiron",
+        category: "informatica",
+        acquisitionValue: 4500,
+        acquisitionDate: "2023-06-05",
+        condition: "bom",
+        serialNumber: "DLL-INS-2023-012",
+        location: "Escritório",
+        description: "Computador desktop para uso administrativo",
+        currentValue: 3800
+      }
+    ];
+    setInventory(mockInventory);
+  };
+
   useEffect(() => {
     loadFinancialData();
+    loadInventoryData();
     
     // Configurar real-time updates
     const channel = supabase
@@ -619,6 +701,109 @@ export const FinancialManagement = () => {
   const handleViewStatement = (account: AccountBalance) => {
     setSelectedAccount(account);
     setIsViewingStatement(true);
+  };
+
+  const handleEditInventoryItem = (item: InventoryItem) => {
+    setSelectedInventoryItem(item);
+    setNewInventoryItem({
+      name: item.name,
+      category: item.category,
+      acquisitionValue: item.acquisitionValue,
+      acquisitionDate: item.acquisitionDate,
+      condition: item.condition,
+      serialNumber: item.serialNumber || "",
+      location: item.location,
+      description: item.description || ""
+    });
+    setIsEditingInventoryItem(true);
+  };
+
+  const handleUpdateInventoryItem = () => {
+    if (!selectedInventoryItem) return;
+
+    const updatedItem: InventoryItem = {
+      ...selectedInventoryItem,
+      name: newInventoryItem.name,
+      category: newInventoryItem.category,
+      acquisitionValue: newInventoryItem.acquisitionValue,
+      acquisitionDate: newInventoryItem.acquisitionDate,
+      condition: newInventoryItem.condition,
+      serialNumber: newInventoryItem.serialNumber,
+      location: newInventoryItem.location,
+      description: newInventoryItem.description,
+      // Calcular depreciação simples (5% ao ano)
+      currentValue: Math.max(
+        newInventoryItem.acquisitionValue * 0.7, 
+        newInventoryItem.acquisitionValue - (newInventoryItem.acquisitionValue * 0.05 * 
+          Math.max(1, new Date().getFullYear() - new Date(newInventoryItem.acquisitionDate).getFullYear()))
+      )
+    };
+
+    setInventory(inventory.map(item => 
+      item.id === selectedInventoryItem.id ? updatedItem : item
+    ));
+
+    setIsEditingInventoryItem(false);
+    setSelectedInventoryItem(null);
+    setNewInventoryItem({
+      name: "",
+      category: "",
+      acquisitionValue: 0,
+      acquisitionDate: new Date().toISOString().split('T')[0],
+      condition: "",
+      serialNumber: "",
+      location: "",
+      description: ""
+    });
+
+    toast({
+      title: "Sucesso",
+      description: "Item do inventário atualizado com sucesso!",
+    });
+  };
+
+  const handleDeleteInventoryItem = (itemId: string) => {
+    setInventory(inventory.filter(item => item.id !== itemId));
+    toast({
+      title: "Sucesso",
+      description: "Item removido do inventário com sucesso!",
+    });
+  };
+
+  const getConditionBadgeVariant = (condition: string) => {
+    switch (condition) {
+      case 'novo': return 'default';
+      case 'otimo': return 'secondary';
+      case 'bom': return 'outline';
+      case 'regular': return 'secondary';
+      case 'ruim': return 'destructive';
+      default: return 'outline';
+    }
+  };
+
+  const getConditionLabel = (condition: string) => {
+    switch (condition) {
+      case 'novo': return 'Novo';
+      case 'otimo': return 'Ótimo';
+      case 'bom': return 'Bom';
+      case 'regular': return 'Regular';
+      case 'ruim': return 'Ruim';
+      case 'pessimo': return 'Péssimo';
+      default: return condition;
+    }
+  };
+
+  const getCategoryLabel = (category: string) => {
+    switch (category) {
+      case 'equipamentos-som': return 'Equipamentos de Som';
+      case 'equipamentos-iluminacao': return 'Equipamentos de Iluminação';
+      case 'moveis': return 'Móveis e Utensílios';
+      case 'veiculos': return 'Veículos';
+      case 'informatica': return 'Informática';
+      case 'ferramentas': return 'Ferramentas';
+      case 'outros': return 'Outros';
+      default: return category;
+    }
   };
 
   const getAccountTransactions = (accountName: string) => {
@@ -2153,131 +2338,51 @@ export const FinancialManagement = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {/* Exemplos de itens */}
-                    <TableRow>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">Mesa de Som Behringer X32</div>
-                          <div className="text-sm text-muted-foreground">SN: BX32-2024-001</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">Equipamentos de Som</Badge>
-                      </TableCell>
-                      <TableCell>{formatCurrency(15000)}</TableCell>
-                      <TableCell>15/03/2024</TableCell>
-                      <TableCell>
-                        <Badge variant="default">Novo</Badge>
-                      </TableCell>
-                      <TableCell>Almoxarifado A</TableCell>
-                      <TableCell className="font-medium">{formatCurrency(14500)}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">Refletor LED Moving Head</div>
-                          <div className="text-sm text-muted-foreground">SN: LED-MH-2023-045</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">Equipamentos de Iluminação</Badge>
-                      </TableCell>
-                      <TableCell>{formatCurrency(3500)}</TableCell>
-                      <TableCell>20/08/2023</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">Ótimo</Badge>
-                      </TableCell>
-                      <TableCell>Estoque Equipamentos</TableCell>
-                      <TableCell className="font-medium">{formatCurrency(3200)}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">Fiat Ducato Cargo 2022</div>
-                          <div className="text-sm text-muted-foreground">Placa: ABC-1234</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">Veículos</Badge>
-                      </TableCell>
-                      <TableCell>{formatCurrency(120000)}</TableCell>
-                      <TableCell>10/01/2022</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">Bom</Badge>
-                      </TableCell>
-                      <TableCell>Garagem Principal</TableCell>
-                      <TableCell className="font-medium">{formatCurrency(95000)}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">Computador Dell Inspiron</div>
-                          <div className="text-sm text-muted-foreground">SN: DLL-INS-2023-012</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">Informática</Badge>
-                      </TableCell>
-                      <TableCell>{formatCurrency(4500)}</TableCell>
-                      <TableCell>05/06/2023</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">Bom</Badge>
-                      </TableCell>
-                      <TableCell>Escritório</TableCell>
-                      <TableCell className="font-medium">{formatCurrency(3800)}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                    {inventory.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{item.name}</div>
+                            {item.serialNumber && (
+                              <div className="text-sm text-muted-foreground">SN: {item.serialNumber}</div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{getCategoryLabel(item.category)}</Badge>
+                        </TableCell>
+                        <TableCell>{formatCurrency(item.acquisitionValue)}</TableCell>
+                        <TableCell>{new Date(item.acquisitionDate).toLocaleDateString('pt-BR')}</TableCell>
+                        <TableCell>
+                          <Badge variant={getConditionBadgeVariant(item.condition)}>
+                            {getConditionLabel(item.condition)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{item.location}</TableCell>
+                        <TableCell className="font-medium">{formatCurrency(item.currentValue)}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button variant="ghost" size="sm">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleEditInventoryItem(item)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleDeleteInventoryItem(item.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </div>
@@ -2591,6 +2696,141 @@ export const FinancialManagement = () => {
                 }}
               >
                 Fechar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para editar item do inventário */}
+      <Dialog open={isEditingInventoryItem} onOpenChange={setIsEditingInventoryItem}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Editar Item do Inventário</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="editItemName">Nome do Item</Label>
+                <Input
+                  id="editItemName"
+                  value={newInventoryItem.name}
+                  onChange={(e) => setNewInventoryItem({...newInventoryItem, name: e.target.value})}
+                  placeholder="Ex: Computador Dell, Mesa de Som..."
+                />
+              </div>
+              <div>
+                <Label htmlFor="editItemCategory">Categoria</Label>
+                <Select 
+                  value={newInventoryItem.category} 
+                  onValueChange={(value) => setNewInventoryItem({...newInventoryItem, category: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="equipamentos-som">Equipamentos de Som</SelectItem>
+                    <SelectItem value="equipamentos-iluminacao">Equipamentos de Iluminação</SelectItem>
+                    <SelectItem value="moveis">Móveis e Utensílios</SelectItem>
+                    <SelectItem value="veiculos">Veículos</SelectItem>
+                    <SelectItem value="informatica">Informática</SelectItem>
+                    <SelectItem value="ferramentas">Ferramentas</SelectItem>
+                    <SelectItem value="outros">Outros</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="editAcquisitionValue">Valor de Aquisição</Label>
+                <Input
+                  id="editAcquisitionValue"
+                  type="number"
+                  value={newInventoryItem.acquisitionValue}
+                  onChange={(e) => setNewInventoryItem({...newInventoryItem, acquisitionValue: parseFloat(e.target.value) || 0})}
+                  placeholder="0,00"
+                />
+              </div>
+              <div>
+                <Label htmlFor="editAcquisitionDate">Data de Aquisição</Label>
+                <Input
+                  id="editAcquisitionDate"
+                  type="date"
+                  value={newInventoryItem.acquisitionDate}
+                  onChange={(e) => setNewInventoryItem({...newInventoryItem, acquisitionDate: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label htmlFor="editCondition">Estado de Conservação</Label>
+                <Select 
+                  value={newInventoryItem.condition} 
+                  onValueChange={(value) => setNewInventoryItem({...newInventoryItem, condition: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="novo">Novo</SelectItem>
+                    <SelectItem value="otimo">Ótimo</SelectItem>
+                    <SelectItem value="bom">Bom</SelectItem>
+                    <SelectItem value="regular">Regular</SelectItem>
+                    <SelectItem value="ruim">Ruim</SelectItem>
+                    <SelectItem value="pessimo">Péssimo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="editSerialNumber">Número de Série</Label>
+                <Input
+                  id="editSerialNumber"
+                  value={newInventoryItem.serialNumber}
+                  onChange={(e) => setNewInventoryItem({...newInventoryItem, serialNumber: e.target.value})}
+                  placeholder="Opcional"
+                />
+              </div>
+              <div>
+                <Label htmlFor="editLocation">Localização</Label>
+                <Input
+                  id="editLocation"
+                  value={newInventoryItem.location}
+                  onChange={(e) => setNewInventoryItem({...newInventoryItem, location: e.target.value})}
+                  placeholder="Ex: Escritório, Almoxarifado..."
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="editDescription">Descrição/Observações</Label>
+              <Input
+                id="editDescription"
+                value={newInventoryItem.description}
+                onChange={(e) => setNewInventoryItem({...newInventoryItem, description: e.target.value})}
+                placeholder="Detalhes adicionais, marca, modelo..."
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsEditingInventoryItem(false);
+                  setSelectedInventoryItem(null);
+                  setNewInventoryItem({
+                    name: "",
+                    category: "",
+                    acquisitionValue: 0,
+                    acquisitionDate: new Date().toISOString().split('T')[0],
+                    condition: "",
+                    serialNumber: "",
+                    location: "",
+                    description: ""
+                  });
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={handleUpdateInventoryItem}>
+                Salvar Alterações
               </Button>
             </div>
           </div>
