@@ -354,23 +354,25 @@ export const Dashboard = ({ onNavigate }: { onNavigate?: (tab: string) => void }
                           </CardHeader>
                           <CardContent>
                             <ChartContainer config={chartConfig} className="h-[300px]">
-                              <RechartsPieChart>
-                                <ChartTooltip content={<ChartTooltipContent />} />
-                                <Pie
-                                  data={equipmentStatusData}
-                                  dataKey="value"
-                                  nameKey="name"
-                                  cx="50%"
-                                  cy="50%"
-                                  outerRadius={80}
-                                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                >
-                                  {equipmentStatusData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                                  ))}
-                                </Pie>
-                                <ChartLegend content={<ChartLegendContent />} />
-                              </RechartsPieChart>
+                              <ResponsiveContainer width="100%" height="100%">
+                                <RechartsPieChart>
+                                  <ChartTooltip content={<ChartTooltipContent />} />
+                                  <Pie
+                                    data={equipmentStatusData}
+                                    dataKey="value"
+                                    nameKey="name"
+                                    cx="50%"
+                                    cy="50%"
+                                    outerRadius={80}
+                                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                  >
+                                    {equipmentStatusData.map((entry, index) => (
+                                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                                    ))}
+                                  </Pie>
+                                  <ChartLegend content={<ChartLegendContent />} />
+                                </RechartsPieChart>
+                              </ResponsiveContainer>
                             </ChartContainer>
                           </CardContent>
                         </Card>
