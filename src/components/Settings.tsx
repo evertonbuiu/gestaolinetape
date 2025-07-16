@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Settings2, Shield, Eye, Edit3, Save, UserPlus, Mail, Lock, User, Users, Circle, Upload, Image, Trash2, Palette } from 'lucide-react';
+import { Loader2, Settings2, Shield, Eye, Edit3, Save, UserPlus, Mail, Lock, User, Users, Circle, Upload, Image, Trash2, Palette, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
 
@@ -36,6 +36,7 @@ export const SettingsPage = () => {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [logos, setLogos] = useState<any[]>([]);
   const [loadingLogos, setLoadingLogos] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [newUser, setNewUser] = useState({
     name: '',
     username: '',
@@ -375,12 +376,23 @@ export const SettingsPage = () => {
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="password"
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         placeholder="Digite a senha"
                         value={newUser.password}
                         onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
-                        className="pl-10"
+                        className="pl-10 pr-10"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
                     </div>
                   </div>
 
