@@ -1895,7 +1895,11 @@ export const FinancialManagement = () => {
 
   // Download report as PDF/Excel
   const downloadReport = (format: 'pdf' | 'excel') => {
-    if (!reportData) return;
+    console.log('Download initiated:', format, 'reportData:', reportData);
+    if (!reportData) {
+      console.log('No report data available');
+      return;
+    }
     
     if (format === 'excel') {
       // Criar workbook do Excel
