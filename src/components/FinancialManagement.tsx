@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import jsPDF from 'jspdf';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLogo } from "@/hooks/useLogo";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { LogoUpload } from "@/components/LogoUpload";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -65,6 +68,8 @@ export const FinancialManagement = () => {
   const [accounts, setAccounts] = useState<AccountBalance[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { logoUrl } = useLogo();
+  const { settings } = useCompanySettings();
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [newEntry, setNewEntry] = useState({
     description: "",
@@ -780,20 +785,69 @@ export const FinancialManagement = () => {
     setIsViewingInventoryItem(true);
   };
 
-  const generatePatrimonyPDF = () => {
+  const generatePatrimonyPDF = async () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
+    
+    // Função para adicionar marca d'água
+    const addWatermark = () => {
+      doc.saveGraphicsState();
+      doc.setTextColor(128, 128, 128);
+      doc.setFontSize(60);
+      doc.setFont('helvetica', 'bold');
+      
+      const watermarkText = settings?.company_name || 'CONFIDENCIAL';
+      
+      // Rotacionar e posicionar a marca d'água
+      doc.text(watermarkText, pageWidth / 2, pageHeight / 2, {
+        align: 'center',
+        angle: 45,
+        baseline: 'middle'
+      });
+      
+      doc.restoreGraphicsState();
+    };
+
+    // Adicionar logo se disponível
+    if (logoUrl) {
+      try {
+        const logoImg = new Image();
+        logoImg.crossOrigin = 'anonymous';
+        
+        await new Promise((resolve, reject) => {
+          logoImg.onload = resolve;
+          logoImg.onerror = reject;
+          logoImg.src = logoUrl;
+        });
+        
+        // Adicionar logo no canto superior esquerdo
+        const logoSize = 25;
+        doc.addImage(logoImg, 'JPEG', 15, 10, logoSize, logoSize);
+      } catch (error) {
+        console.error('Erro ao carregar logo:', error);
+      }
+    }
+    
+    // Adicionar marca d'água na primeira página
+    addWatermark();
     
     // Cabeçalho
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
     doc.text('RELATÓRIO PATRIMONIAL', pageWidth / 2, 20, { align: 'center' });
     
+    // Adicionar nome da empresa se disponível
+    if (settings?.company_name) {
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'normal');
+      doc.text(settings.company_name, pageWidth / 2, 35, { align: 'center' });
+    }
+    
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text('Para fins bancários e financeiros', pageWidth / 2, 30, { align: 'center' });
-    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, pageWidth / 2, 40, { align: 'center' });
+    doc.text('Para fins bancários e financeiros', pageWidth / 2, settings?.company_name ? 45 : 30, { align: 'center' });
+    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, pageWidth / 2, settings?.company_name ? 55 : 40, { align: 'center' });
     
     // Resumo geral
     const totalItems = inventory.reduce((total, item) => total + item.quantity, 0);
@@ -854,6 +908,7 @@ export const FinancialManagement = () => {
       
       if (yPosition > pageHeight - 30) {
         doc.addPage();
+        addWatermark();
         yPosition = 20;
       }
       
@@ -875,6 +930,7 @@ export const FinancialManagement = () => {
     // Lista detalhada de itens
     if (yPosition > pageHeight - 50) {
       doc.addPage();
+      addWatermark();
       yPosition = 20;
     }
     
@@ -897,6 +953,7 @@ export const FinancialManagement = () => {
     inventory.forEach((item) => {
       if (yPosition > pageHeight - 20) {
         doc.addPage();
+        addWatermark();
         yPosition = 20;
       }
       
@@ -2306,6 +2363,7 @@ export const FinancialManagement = () => {
                   <CardDescription>Controle de bens e patrimônio da empresa</CardDescription>
                 </div>
                 <div className="flex gap-2">
+                  <LogoUpload />
                   <Button 
                     variant="outline"
                     onClick={generatePatrimonyPDF}
