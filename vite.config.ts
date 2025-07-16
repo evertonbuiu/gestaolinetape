@@ -19,4 +19,12 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  optimizeDeps: {
+    exclude: ["@electron/node-gyp", "electron", "electron-builder"]
+  },
+  build: {
+    rollupOptions: {
+      external: ["@electron/node-gyp", "electron", "electron-builder"]
+    }
+  }
 }));
