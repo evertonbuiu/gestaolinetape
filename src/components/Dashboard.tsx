@@ -457,20 +457,22 @@ export const Dashboard = ({ onNavigate }: { onNavigate?: (tab: string) => void }
                         </div>
                       </Card>
                       
-                      <Card 
-                        className="p-6 bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-200/50 hover:border-purple-400/50 transition-all duration-300 cursor-pointer group"
-                        onClick={() => onNavigate?.('financial')}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-purple-500/20 rounded-lg group-hover:scale-110 transition-transform">
-                            <TrendingUp className="w-5 h-5 text-purple-600" />
+                      {userRole === 'admin' && (
+                        <Card 
+                          className="p-6 bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-200/50 hover:border-purple-400/50 transition-all duration-300 cursor-pointer group"
+                          onClick={() => onNavigate?.('financial')}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-purple-500/20 rounded-lg group-hover:scale-110 transition-transform">
+                              <TrendingUp className="w-5 h-5 text-purple-600" />
+                            </div>
+                            <div>
+                              <h4 className="font-medium text-purple-900 dark:text-purple-100">Relatórios</h4>
+                              <p className="text-sm text-purple-600 dark:text-purple-300">Análises detalhadas</p>
+                            </div>
                           </div>
-                          <div>
-                            <h4 className="font-medium text-purple-900 dark:text-purple-100">Relatórios</h4>
-                            <p className="text-sm text-purple-600 dark:text-purple-300">Análises detalhadas</p>
-                          </div>
-                        </div>
-                      </Card>
+                        </Card>
+                      )}
                     </div>
                   )}
                 </div>
