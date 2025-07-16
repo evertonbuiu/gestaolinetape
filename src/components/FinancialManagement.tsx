@@ -2973,11 +2973,22 @@ export const FinancialManagement = () => {
                   <div className="p-2 bg-muted rounded-md">{viewInventoryItem.description}</div>
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
+              <div className="grid grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Valor Total de Aquisição</Label>
                   <div className="text-lg font-semibold text-green-600">
                     {formatCurrency(viewInventoryItem.acquisitionValue * viewInventoryItem.quantity)}
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Depreciação Acumulada</Label>
+                  <div className="text-lg font-semibold text-orange-600">
+                    {formatCurrency((() => {
+                      const yearsOld = (new Date().getFullYear() - new Date(viewInventoryItem.acquisitionDate).getFullYear());
+                      const depreciationRate = viewInventoryItem.category === 'veiculos' ? 0.20 : viewInventoryItem.category === 'informatica' ? 0.33 : 0.10;
+                      const depreciation = Math.min(yearsOld * depreciationRate, 1) * viewInventoryItem.acquisitionValue;
+                      return depreciation * viewInventoryItem.quantity;
+                    })())}
                   </div>
                 </div>
                 <div>
