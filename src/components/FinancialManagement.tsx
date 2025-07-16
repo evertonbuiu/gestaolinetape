@@ -728,6 +728,7 @@ export const FinancialManagement = () => {
       acquisitionValue: newInventoryItem.acquisitionValue,
       acquisitionDate: newInventoryItem.acquisitionDate,
       condition: newInventoryItem.condition,
+      quantity: newInventoryItem.quantity,
       serialNumber: newInventoryItem.serialNumber,
       location: newInventoryItem.location,
       description: newInventoryItem.description,
