@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Dashboard } from "@/components/Dashboard";
 import { Equipment } from "@/components/Equipment";
@@ -13,39 +13,44 @@ import { SettingsPage } from "@/components/Settings";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
+  
+  const handleTabChange = useCallback((tab: string) => {
+    console.log('Changing tab to:', tab);
+    setActiveTab(tab);
+  }, []);
 
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
-        return <Dashboard onNavigate={setActiveTab} />;
+        return <Dashboard key="dashboard" onNavigate={setActiveTab} />;
       case "equipment":
-        return <Equipment />;
+        return <Equipment key="equipment" />;
       case "inventory":
-        return <Inventory />;
+        return <Inventory key="inventory" />;
       case "rentals":
-        return <Rentals />;
+        return <Rentals key="rentals" />;
       case "event-equipment":
-        return <EventEquipment />;
+        return <EventEquipment key="event-equipment" />;
       case "clients":
-        return <Clients />;
+        return <Clients key="clients" />;
       case "collaborators":
-        return <Collaborators />;
+        return <Collaborators key="collaborators" />;
       case "financial":
-        return <FinancialManagement />;
+        return <FinancialManagement key="financial" />;
       case "user-management":
-        return <UserManagement />;
+        return <UserManagement key="user-management" />;
       case "maintenance":
-        return <div className="p-6"><h2 className="text-2xl font-bold">Manutenção - Em Desenvolvimento</h2></div>;
+        return <div key="maintenance" className="p-6"><h2 className="text-2xl font-bold">Manutenção - Em Desenvolvimento</h2></div>;
       case "settings":
-        return <SettingsPage />;
+        return <SettingsPage key="settings" />;
       default:
-        return <Dashboard onNavigate={setActiveTab} />;
+        return <Dashboard key="default" onNavigate={setActiveTab} />;
     }
   };
 
   return (
     <div className="min-h-screen bg-background flex w-full">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Sidebar activeTab={activeTab} setActiveTab={handleTabChange} />
       <div className="flex-1 overflow-auto">
         {renderContent()}
       </div>

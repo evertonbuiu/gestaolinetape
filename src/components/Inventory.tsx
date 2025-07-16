@@ -30,7 +30,7 @@ export const Inventory = () => {
     description: ""
   });
 
-  // Check permissions on mount
+  // Check permissions on mount and when component becomes active
   useEffect(() => {
     const checkPermissions = async () => {
       const canViewInventoryResult = await hasPermission('inventory_view', 'view');
@@ -40,6 +40,13 @@ export const Inventory = () => {
     };
     checkPermissions();
   }, [hasPermission, userRole]);
+
+  // Refresh equipment data when component mounts or becomes active
+  useEffect(() => {
+    if (canViewInventory) {
+      fetchEquipment();
+    }
+  }, [canViewInventory, fetchEquipment]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

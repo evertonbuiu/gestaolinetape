@@ -21,8 +21,10 @@ export const useEquipment = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchEquipment = async () => {
+  const fetchEquipment = async (force = false) => {
+    if (force) setLoading(true);
     try {
+      console.log('Fetching equipment data...');
       const { data, error } = await supabase
         .from('equipment')
         .select('*')
@@ -30,6 +32,7 @@ export const useEquipment = () => {
 
       if (error) throw error;
       setEquipment(data || []);
+      console.log('Equipment data loaded:', data?.length, 'items');
     } catch (error) {
       console.error('Error fetching equipment:', error);
       toast({
