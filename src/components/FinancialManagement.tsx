@@ -1551,106 +1551,167 @@ export const FinancialManagement = () => {
                   <CardTitle>Fluxo de Caixa</CardTitle>
                   <CardDescription>Controle detalhado de entradas e saídas</CardDescription>
                 </div>
-                <Dialog open={isAddingEntry} onOpenChange={setIsAddingEntry}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Novo Lançamento
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Adicionar Lançamento</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="description">Descrição</Label>
-                        <Input
-                          id="description"
-                          value={newEntry.description}
-                          onChange={(e) => setNewEntry({...newEntry, description: e.target.value})}
-                          placeholder="Digite a descrição..."
+                <div className="flex items-center gap-2">
+                  {/* Filtro de Data */}
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm text-muted-foreground">Filtrar:</div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className={cn(
+                            "w-[140px] justify-start text-left font-normal",
+                            !dateFilter.startDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {dateFilter.startDate ? format(dateFilter.startDate, "dd/MM/yyyy") : "Data inicial"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={dateFilter.startDate}
+                          onSelect={(date) => setDateFilter({...dateFilter, startDate: date})}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
                         />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
+                      </PopoverContent>
+                    </Popover>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className={cn(
+                            "w-[140px] justify-start text-left font-normal",
+                            !dateFilter.endDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {dateFilter.endDate ? format(dateFilter.endDate, "dd/MM/yyyy") : "Data final"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={dateFilter.endDate}
+                          onSelect={(date) => setDateFilter({...dateFilter, endDate: date})}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setDateFilter({startDate: null, endDate: null})}
+                    >
+                      Limpar
+                    </Button>
+                  </div>
+                  <Dialog open={isAddingEntry} onOpenChange={setIsAddingEntry}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Novo Lançamento
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Adicionar Lançamento</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
                         <div>
-                          <Label htmlFor="type">Tipo</Label>
-                          <Select value={newEntry.type} onValueChange={(value: 'income' | 'expense') => setNewEntry({...newEntry, type: value})}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="income">Receita</SelectItem>
-                              <SelectItem value="expense">Despesa</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <Label htmlFor="description">Descrição</Label>
+                          <Input
+                            id="description"
+                            value={newEntry.description}
+                            onChange={(e) => setNewEntry({...newEntry, description: e.target.value})}
+                            placeholder="Digite a descrição..."
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="type">Tipo</Label>
+                            <Select value={newEntry.type} onValueChange={(value: 'income' | 'expense') => setNewEntry({...newEntry, type: value})}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="income">Receita</SelectItem>
+                                <SelectItem value="expense">Despesa</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label htmlFor="category">Categoria</Label>
+                            <Select value={newEntry.category} onValueChange={(value) => setNewEntry({...newEntry, category: value})}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                               <SelectContent>
+                                 <SelectItem value="Receita de Eventos">Receita de Eventos</SelectItem>
+                                 <SelectItem value="Equipamentos">Equipamentos</SelectItem>
+                                 <SelectItem value="Despesas Operacionais">Despesas Operacionais</SelectItem>
+                                 <SelectItem value="Pessoal">Pessoal</SelectItem>
+                                 <SelectItem value="Marketing">Marketing</SelectItem>
+                                 <SelectItem value="Alimentação">Alimentação</SelectItem>
+                                 <SelectItem value="Transporte">Transporte</SelectItem>
+                                 <SelectItem value="Outros">Outros</SelectItem>
+                               </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="amount">Valor</Label>
+                            <Input
+                              id="amount"
+                              type="number"
+                              value={newEntry.amount}
+                              onChange={(e) => setNewEntry({...newEntry, amount: parseFloat(e.target.value) || 0})}
+                              placeholder="0,00"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="date">Data</Label>
+                            <Input
+                              id="date"
+                              type="date"
+                              value={newEntry.date}
+                              onChange={(e) => setNewEntry({...newEntry, date: e.target.value})}
+                            />
+                          </div>
                         </div>
                         <div>
-                          <Label htmlFor="category">Categoria</Label>
-                          <Select value={newEntry.category} onValueChange={(value) => setNewEntry({...newEntry, category: value})}>
+                          <Label htmlFor="account">Conta</Label>
+                          <Select value={newEntry.account} onValueChange={(value) => setNewEntry({...newEntry, account: value})}>
                             <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
                              <SelectContent>
-                               <SelectItem value="Receita de Eventos">Receita de Eventos</SelectItem>
-                               <SelectItem value="Equipamentos">Equipamentos</SelectItem>
-                               <SelectItem value="Despesas Operacionais">Despesas Operacionais</SelectItem>
-                               <SelectItem value="Pessoal">Pessoal</SelectItem>
-                               <SelectItem value="Marketing">Marketing</SelectItem>
-                               <SelectItem value="Alimentação">Alimentação</SelectItem>
-                               <SelectItem value="Transporte">Transporte</SelectItem>
-                               <SelectItem value="Outros">Outros</SelectItem>
+                               {accounts.map((account) => (
+                                 <SelectItem key={account.id} value={account.name}>
+                                   {account.name}
+                                 </SelectItem>
+                               ))}
                              </SelectContent>
                           </Select>
                         </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="amount">Valor</Label>
-                          <Input
-                            id="amount"
-                            type="number"
-                            value={newEntry.amount}
-                            onChange={(e) => setNewEntry({...newEntry, amount: parseFloat(e.target.value) || 0})}
-                            placeholder="0,00"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="date">Data</Label>
-                          <Input
-                            id="date"
-                            type="date"
-                            value={newEntry.date}
-                            onChange={(e) => setNewEntry({...newEntry, date: e.target.value})}
-                          />
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" onClick={() => setIsAddingEntry(false)}>
+                            Cancelar
+                          </Button>
+                          <Button onClick={handleAddEntry}>
+                            Salvar
+                          </Button>
                         </div>
                       </div>
-                      <div>
-                        <Label htmlFor="account">Conta</Label>
-                        <Select value={newEntry.account} onValueChange={(value) => setNewEntry({...newEntry, account: value})}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                           <SelectContent>
-                             {accounts.map((account) => (
-                               <SelectItem key={account.id} value={account.name}>
-                                 {account.name}
-                               </SelectItem>
-                             ))}
-                           </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" onClick={() => setIsAddingEntry(false)}>
-                          Cancelar
-                        </Button>
-                        <Button onClick={handleAddEntry}>
-                          Salvar
-                        </Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -1668,7 +1729,23 @@ export const FinancialManagement = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {cashFlow.map((entry) => (
+                  {cashFlow
+                    .filter(entry => {
+                      if (!dateFilter.startDate && !dateFilter.endDate) return true;
+                      const entryDate = new Date(entry.date);
+                      const start = dateFilter.startDate ? new Date(dateFilter.startDate) : null;
+                      const end = dateFilter.endDate ? new Date(dateFilter.endDate) : null;
+                      
+                      if (start && end) {
+                        return entryDate >= start && entryDate <= end;
+                      } else if (start) {
+                        return entryDate >= start;
+                      } else if (end) {
+                        return entryDate <= end;
+                      }
+                      return true;
+                    })
+                    .map((entry) => (
                     <TableRow key={entry.id}>
                       <TableCell>
                         {new Date(entry.date).toLocaleDateString('pt-BR')}
