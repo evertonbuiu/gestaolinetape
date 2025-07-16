@@ -76,6 +76,8 @@ export const FinancialManagement = () => {
   const [reportData, setReportData] = useState<any>(null);
   const [activeReport, setActiveReport] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState(Date.now()); // Para forçar re-render
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const { toast } = useToast();
 
   const loadBankAccounts = async () => {
@@ -164,24 +166,33 @@ export const FinancialManagement = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [selectedMonth, selectedYear]);
 
   const loadFinancialData = async () => {
     try {
       setLoading(true);
       
-      // Buscar eventos (receitas)
+      // Construir filtros de data baseados no mês e ano selecionados
+      const startDate = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}-01`;
+      const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
+      const endDate = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}-${lastDay}`;
+      
+      // Buscar eventos (receitas) do período selecionado
       const { data: eventsData, error: eventsError } = await supabase
         .from('events')
         .select('*')
+        .gte('event_date', startDate)
+        .lte('event_date', endDate)
         .order('event_date', { ascending: false });
 
       if (eventsError) throw eventsError;
 
-      // Buscar despesas dos eventos
+      // Buscar despesas dos eventos do período selecionado
       const { data: expensesData, error: expensesError } = await supabase
         .from('event_expenses')
         .select('*')
+        .gte('created_at', startDate)
+        .lte('created_at', endDate)
         .order('created_at', { ascending: false });
 
       if (expensesError) throw expensesError;
@@ -1030,6 +1041,38 @@ export const FinancialManagement = () => {
           <p className="text-muted-foreground">Planilhas e controles financeiros completos</p>
         </div>
         <div className="flex items-center gap-2">
+          <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="Mês" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">Janeiro</SelectItem>
+              <SelectItem value="2">Fevereiro</SelectItem>
+              <SelectItem value="3">Março</SelectItem>
+              <SelectItem value="4">Abril</SelectItem>
+              <SelectItem value="5">Maio</SelectItem>
+              <SelectItem value="6">Junho</SelectItem>
+              <SelectItem value="7">Julho</SelectItem>
+              <SelectItem value="8">Agosto</SelectItem>
+              <SelectItem value="9">Setembro</SelectItem>
+              <SelectItem value="10">Outubro</SelectItem>
+              <SelectItem value="11">Novembro</SelectItem>
+              <SelectItem value="12">Dezembro</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+            <SelectTrigger className="w-24">
+              <SelectValue placeholder="Ano" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="2023">2023</SelectItem>
+              <SelectItem value="2024">2024</SelectItem>
+              <SelectItem value="2025">2025</SelectItem>
+              <SelectItem value="2026">2026</SelectItem>
+            </SelectContent>
+          </Select>
+          
           <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
             <SelectTrigger className="w-32">
               <SelectValue />
