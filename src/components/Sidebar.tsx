@@ -28,14 +28,14 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
     { id: "dashboard", label: "Dashboard", icon: Home },
     { id: "equipment", label: "Equipamentos", icon: Package },
     { id: "inventory", label: "Estoque", icon: BarChart3 },
-    ...(userRole === 'admin' ? [{ id: "rentals", label: "Locações", icon: Calendar }] : []),
+    ...(userRole === 'admin' || userRole === 'financeiro' ? [{ id: "rentals", label: "Locações", icon: Calendar }] : []),
     { id: "event-equipment", label: "Equipamentos Eventos", icon: Cog },
-    ...(userRole === 'admin' ? [{ id: "clients", label: "Clientes", icon: Users }] : []),
+    ...(userRole === 'admin' || userRole === 'financeiro' ? [{ id: "clients", label: "Clientes", icon: Users }] : []),
     { id: "collaborators", label: "Colaboradores", icon: UserCheck },
-    ...(userRole === 'admin' ? [{ id: "financial", label: "Gestão Financeira", icon: DollarSign }] : []),
+    ...(userRole === 'admin' || userRole === 'financeiro' ? [{ id: "financial", label: "Gestão Financeira", icon: DollarSign }] : []),
     ...(userRole === 'admin' ? [{ id: "user-management", label: "Gerenciar Usuários", icon: UserCog }] : []),
     { id: "maintenance", label: "Manutenção", icon: Wrench },
-    ...(canAccessSettings ? [{ id: "settings", label: "Configurações", icon: Settings }] : []),
+    ...(userRole === 'admin' && canAccessSettings ? [{ id: "settings", label: "Configurações", icon: Settings }] : []),
   ];
 
   return (
