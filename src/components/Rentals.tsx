@@ -13,12 +13,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, Calendar, Clock, MapPin, User, DollarSign, FileText, Plus, Edit, Trash2, Calculator, Shield, Settings } from 'lucide-react';
+import { AlertCircle, Calendar as CalendarIcon, Clock, MapPin, User, DollarSign, FileText, Plus, Edit, Trash2, Calculator, Shield, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { startOfMonth, endOfMonth, isSameMonth, addMonths, subMonths } from 'date-fns';
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface Event {
   id: string;
@@ -55,6 +57,7 @@ interface EventExpense {
   notes: string;
   receipt_url: string;
   expense_bank_account?: string;
+  expense_date: string;
 }
 
 interface Collaborator {
@@ -112,7 +115,8 @@ export const Rentals = () => {
     unit_price: 0,
     total_price: 0,
     supplier: '',
-    notes: ''
+    notes: '',
+    expense_date: format(new Date(), 'yyyy-MM-dd')
   });
   const [selectedCollaborator, setSelectedCollaborator] = useState<string>('');
   // Check permissions on mount
@@ -517,6 +521,7 @@ export const Rentals = () => {
         total_price: (newExpense.quantity || 1) * (newExpense.unit_price || 0),
         supplier: newExpense.supplier || '',
         notes: newExpense.notes || '',
+        expense_date: newExpense.expense_date || format(new Date(), 'yyyy-MM-dd'),
         created_by: user.id
       };
 
@@ -540,7 +545,8 @@ export const Rentals = () => {
         unit_price: 0,
         total_price: 0,
         supplier: '',
-        notes: ''
+        notes: '',
+        expense_date: format(new Date(), 'yyyy-MM-dd')
       });
       setSelectedCollaborator('');
       setExpenseDialog(false);
@@ -578,7 +584,8 @@ export const Rentals = () => {
         unit_price: newExpense.unit_price || 0,
         total_price: (newExpense.quantity || 1) * (newExpense.unit_price || 0),
         supplier: newExpense.supplier || '',
-        notes: newExpense.notes || ''
+        notes: newExpense.notes || '',
+        expense_date: newExpense.expense_date || format(new Date(), 'yyyy-MM-dd')
       };
 
       // Add bank account if selected
@@ -602,7 +609,8 @@ export const Rentals = () => {
         unit_price: 0,
         total_price: 0,
         supplier: '',
-        notes: ''
+        notes: '',
+        expense_date: format(new Date(), 'yyyy-MM-dd')
       });
       setSelectedCollaborator('');
       setEditExpenseDialog(false);
@@ -1224,22 +1232,49 @@ export const Rentals = () => {
                         </div>
                       </div>
                       
-                      <div>
-                        <Label htmlFor="notes">Observações</Label>
-                        <Textarea
-                          id="notes"
-                          value={newExpense.notes || ''}
-                          onChange={(e) => setNewExpense(prev => ({ ...prev, notes: e.target.value }))}
-                          placeholder="Observações adicionais"
-                        />
-                       </div>
-                       
                        <div>
-                         <Label htmlFor="expense_bank_account">Conta Bancária</Label>
-                         <Select value={newExpense.expense_bank_account} onValueChange={(value) => setNewExpense(prev => ({ ...prev, expense_bank_account: value }))}>
-                           <SelectTrigger>
-                             <SelectValue placeholder="Selecione a conta bancária" />
-                           </SelectTrigger>
+                         <Label htmlFor="notes">Observações</Label>
+                         <Textarea
+                           id="notes"
+                           value={newExpense.notes || ''}
+                           onChange={(e) => setNewExpense(prev => ({ ...prev, notes: e.target.value }))}
+                           placeholder="Observações adicionais"
+                         />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="expense_date">Data da Despesa</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !newExpense.expense_date && "text-muted-foreground"
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {newExpense.expense_date ? format(new Date(newExpense.expense_date), "dd/MM/yyyy") : <span>Selecione a data</span>}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={newExpense.expense_date ? new Date(newExpense.expense_date) : undefined}
+                                onSelect={(date) => setNewExpense(prev => ({ ...prev, expense_date: date ? format(date, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd') }))}
+                                initialFocus
+                                className="pointer-events-auto"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="expense_bank_account">Conta Bancária</Label>
+                          <Select value={newExpense.expense_bank_account} onValueChange={(value) => setNewExpense(prev => ({ ...prev, expense_bank_account: value }))}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a conta bancária" />
+                            </SelectTrigger>
                            <SelectContent>
                              {bankAccounts.map((account) => (
                                <SelectItem key={account.id} value={account.name}>
@@ -1310,7 +1345,8 @@ export const Rentals = () => {
                                   total_price: expense.total_price,
                                   supplier: expense.supplier,
                                   notes: expense.notes,
-                                  expense_bank_account: expense.expense_bank_account
+                                  expense_bank_account: expense.expense_bank_account,
+                                  expense_date: expense.expense_date || format(new Date(), 'yyyy-MM-dd')
                                 });
                                 setEditExpenseDialog(true);
                               }}
@@ -1809,22 +1845,49 @@ export const Rentals = () => {
               </div>
             </div>
             
-            <div>
-              <Label htmlFor="edit_notes">Observações</Label>
-              <Textarea
-                id="edit_notes"
-                value={newExpense.notes || ''}
-                onChange={(e) => setNewExpense(prev => ({ ...prev, notes: e.target.value }))}
-                placeholder="Observações adicionais"
-              />
-             </div>
-             
              <div>
-               <Label htmlFor="edit_expense_bank_account">Conta Bancária</Label>
-               <Select value={newExpense.expense_bank_account || ''} onValueChange={(value) => setNewExpense(prev => ({ ...prev, expense_bank_account: value }))}>
-                 <SelectTrigger>
-                   <SelectValue placeholder="Selecione a conta bancária" />
-                 </SelectTrigger>
+               <Label htmlFor="edit_notes">Observações</Label>
+               <Textarea
+                 id="edit_notes"
+                 value={newExpense.notes || ''}
+                 onChange={(e) => setNewExpense(prev => ({ ...prev, notes: e.target.value }))}
+                 placeholder="Observações adicionais"
+               />
+              </div>
+              
+              <div>
+                <Label htmlFor="edit_expense_date">Data da Despesa</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !newExpense.expense_date && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {newExpense.expense_date ? format(new Date(newExpense.expense_date), "dd/MM/yyyy") : <span>Selecione a data</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={newExpense.expense_date ? new Date(newExpense.expense_date) : undefined}
+                      onSelect={(date) => setNewExpense(prev => ({ ...prev, expense_date: date ? format(date, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd') }))}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
+              <div>
+                <Label htmlFor="edit_expense_bank_account">Conta Bancária</Label>
+                <Select value={newExpense.expense_bank_account || ''} onValueChange={(value) => setNewExpense(prev => ({ ...prev, expense_bank_account: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a conta bancária" />
+                  </SelectTrigger>
                  <SelectContent>
                    {bankAccounts.map((account) => (
                      <SelectItem key={account.id} value={account.name}>

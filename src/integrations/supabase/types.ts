@@ -283,6 +283,7 @@ export type Database = {
           description: string
           event_id: string
           expense_bank_account: string | null
+          expense_date: string | null
           id: string
           notes: string | null
           quantity: number
@@ -299,6 +300,7 @@ export type Database = {
           description: string
           event_id: string
           expense_bank_account?: string | null
+          expense_date?: string | null
           id?: string
           notes?: string | null
           quantity?: number
@@ -315,6 +317,7 @@ export type Database = {
           description?: string
           event_id?: string
           expense_bank_account?: string | null
+          expense_date?: string | null
           id?: string
           notes?: string | null
           quantity?: number
