@@ -460,13 +460,11 @@ export const Rentals = () => {
 
       if (error) throw error;
 
-      // Atualizar saldo da conta bancária após mudança de status
-      const { error: balanceError } = await supabase.rpc('update_single_account_balance', {
-        account_name_param: accountName
-      });
+      // Sincronizar transações bancárias após mudança de status de pagamento
+      const { error: syncError } = await supabase.rpc('sync_bank_transactions');
       
-      if (balanceError) {
-        console.error('Error updating account balance:', balanceError);
+      if (syncError) {
+        console.error('Error syncing bank transactions:', syncError);
       }
 
       await fetchEvents();
