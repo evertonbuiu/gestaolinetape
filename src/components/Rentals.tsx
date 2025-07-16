@@ -977,6 +977,158 @@ export const Rentals = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog para Editar Evento */}
+      <Dialog open={editEventDialog} onOpenChange={setEditEventDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Evento</DialogTitle>
+            <DialogDescription>
+              Modifique os dados do evento
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit_name">Nome do Evento *</Label>
+                <Input
+                  id="edit_name"
+                  value={selectedEventForEdit?.name || ''}
+                  onChange={(e) => setSelectedEventForEdit(prev => prev ? {...prev, name: e.target.value} : null)}
+                  placeholder="Nome do evento"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_client_name">Cliente *</Label>
+                <div className="space-y-2">
+                  <Input
+                    id="edit_client_name"
+                    list="edit-clients-list"
+                    value={selectedEventForEdit?.client_name || ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const selectedClient = clients.find(client => client.name === value);
+                      if (selectedClient && selectedEventForEdit) {
+                        setSelectedEventForEdit({
+                          ...selectedEventForEdit,
+                          client_name: selectedClient.name,
+                          client_email: selectedClient.email || '',
+                          client_phone: selectedClient.phone || ''
+                        });
+                      } else if (selectedEventForEdit) {
+                        setSelectedEventForEdit({
+                          ...selectedEventForEdit,
+                          client_name: value
+                        });
+                      }
+                    }}
+                    placeholder="Digite ou selecione um cliente"
+                  />
+                  <datalist id="edit-clients-list">
+                    {clients.map((client) => (
+                      <option key={client.id} value={client.name} />
+                    ))}
+                  </datalist>
+                </div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit_client_email">Email do Cliente</Label>
+                <Input
+                  id="edit_client_email"
+                  type="email"
+                  value={selectedEventForEdit?.client_email || ''}
+                  onChange={(e) => setSelectedEventForEdit(prev => prev ? {...prev, client_email: e.target.value} : null)}
+                  placeholder="email@exemplo.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_client_phone">Telefone do Cliente</Label>
+                <Input
+                  id="edit_client_phone"
+                  value={selectedEventForEdit?.client_phone || ''}
+                  onChange={(e) => setSelectedEventForEdit(prev => prev ? {...prev, client_phone: e.target.value} : null)}
+                  placeholder="(11) 99999-9999"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit_event_date">Data do Evento *</Label>
+                <Input
+                  id="edit_event_date"
+                  type="date"
+                  value={selectedEventForEdit?.event_date || ''}
+                  onChange={(e) => setSelectedEventForEdit(prev => prev ? {...prev, event_date: e.target.value} : null)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_event_time">Horário do Evento</Label>
+                <Input
+                  id="edit_event_time"
+                  type="time"
+                  value={selectedEventForEdit?.event_time || ''}
+                  onChange={(e) => setSelectedEventForEdit(prev => prev ? {...prev, event_time: e.target.value} : null)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit_setup_start_date">Data de Montagem</Label>
+              <Input
+                id="edit_setup_start_date"
+                type="date"
+                value={selectedEventForEdit?.setup_start_date || ''}
+                onChange={(e) => setSelectedEventForEdit(prev => prev ? {...prev, setup_start_date: e.target.value} : null)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit_location">Local do Evento</Label>
+              <Input
+                id="edit_location"
+                value={selectedEventForEdit?.location || ''}
+                onChange={(e) => setSelectedEventForEdit(prev => prev ? {...prev, location: e.target.value} : null)}
+                placeholder="Endereço do evento"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit_total_budget">Orçamento Total</Label>
+              <Input
+                id="edit_total_budget"
+                type="number"
+                step="0.01"
+                value={selectedEventForEdit?.total_budget || ''}
+                onChange={(e) => setSelectedEventForEdit(prev => prev ? {...prev, total_budget: parseFloat(e.target.value) || 0} : null)}
+                placeholder="0.00"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit_description">Descrição</Label>
+              <Textarea
+                id="edit_description"
+                value={selectedEventForEdit?.description || ''}
+                onChange={(e) => setSelectedEventForEdit(prev => prev ? {...prev, description: e.target.value} : null)}
+                placeholder="Detalhes do evento..."
+                className="min-h-[100px]"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setEditEventDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => selectedEventForEdit && updateEvent(selectedEventForEdit.id, selectedEventForEdit)}>
+              Salvar Alterações
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
