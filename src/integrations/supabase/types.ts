@@ -469,6 +469,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      manual_update_bank_balances: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          account_name: string
+          old_balance: number
+          new_balance: number
+        }[]
+      }
       promote_user_to_admin: {
         Args: { user_email: string }
         Returns: undefined

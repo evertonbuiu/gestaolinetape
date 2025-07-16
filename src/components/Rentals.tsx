@@ -465,13 +465,10 @@ export const Rentals = () => {
 
       if (error) throw error;
 
-      // Os saldos das contas bancárias serão atualizados automaticamente pelos triggers do banco
-      console.log(`Payment status toggled for event ${event.name}: ${event.is_paid} -> ${newPaidStatus}, amount: ${paymentAmount}, account: ${paymentAccount}`);
-
       await fetchEvents();
       toast({
         title: event.is_paid ? "Marcado como não pago" : "Marcado como pago",
-        description: `O status de pagamento foi atualizado. Os saldos das contas foram recalculados automaticamente.`,
+        description: "Status de pagamento atualizado com sucesso.",
       });
     } catch (error) {
       console.error('Error updating payment status:', error);

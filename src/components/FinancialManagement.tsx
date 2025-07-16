@@ -360,8 +360,6 @@ export const FinancialManagement = () => {
         }
       }
 
-      // Os saldos das contas bancárias serão atualizados automaticamente pelos triggers do banco
-      console.log(`Adding financial entry: ${newEntry.type} of ${newEntry.amount} to account ${newEntry.account}`);
       
       // Também adicionar localmente para resposta imediata
       const entry: CashFlowEntry = {
