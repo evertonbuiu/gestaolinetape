@@ -1008,6 +1008,54 @@ export const FinancialManagement = () => {
               </Card>
             </div>
             
+            {/* Detalhamento de Todas as Despesas */}
+            <div className="space-y-4">
+              <h4 className="text-lg font-semibold">Detalhamento de Todas as Despesas</h4>
+              
+              {Object.entries(reportData.data.expensesByCategory).map(([category, expenses]) => (
+                <Card key={category} className="mb-4">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">{category}</CardTitle>
+                    <CardDescription>
+                      Total: {formatCurrency((expenses as CashFlowEntry[]).reduce((sum: number, exp: CashFlowEntry) => sum + exp.amount, 0))}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Descrição</TableHead>
+                          <TableHead>Conta</TableHead>
+                          <TableHead className="text-right">Valor</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(expenses as CashFlowEntry[]).map((expense: CashFlowEntry) => (
+                          <TableRow key={expense.id}>
+                            <TableCell>
+                              {new Date(expense.date).toLocaleDateString('pt-BR')}
+                            </TableCell>
+                            <TableCell>{expense.description}</TableCell>
+                            <TableCell>{expense.account}</TableCell>
+                            <TableCell className="text-right text-red-600">
+                              {formatCurrency(expense.amount)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              ))}
+              
+              {reportData.data.allExpenses.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhuma despesa encontrada no período.
+                </div>
+              )}
+            </div>
+            
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <p className="text-sm text-yellow-800">
                 <strong>Aviso:</strong> Este é um cálculo estimativo. Consulte um contador para 
@@ -1037,6 +1085,10 @@ export const FinancialManagement = () => {
       .filter(entry => entry.type === 'income')
       .reduce((sum, entry) => sum + entry.amount, 0);
     
+    const allExpenses = yearTransactions
+      .filter(entry => entry.type === 'expense')
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
     const deductibleExpenses = yearTransactions
       .filter(entry => entry.type === 'expense' && 
         ['Equipamentos', 'Despesas Operacionais', 'Marketing', 'Transporte'].includes(entry.category))
@@ -1045,16 +1097,27 @@ export const FinancialManagement = () => {
     const taxableIncome = totalIncome - deductibleExpenses;
     const estimatedTax = taxableIncome * 0.15; // Simplified 15% tax rate
     
+    // Agrupar despesas por categoria
+    const expensesByCategory = allExpenses.reduce((acc, expense) => {
+      if (!acc[expense.category]) {
+        acc[expense.category] = [];
+      }
+      acc[expense.category].push(expense);
+      return acc;
+    }, {} as Record<string, any[]>);
+    
     return {
       type: 'tax-report',
-      title: 'Relatório Fiscal',
+      title: 'Relatório Fiscal Detalhado',
       period: `Ano ${currentMonth.getFullYear()}`,
       data: {
         totalIncome,
         deductibleExpenses,
         taxableIncome,
         estimatedTax,
-        effectiveRate: totalIncome > 0 ? (estimatedTax / totalIncome) * 100 : 0
+        effectiveRate: totalIncome > 0 ? (estimatedTax / totalIncome) * 100 : 0,
+        allExpenses,
+        expensesByCategory
       }
     };
   };
