@@ -60,7 +60,8 @@ export const useEquipment = () => {
         },
         (payload) => {
           console.log('Equipment change detected:', payload);
-          fetchEquipment(); // Refetch data when changes occur
+          // Force a refresh when equipment data changes
+          setTimeout(() => fetchEquipment(true), 100);
         }
       )
       .subscribe();
@@ -77,7 +78,26 @@ export const useEquipment = () => {
         },
         (payload) => {
           console.log('Event equipment change detected:', payload);
-          fetchEquipment(); // Refetch to update available/rented counts
+          // Force a refresh after a brief delay to allow triggers to complete
+          setTimeout(() => fetchEquipment(true), 200);
+        }
+      )
+      .subscribe();
+
+    // Listen for event changes that might affect equipment status
+    const eventsChannel = supabase
+      .channel('events-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'events'
+        },
+        (payload) => {
+          console.log('Event status change detected:', payload);
+          // Refresh equipment when event status changes (may affect equipment availability)
+          setTimeout(() => fetchEquipment(true), 300);
         }
       )
       .subscribe();
@@ -85,6 +105,7 @@ export const useEquipment = () => {
     return () => {
       supabase.removeChannel(equipmentChannel);
       supabase.removeChannel(eventEquipmentChannel);
+      supabase.removeChannel(eventsChannel);
     };
   }, []);
 

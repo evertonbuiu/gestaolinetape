@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, Package, TrendingDown, TrendingUp, Shield, Filter, Plus, Minus } from "lucide-react";
+import { AlertTriangle, Package, TrendingDown, TrendingUp, Shield, Filter, Plus, Minus, RefreshCw } from "lucide-react";
 import { useEquipment } from "@/hooks/useEquipment";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
@@ -208,6 +208,15 @@ export const Inventory = () => {
           <p className="text-muted-foreground">Monitore os níveis de estoque em tempo real</p>
         </div>
         <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchEquipment(true)}
+            className="gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Atualizar
+          </Button>
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4" />
             <Label htmlFor="category-filter">Filtrar por:</Label>
