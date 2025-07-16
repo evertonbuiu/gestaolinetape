@@ -718,6 +718,51 @@ export const FinancialManagement = () => {
     setIsEditingInventoryItem(true);
   };
 
+  const handleAddInventoryItem = () => {
+    if (!newInventoryItem.name || !newInventoryItem.category || !newInventoryItem.acquisitionValue || !newInventoryItem.location) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios (Nome, Categoria, Valor de Aquisição e Localização).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newItem: InventoryItem = {
+      id: Date.now().toString(),
+      name: newInventoryItem.name,
+      category: newInventoryItem.category,
+      acquisitionValue: newInventoryItem.acquisitionValue,
+      acquisitionDate: newInventoryItem.acquisitionDate,
+      condition: newInventoryItem.condition,
+      serialNumber: newInventoryItem.serialNumber,
+      location: newInventoryItem.location,
+      description: newInventoryItem.description,
+      currentValue: newInventoryItem.acquisitionValue // Valor inicial igual ao de aquisição
+    };
+
+    setInventory([...inventory, newItem]);
+    
+    // Limpar formulário
+    setNewInventoryItem({
+      name: "",
+      category: "",
+      acquisitionValue: 0,
+      acquisitionDate: new Date().toISOString().split('T')[0],
+      condition: "",
+      serialNumber: "",
+      location: "",
+      description: ""
+    });
+    
+    setIsAddingEntry(false);
+    
+    toast({
+      title: "Sucesso",
+      description: "Item adicionado ao inventário com sucesso!",
+    });
+  };
+
   const handleUpdateInventoryItem = () => {
     if (!selectedInventoryItem) return;
 
@@ -2157,12 +2202,17 @@ export const FinancialManagement = () => {
                           <Label htmlFor="itemName">Nome do Item</Label>
                           <Input
                             id="itemName"
+                            value={newInventoryItem.name}
+                            onChange={(e) => setNewInventoryItem({...newInventoryItem, name: e.target.value})}
                             placeholder="Ex: Computador Dell, Mesa de Som..."
                           />
                         </div>
                         <div>
                           <Label htmlFor="itemCategory">Categoria</Label>
-                          <Select>
+                          <Select 
+                            value={newInventoryItem.category} 
+                            onValueChange={(value) => setNewInventoryItem({...newInventoryItem, category: value})}
+                          >
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione..." />
                             </SelectTrigger>
@@ -2184,6 +2234,8 @@ export const FinancialManagement = () => {
                           <Input
                             id="acquisitionValue"
                             type="number"
+                            value={newInventoryItem.acquisitionValue}
+                            onChange={(e) => setNewInventoryItem({...newInventoryItem, acquisitionValue: parseFloat(e.target.value) || 0})}
                             placeholder="0,00"
                           />
                         </div>
@@ -2192,11 +2244,16 @@ export const FinancialManagement = () => {
                           <Input
                             id="acquisitionDate"
                             type="date"
+                            value={newInventoryItem.acquisitionDate}
+                            onChange={(e) => setNewInventoryItem({...newInventoryItem, acquisitionDate: e.target.value})}
                           />
                         </div>
                         <div>
                           <Label htmlFor="condition">Estado de Conservação</Label>
-                          <Select>
+                          <Select 
+                            value={newInventoryItem.condition} 
+                            onValueChange={(value) => setNewInventoryItem({...newInventoryItem, condition: value})}
+                          >
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione..." />
                             </SelectTrigger>
@@ -2216,6 +2273,8 @@ export const FinancialManagement = () => {
                           <Label htmlFor="serialNumber">Número de Série</Label>
                           <Input
                             id="serialNumber"
+                            value={newInventoryItem.serialNumber}
+                            onChange={(e) => setNewInventoryItem({...newInventoryItem, serialNumber: e.target.value})}
                             placeholder="Opcional"
                           />
                         </div>
@@ -2223,6 +2282,8 @@ export const FinancialManagement = () => {
                           <Label htmlFor="location">Localização</Label>
                           <Input
                             id="location"
+                            value={newInventoryItem.location}
+                            onChange={(e) => setNewInventoryItem({...newInventoryItem, location: e.target.value})}
                             placeholder="Ex: Escritório, Almoxarifado..."
                           />
                         </div>
@@ -2231,6 +2292,8 @@ export const FinancialManagement = () => {
                         <Label htmlFor="description">Descrição/Observações</Label>
                         <Input
                           id="description"
+                          value={newInventoryItem.description}
+                          onChange={(e) => setNewInventoryItem({...newInventoryItem, description: e.target.value})}
                           placeholder="Detalhes adicionais, marca, modelo..."
                         />
                       </div>
@@ -2238,7 +2301,7 @@ export const FinancialManagement = () => {
                         <Button variant="outline" onClick={() => setIsAddingEntry(false)}>
                           Cancelar
                         </Button>
-                        <Button>
+                        <Button onClick={handleAddInventoryItem}>
                           Salvar
                         </Button>
                       </div>
