@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, LogIn, UserPlus } from 'lucide-react';
+import { Logo } from '@/components/Logo';
 
 const Auth = () => {
   const { signIn, signUp, isLoading } = useAuth();
@@ -65,11 +66,16 @@ const Auth = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl text-center">Luz Locação</CardTitle>
-          <CardDescription className="text-center">
-            Sistema de Controle de Estoque
-          </CardDescription>
+        <CardHeader className="space-y-4">
+          <div className="flex justify-center">
+            <Logo size="lg" showText={false} />
+          </div>
+          <div className="text-center">
+            <CardTitle className="text-2xl">Luz Locação</CardTitle>
+            <CardDescription>
+              Sistema de Controle de Estoque
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">

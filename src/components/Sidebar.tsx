@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
+import { Logo } from "@/components/Logo";
 
 interface SidebarProps {
   activeTab: string;
@@ -39,9 +40,8 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
   return (
     <div className="w-64 bg-card border-r border-border h-screen flex flex-col">
     <div className="p-6 border-b border-border">
-      <h1 className="text-xl font-bold text-primary">Luz Locação</h1>
-      <p className="text-sm text-muted-foreground">Controle de Estoque</p>
-      <div className="mt-2">
+      <Logo size="md" />
+      <div className="mt-3">
         <Badge variant={userRole === 'admin' ? 'default' : 'secondary'}>
           {userRole === 'admin' ? 'Administrador' : 'Funcionário'}
         </Badge>
