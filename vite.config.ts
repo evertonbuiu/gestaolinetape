@@ -8,6 +8,9 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    hmr: {
+      port: 8080,
+    },
   },
   plugins: [
     react(),
@@ -19,12 +22,17 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  define: {
+    __WS_TOKEN__: JSON.stringify(''),
+    global: 'globalThis',
+  },
   optimizeDeps: {
-    exclude: ["@electron/node-gyp", "electron", "electron-builder"]
+    exclude: ["@electron/node-gyp", "electron", "electron-builder", "@capacitor/core", "@capacitor/android", "@capacitor/ios"],
+    include: ["react", "react-dom", "react-router-dom"]
   },
   build: {
     rollupOptions: {
-      external: ["@electron/node-gyp", "electron", "electron-builder"]
+      external: ["@electron/node-gyp", "electron", "electron-builder"],
     }
   }
 }));
