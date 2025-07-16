@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useCustomAuth } from '@/hooks/useCustomAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useOnlineUsers } from '@/hooks/useOnlineUsers';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
 
 export const SettingsPage = () => {
-  const { userRole } = useAuth();
+  const { userRole } = useCustomAuth();
   const { rolePermissions, loading, updateRolePermission } = usePermissions();
   const { onlineUsers, loading: loadingOnlineUsers } = useOnlineUsers();
   const { toast } = useToast();
@@ -38,7 +38,7 @@ export const SettingsPage = () => {
   const [loadingLogos, setLoadingLogos] = useState(false);
   const [newUser, setNewUser] = useState({
     name: '',
-    email: '',
+    username: '',
     password: ''
   });
 
@@ -132,7 +132,7 @@ export const SettingsPage = () => {
 
   // Create new employee
   const createEmployee = async () => {
-    if (!newUser.name || !newUser.email || !newUser.password) {
+    if (!newUser.name || !newUser.username || !newUser.password) {
       toast({
         title: "Campos obrigatórios",
         description: "Preencha todos os campos para criar o funcionário.",
@@ -143,10 +143,10 @@ export const SettingsPage = () => {
 
     setCreatingUser(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-user', {
+      const { data, error } = await supabase.functions.invoke('create-employee', {
         body: {
           name: newUser.name,
-          email: newUser.email,
+          username: newUser.username,
           password: newUser.password
         }
       });
@@ -155,7 +155,7 @@ export const SettingsPage = () => {
         throw new Error(error.message);
       }
 
-      setNewUser({ name: '', email: '', password: '' });
+      setNewUser({ name: '', username: '', password: '' });
       setCreateUserDialog(false);
       
       toast({
@@ -355,15 +355,15 @@ export const SettingsPage = () => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="username">Nome de Usuário</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
-                        id="email"
-                        type="email"
-                        placeholder="Digite o email do funcionário"
-                        value={newUser.email}
-                        onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
+                        id="username"
+                        type="text"
+                        placeholder="Digite o nome de usuário"
+                        value={newUser.username}
+                        onChange={(e) => setNewUser(prev => ({ ...prev, username: e.target.value }))}
                         className="pl-10"
                       />
                     </div>
@@ -411,8 +411,8 @@ export const SettingsPage = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-2 text-sm text-muted-foreground">
-            <p>• Os funcionários criados terão acesso ao sistema com as permissões configuradas</p>
-            <p>• Eles poderão fazer login com o email e senha fornecidos</p>
+            <p>• Os funcionários criados terão acesso ao sistema com nome de usuário e senha</p>
+            <p>• Eles poderão fazer login com o usuário e senha fornecidos</p>
             <p>• Por padrão, funcionários têm papel de "funcionario" no sistema</p>
             <p>• As permissões podem ser ajustadas na seção abaixo</p>
           </div>

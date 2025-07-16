@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Package, Settings, BarChart3, Calendar, Home, Users, Wrench, LogOut, Cog, UserCheck, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/useAuth";
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 import { Badge } from "@/components/ui/badge";
 import { Logo } from "@/components/Logo";
 
@@ -12,7 +12,7 @@ interface SidebarProps {
 }
 
 export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
-  const { signOut, userRole, hasPermission } = useAuth();
+  const { signOut, userRole, hasPermission } = useCustomAuth();
   const [canAccessSettings, setCanAccessSettings] = useState(false);
   
   useEffect(() => {
