@@ -11,9 +11,9 @@ export const Logo = ({ size = "md", showText = true }: LogoProps) => {
   const { logoUrl, isLoading } = useLogo();
   const { settings } = useCompanySettings();
   const sizeClasses = {
-    sm: "h-8",
-    md: "h-12",
-    lg: "h-16"
+    sm: "h-12", // era h-8 (32px) -> h-12 (48px) = +16px
+    md: "h-16", // era h-12 (48px) -> h-16 (64px) = +16px  
+    lg: "h-20"  // era h-16 (64px) -> h-20 (80px) = +16px
   };
 
   const textSizeClasses = {
