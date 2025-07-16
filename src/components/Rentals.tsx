@@ -846,33 +846,38 @@ export const Rentals = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="client_name">Cliente *</Label>
-                <Select
-                  value={newEvent.client_name || ''}
-                  onValueChange={(value) => {
-                    const selectedClient = clients.find(client => client.name === value);
-                    if (selectedClient) {
-                      setNewEvent({
-                        ...newEvent,
-                        client_name: selectedClient.name,
-                        client_email: selectedClient.email || '',
-                        client_phone: selectedClient.phone || ''
-                      });
-                    } else {
-                      setNewEvent({...newEvent, client_name: value});
-                    }
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
+                <div className="space-y-2">
+                  <Input
+                    id="client_name"
+                    list="clients-list"
+                    value={newEvent.client_name || ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const selectedClient = clients.find(client => client.name === value);
+                      if (selectedClient) {
+                        setNewEvent({
+                          ...newEvent,
+                          client_name: selectedClient.name,
+                          client_email: selectedClient.email || '',
+                          client_phone: selectedClient.phone || ''
+                        });
+                      } else {
+                        setNewEvent({
+                          ...newEvent,
+                          client_name: value,
+                          client_email: '',
+                          client_phone: ''
+                        });
+                      }
+                    }}
+                    placeholder="Digite ou selecione um cliente"
+                  />
+                  <datalist id="clients-list">
                     {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.name}>
-                        {client.name}
-                      </SelectItem>
+                      <option key={client.id} value={client.name} />
                     ))}
-                  </SelectContent>
-                </Select>
+                  </datalist>
+                </div>
               </div>
             </div>
             
