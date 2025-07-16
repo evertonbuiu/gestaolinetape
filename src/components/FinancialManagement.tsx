@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import jsPDF from 'jspdf';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -777,6 +778,161 @@ export const FinancialManagement = () => {
   const handleViewInventoryItem = (item: InventoryItem) => {
     setViewInventoryItem(item);
     setIsViewingInventoryItem(true);
+  };
+
+  const generatePatrimonyPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    
+    // Cabeçalho
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RELATÓRIO PATRIMONIAL', pageWidth / 2, 20, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Para fins bancários e financeiros', pageWidth / 2, 30, { align: 'center' });
+    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, pageWidth / 2, 40, { align: 'center' });
+    
+    // Resumo geral
+    const totalItems = inventory.reduce((total, item) => total + item.quantity, 0);
+    const totalValue = inventory.reduce((total, item) => total + (item.acquisitionValue * item.quantity), 0);
+    const totalDepreciation = inventory.reduce((total, item) => {
+      const yearsOld = (new Date().getFullYear() - new Date(item.acquisitionDate).getFullYear());
+      const depreciationRate = item.category === 'veiculos' ? 0.20 : item.category === 'informatica' ? 0.33 : 0.10;
+      const depreciation = Math.min(yearsOld * depreciationRate, 1) * item.acquisitionValue * item.quantity;
+      return total + depreciation;
+    }, 0);
+    const currentValue = totalValue - totalDepreciation;
+    
+    let yPosition = 60;
+    
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RESUMO EXECUTIVO', 20, yPosition);
+    yPosition += 15;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total de Itens: ${totalItems}`, 20, yPosition);
+    yPosition += 8;
+    doc.text(`Valor Total de Aquisição: R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 20, yPosition);
+    yPosition += 8;
+    doc.text(`Depreciação Acumulada: R$ ${totalDepreciation.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 20, yPosition);
+    yPosition += 8;
+    doc.text(`Valor Patrimonial Atual: R$ ${currentValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 20, yPosition);
+    yPosition += 20;
+    
+    // Detalhamento por categoria
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DETALHAMENTO POR CATEGORIA', 20, yPosition);
+    yPosition += 15;
+    
+    const categories = [...new Set(inventory.map(item => item.category))];
+    
+    categories.forEach(category => {
+      const categoryItems = inventory.filter(item => item.category === category);
+      const categoryValue = categoryItems.reduce((total, item) => total + (item.acquisitionValue * item.quantity), 0);
+      const categoryDepreciation = categoryItems.reduce((total, item) => {
+        const yearsOld = (new Date().getFullYear() - new Date(item.acquisitionDate).getFullYear());
+        const depreciationRate = item.category === 'veiculos' ? 0.20 : item.category === 'informatica' ? 0.33 : 0.10;
+        const depreciation = Math.min(yearsOld * depreciationRate, 1) * item.acquisitionValue * item.quantity;
+        return total + depreciation;
+      }, 0);
+      
+      const categoryName = {
+        'equipamentos-som': 'Equipamentos de Som',
+        'equipamentos-iluminacao': 'Equipamentos de Iluminação',
+        'moveis': 'Móveis e Utensílios',
+        'veiculos': 'Veículos',
+        'informatica': 'Informática',
+        'ferramentas': 'Ferramentas',
+        'outros': 'Outros'
+      }[category] || category;
+      
+      if (yPosition > pageHeight - 30) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text(categoryName, 20, yPosition);
+      yPosition += 10;
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Itens: ${categoryItems.reduce((total, item) => total + item.quantity, 0)}`, 25, yPosition);
+      yPosition += 6;
+      doc.text(`Valor de Aquisição: R$ ${categoryValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 25, yPosition);
+      yPosition += 6;
+      doc.text(`Valor Atual: R$ ${(categoryValue - categoryDepreciation).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 25, yPosition);
+      yPosition += 15;
+    });
+    
+    // Lista detalhada de itens
+    if (yPosition > pageHeight - 50) {
+      doc.addPage();
+      yPosition = 20;
+    }
+    
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('INVENTÁRIO DETALHADO', 20, yPosition);
+    yPosition += 15;
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Item', 20, yPosition);
+    doc.text('Qtd', 80, yPosition);
+    doc.text('Aquisição', 100, yPosition);
+    doc.text('Valor Atual', 140, yPosition);
+    doc.text('Localização', 180, yPosition);
+    yPosition += 8;
+    
+    doc.setFont('helvetica', 'normal');
+    
+    inventory.forEach((item) => {
+      if (yPosition > pageHeight - 20) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      const yearsOld = (new Date().getFullYear() - new Date(item.acquisitionDate).getFullYear());
+      const depreciationRate = item.category === 'veiculos' ? 0.20 : item.category === 'informatica' ? 0.33 : 0.10;
+      const depreciation = Math.min(yearsOld * depreciationRate, 1) * item.acquisitionValue;
+      const currentItemValue = Math.max(item.acquisitionValue - depreciation, item.acquisitionValue * 0.1);
+      
+      const itemName = item.name.length > 25 ? item.name.substring(0, 25) + '...' : item.name;
+      const location = item.location.length > 20 ? item.location.substring(0, 20) + '...' : item.location;
+      
+      doc.text(itemName, 20, yPosition);
+      doc.text(item.quantity.toString(), 80, yPosition);
+      doc.text(`R$ ${(item.acquisitionValue * item.quantity).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 100, yPosition);
+      doc.text(`R$ ${(currentItemValue * item.quantity).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 140, yPosition);
+      doc.text(location, 180, yPosition);
+      yPosition += 6;
+    });
+    
+    // Rodapé
+    const totalPages = doc.internal.pages.length - 1;
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Página ${i} de ${totalPages}`, pageWidth - 30, pageHeight - 10);
+      doc.text('Documento gerado automaticamente pelo sistema', 20, pageHeight - 10);
+    }
+    
+    // Salvar o PDF
+    doc.save(`relatorio-patrimonial-${new Date().toISOString().split('T')[0]}.pdf`);
+    
+    toast({
+      title: "Sucesso",
+      description: "Relatório patrimonial gerado com sucesso!",
+    });
   };
 
   const getConditionBadgeVariant = (condition: string) => {
@@ -2149,13 +2305,21 @@ export const FinancialManagement = () => {
                   <CardTitle>Inventário Patrimonial</CardTitle>
                   <CardDescription>Controle de bens e patrimônio da empresa</CardDescription>
                 </div>
-                <Dialog open={isAddingEntry} onOpenChange={setIsAddingEntry}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Novo Item
-                    </Button>
-                  </DialogTrigger>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline"
+                    onClick={generatePatrimonyPDF}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Gerar PDF Patrimonial
+                  </Button>
+                  <Dialog open={isAddingEntry} onOpenChange={setIsAddingEntry}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Novo Item
+                      </Button>
+                    </DialogTrigger>
                   <DialogContent className="max-w-2xl">
                     <DialogHeader>
                       <DialogTitle>Adicionar Item ao Patrimônio</DialogTitle>
@@ -2283,6 +2447,7 @@ export const FinancialManagement = () => {
                     </div>
                   </DialogContent>
                 </Dialog>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
