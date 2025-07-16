@@ -35,7 +35,8 @@ export const CreateEmployee = ({ onSuccess, onCancel }: CreateEmployeeProps) => 
           username: formData.username,
           password: formData.password,
           name: formData.name,
-          role: formData.role
+          role: formData.role,
+          created_by: user?.id
         }
       });
 
