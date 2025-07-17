@@ -31,7 +31,8 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const colorSchemes: ColorScheme[] = [
+// Dark theme color schemes
+const darkColorSchemes: ColorScheme[] = [
   {
     id: 'blue',
     name: 'Azul Padrão',
@@ -136,9 +137,120 @@ const colorSchemes: ColorScheme[] = [
   },
 ];
 
+// Light theme color schemes
+const lightColorSchemes: ColorScheme[] = [
+  {
+    id: 'blue',
+    name: 'Azul Padrão',
+    primary: '222.2 47.4% 11.2%',
+    secondary: '210 40% 96.1%',
+    accent: '210 40% 96.1%',
+    background: '0 0% 100%',
+    foreground: '222.2 84% 4.9%',
+    card: '0 0% 100%',
+    cardForeground: '222.2 84% 4.9%',
+    muted: '210 40% 96.1%',
+    mutedForeground: '215.4 16.3% 46.9%',
+    border: '214.3 31.8% 91.4%',
+    sidebarBackground: '0 0% 98%',
+    sidebarForeground: '240 5.3% 26.1%',
+    sidebarAccent: '240 4.8% 95.9%',
+  },
+  {
+    id: 'green',
+    name: 'Verde Claro',
+    primary: '142.1 76.2% 36.3%',
+    secondary: '120 16.7% 97.6%',
+    accent: '120 16.7% 97.6%',
+    background: '0 0% 100%',
+    foreground: '120 10% 4%',
+    card: '0 0% 100%',
+    cardForeground: '120 10% 4%',
+    muted: '120 16.7% 97.6%',
+    mutedForeground: '120 3.7% 45.1%',
+    border: '120 5.9% 90%',
+    sidebarBackground: '120 33% 98%',
+    sidebarForeground: '120 5.3% 26.1%',
+    sidebarAccent: '120 4.8% 95.9%',
+  },
+  {
+    id: 'purple',
+    name: 'Roxo Claro',
+    primary: '262.1 83.3% 57.8%',
+    secondary: '270 20% 96%',
+    accent: '270 20% 96%',
+    background: '0 0% 100%',
+    foreground: '224 71.4% 4.1%',
+    card: '0 0% 100%',
+    cardForeground: '224 71.4% 4.1%',
+    muted: '270 20% 96%',
+    mutedForeground: '220 8.9% 46.1%',
+    border: '220 13% 91%',
+    sidebarBackground: '266 83% 99%',
+    sidebarForeground: '224 10% 25%',
+    sidebarAccent: '270 20% 96%',
+  },
+  {
+    id: 'red',
+    name: 'Vermelho Claro',
+    primary: '0 72.2% 50.6%',
+    secondary: '0 96% 89%',
+    accent: '0 96% 89%',
+    background: '0 0% 100%',
+    foreground: '0 0% 9%',
+    card: '0 0% 100%',
+    cardForeground: '0 0% 9%',
+    muted: '0 96% 89%',
+    mutedForeground: '0 10% 44%',
+    border: '0 91% 82%',
+    sidebarBackground: '0 100% 98%',
+    sidebarForeground: '0 20% 30%',
+    sidebarAccent: '0 96% 89%',
+  },
+  {
+    id: 'orange',
+    name: 'Laranja Claro',
+    primary: '24.6 95% 53.1%',
+    secondary: '30 100% 97%',
+    accent: '30 100% 97%',
+    background: '0 0% 100%',
+    foreground: '20 14.3% 4.1%',
+    card: '0 0% 100%',
+    cardForeground: '20 14.3% 4.1%',
+    muted: '30 100% 97%',
+    mutedForeground: '20 5.9% 44.1%',
+    border: '20 5.9% 90%',
+    sidebarBackground: '30 50% 98%',
+    sidebarForeground: '20 10% 30%',
+    sidebarAccent: '30 100% 97%',
+  },
+  {
+    id: 'slate',
+    name: 'Cinza Claro',
+    primary: '222.2 47.4% 11.2%',
+    secondary: '210 40% 96.1%',
+    accent: '210 40% 96.1%',
+    background: '0 0% 100%',
+    foreground: '222.2 84% 4.9%',
+    card: '0 0% 100%',
+    cardForeground: '222.2 84% 4.9%',
+    muted: '210 40% 96.1%',
+    mutedForeground: '215.4 16.3% 46.9%',
+    border: '214.3 31.8% 91.4%',
+    sidebarBackground: '0 0% 98%',
+    sidebarForeground: '240 5.3% 26.1%',
+    sidebarAccent: '240 4.8% 95.9%',
+  },
+];
+
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setTheme] = useState<Theme>('dark');
   const [colorScheme, setColorScheme] = useState<string>('blue');
+
+  // Get active color schemes based on current theme
+  const getActiveSchemes = () => {
+    return theme === 'dark' ? darkColorSchemes : lightColorSchemes;
+  };
 
   const applyColorScheme = (scheme: ColorScheme) => {
     const root = document.documentElement;
@@ -171,8 +283,10 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     setTheme(newTheme);
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
     
-    // Apply current color scheme to new theme
-    const currentScheme = colorSchemes.find(s => s.id === colorScheme);
+    // Apply current color scheme to new theme, using the appropriate theme-specific scheme
+    const schemes = newTheme === 'dark' ? darkColorSchemes : lightColorSchemes;
+    const currentScheme = schemes.find(s => s.id === colorScheme);
+    
     if (currentScheme) {
       applyColorScheme(currentScheme);
     }
@@ -180,7 +294,9 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
   const handleColorSchemeChange = (schemeId: string) => {
     setColorScheme(schemeId);
-    const scheme = colorSchemes.find(s => s.id === schemeId);
+    const schemes = theme === 'dark' ? darkColorSchemes : lightColorSchemes;
+    const scheme = schemes.find(s => s.id === schemeId);
+    
     if (scheme) {
       applyColorScheme(scheme);
     }
@@ -196,7 +312,9 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     
     document.documentElement.classList.toggle('dark', savedTheme === 'dark');
     
-    const scheme = colorSchemes.find(s => s.id === savedColorScheme);
+    const schemes = savedTheme === 'dark' ? darkColorSchemes : lightColorSchemes;
+    const scheme = schemes.find(s => s.id === savedColorScheme);
+    
     if (scheme) {
       applyColorScheme(scheme);
     }
@@ -218,7 +336,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         colorScheme,
         setTheme: handleThemeChange,
         setColorScheme: handleColorSchemeChange,
-        availableColorSchemes: colorSchemes,
+        availableColorSchemes: getActiveSchemes(),
         applyColorScheme,
       }}
     >
