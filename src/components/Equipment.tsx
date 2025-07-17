@@ -35,8 +35,8 @@ export const Equipment = () => {
   // Check permissions on mount
   useEffect(() => {
     const checkPermissions = async () => {
-      const canViewPricesResult = await hasPermission('equipment_view', 'view');
-      const canEditResult = await hasPermission('equipment_edit', 'edit');
+      const canViewPricesResult = await hasPermission('inventory_view', 'view');
+      const canEditResult = await hasPermission('inventory_edit', 'edit');
       setCanViewPrices(canViewPricesResult);
       setCanEdit(canEditResult);
     };

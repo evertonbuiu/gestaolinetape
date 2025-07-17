@@ -8,9 +8,6 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    hmr: {
-      port: 8080,
-    },
   },
   plugins: [
     react(),
@@ -22,11 +19,4 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  define: {
-    __WS_TOKEN__: JSON.stringify(''),
-    global: 'globalThis',
-  },
-  optimizeDeps: {
-    include: ["react", "react-dom", "react-router-dom"]
-  }
 }));
