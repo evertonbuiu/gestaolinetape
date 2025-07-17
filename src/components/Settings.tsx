@@ -14,17 +14,101 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Settings2, Shield, Eye, Edit3, Save, UserPlus, Mail, Lock, User, Users, Circle, Upload, Image, Trash2, Palette, EyeOff, Sun, Moon, Check } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2, Settings2, Shield, Eye, Edit3, Save, UserPlus, Mail, Lock, User, Users, Circle, Upload, Image, Trash2, Palette, EyeOff, Sun, Moon, Check, Paintbrush, PaintBucket } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
+import { HexColorPicker, HexColorInput } from 'react-colorful';
+
+// Helper functions for color conversion
+const hslToHex = (hsl: string): string => {
+  try {
+    // Parse HSL values - format is "H S% L%"
+    const [h, s, l] = hsl.split(' ').map((val, index) => {
+      if (index === 0) return parseFloat(val); // Hue as number
+      return parseFloat(val.replace('%', '')) / 100; // S and L as 0-1
+    });
+
+    // Convert HSL to RGB
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+    const m = l - c / 2;
+    
+    let r, g, b;
+    if (h >= 0 && h < 60) {
+      [r, g, b] = [c, x, 0];
+    } else if (h >= 60 && h < 120) {
+      [r, g, b] = [x, c, 0];
+    } else if (h >= 120 && h < 180) {
+      [r, g, b] = [0, c, x];
+    } else if (h >= 180 && h < 240) {
+      [r, g, b] = [0, x, c];
+    } else if (h >= 240 && h < 300) {
+      [r, g, b] = [x, 0, c];
+    } else {
+      [r, g, b] = [c, 0, x];
+    }
+    
+    // Convert RGB to hex
+    const toHex = (x: number) => {
+      const hex = Math.round((x + m) * 255).toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    };
+    
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  } catch (e) {
+    console.error("Error converting HSL to HEX:", e);
+    return "#000000";
+  }
+};
+
+const hexToHsl = (hex: string): string => {
+  try {
+    // Convert hex to RGB
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+    
+    if (max === min) {
+      h = s = 0; // achromatic
+    } else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+        default: h = 0;
+      }
+      
+      h = Math.round(h * 60);
+    }
+    
+    s = Math.round(s * 100);
+    l = Math.round(l * 100);
+    
+    return `${h} ${s}% ${l}%`;
+  } catch (e) {
+    console.error("Error converting HEX to HSL:", e);
+    return "0 0% 0%";
+  }
+};
 
 export const SettingsPage = () => {
   const { userRole } = useCustomAuth();
   const { rolePermissions, loading, updateRolePermission } = usePermissions();
   const { onlineUsers, loading: loadingOnlineUsers } = useOnlineUsers();
-  const { theme, colorScheme, setTheme, setColorScheme, availableColorSchemes } = useTheme();
+  const { theme, colorScheme, setTheme, setColorScheme, availableColorSchemes, createCustomColorScheme, customColors } = useTheme();
   const { toast } = useToast();
   const { settings: companySettings, updateSettings: updateCompanySettings } = useCompanySettings();
+  
+  // State for managing active color property being edited
+  const [activeColorProperty, setActiveColorProperty] = useState<string | null>(null);
   
   // Company settings state
   const [companyName, setCompanyName] = useState("");
@@ -617,10 +701,138 @@ export const SettingsPage = () => {
 
           <Separator />
 
+          {/* Custom Color Picker */}
+          <div className="space-y-3">
+            <Label className="text-base">Personalizar Cores</Label>
+            
+            <Tabs defaultValue="primary" className="w-full">
+              <TabsList className="grid grid-cols-4 mb-4">
+                <TabsTrigger value="primary">Primária</TabsTrigger>
+                <TabsTrigger value="secondary">Secundária</TabsTrigger>
+                <TabsTrigger value="accent">Destaque</TabsTrigger>
+                <TabsTrigger value="background">Fundo</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="primary" className="space-y-4">
+                <div className="flex flex-col gap-4">
+                  <HexColorPicker 
+                    color={hslToHex(customColors.primary)}
+                    onChange={(color) => {
+                      const hslValue = hexToHsl(color);
+                      createCustomColorScheme('primary', hslValue);
+                      setColorScheme('custom');
+                    }}
+                    className="w-full"
+                  />
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="color-input-primary">Cor Primária:</Label>
+                    <HexColorInput 
+                      id="color-input-primary"
+                      color={hslToHex(customColors.primary)} 
+                      onChange={(color) => {
+                        const hslValue = hexToHsl(color);
+                        createCustomColorScheme('primary', hslValue);
+                        setColorScheme('custom');
+                      }}
+                      className="border px-3 py-2 rounded-md w-32 text-sm"
+                      prefix="#"
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="secondary" className="space-y-4">
+                <div className="flex flex-col gap-4">
+                  <HexColorPicker 
+                    color={hslToHex(customColors.secondary)}
+                    onChange={(color) => {
+                      const hslValue = hexToHsl(color);
+                      createCustomColorScheme('secondary', hslValue);
+                      setColorScheme('custom');
+                    }}
+                    className="w-full"
+                  />
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="color-input-secondary">Cor Secundária:</Label>
+                    <HexColorInput 
+                      id="color-input-secondary"
+                      color={hslToHex(customColors.secondary)} 
+                      onChange={(color) => {
+                        const hslValue = hexToHsl(color);
+                        createCustomColorScheme('secondary', hslValue);
+                        setColorScheme('custom');
+                      }}
+                      className="border px-3 py-2 rounded-md w-32 text-sm"
+                      prefix="#"
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="accent" className="space-y-4">
+                <div className="flex flex-col gap-4">
+                  <HexColorPicker 
+                    color={hslToHex(customColors.accent)}
+                    onChange={(color) => {
+                      const hslValue = hexToHsl(color);
+                      createCustomColorScheme('accent', hslValue);
+                      setColorScheme('custom');
+                    }}
+                    className="w-full"
+                  />
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="color-input-accent">Cor de Destaque:</Label>
+                    <HexColorInput 
+                      id="color-input-accent"
+                      color={hslToHex(customColors.accent)} 
+                      onChange={(color) => {
+                        const hslValue = hexToHsl(color);
+                        createCustomColorScheme('accent', hslValue);
+                        setColorScheme('custom');
+                      }}
+                      className="border px-3 py-2 rounded-md w-32 text-sm"
+                      prefix="#"
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="background" className="space-y-4">
+                <div className="flex flex-col gap-4">
+                  <HexColorPicker 
+                    color={hslToHex(customColors.background)}
+                    onChange={(color) => {
+                      const hslValue = hexToHsl(color);
+                      createCustomColorScheme('background', hslValue);
+                      setColorScheme('custom');
+                    }}
+                    className="w-full"
+                  />
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="color-input-background">Cor de Fundo:</Label>
+                    <HexColorInput 
+                      id="color-input-background"
+                      color={hslToHex(customColors.background)} 
+                      onChange={(color) => {
+                        const hslValue = hexToHsl(color);
+                        createCustomColorScheme('background', hslValue);
+                        setColorScheme('custom');
+                      }}
+                      className="border px-3 py-2 rounded-md w-32 text-sm"
+                      prefix="#"
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          <Separator />
+
           <div className="space-y-2 text-sm text-muted-foreground">
             <p>• O tema claro/escuro pode ser alterado a qualquer momento</p>
             <p>• Os esquemas de cores são aplicados em tempo real</p>
-            <p>• As preferências são salvas automaticamente</p>
+            <p>• As cores personalizadas são salvas automaticamente</p>
             <p>• Cada usuário pode ter suas próprias configurações de tema</p>
           </div>
         </CardContent>

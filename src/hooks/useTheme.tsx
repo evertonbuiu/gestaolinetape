@@ -18,6 +18,7 @@ interface ColorScheme {
   sidebarBackground: string;
   sidebarForeground: string;
   sidebarAccent: string;
+  isCustom?: boolean;
 }
 
 interface ThemeContextType {
@@ -27,6 +28,13 @@ interface ThemeContextType {
   setColorScheme: (scheme: string) => void;
   availableColorSchemes: ColorScheme[];
   applyColorScheme: (scheme: ColorScheme) => void;
+  createCustomColorScheme: (colorKey: string, colorValue: string) => void;
+  customColors: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+  };
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -246,10 +254,18 @@ const lightColorSchemes: ColorScheme[] = [
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setTheme] = useState<Theme>('dark');
   const [colorScheme, setColorScheme] = useState<string>('blue');
+  const [customSchemes, setCustomSchemes] = useState<ColorScheme[]>([]);
+  const [customColors, setCustomColors] = useState({
+    primary: '220 60% 50%',
+    secondary: '220 40% 80%',
+    accent: '220 40% 70%',
+    background: '220 60% 15%'
+  });
 
   // Get active color schemes based on current theme
   const getActiveSchemes = () => {
-    return theme === 'dark' ? darkColorSchemes : lightColorSchemes;
+    const baseSchemes = theme === 'dark' ? darkColorSchemes : lightColorSchemes;
+    return [...baseSchemes, ...customSchemes.filter(s => s.isCustom)];
   };
 
   const applyColorScheme = (scheme: ColorScheme) => {
@@ -294,12 +310,60 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
   const handleColorSchemeChange = (schemeId: string) => {
     setColorScheme(schemeId);
-    const schemes = theme === 'dark' ? darkColorSchemes : lightColorSchemes;
-    const scheme = schemes.find(s => s.id === schemeId);
+    // Check both predefined and custom schemes
+    const allSchemes = [...getActiveSchemes()];
+    const scheme = allSchemes.find(s => s.id === schemeId);
     
     if (scheme) {
       applyColorScheme(scheme);
     }
+  };
+  
+  // Function to create or update a custom color scheme
+  const createCustomColorScheme = (colorKey: string, colorValue: string) => {
+    // Update the custom colors state
+    setCustomColors(prev => ({
+      ...prev,
+      [colorKey]: colorValue
+    }));
+    
+    // If we have a custom scheme selected, update it in real-time
+    if (colorScheme === 'custom') {
+      const customScheme = generateCustomScheme();
+      applyColorScheme(customScheme);
+    }
+  };
+  
+  // Helper to generate a custom color scheme based on custom colors
+  const generateCustomScheme = (): ColorScheme => {
+    const isCurrentlyDark = theme === 'dark';
+    
+    // Base custom scheme
+    const customScheme: ColorScheme = {
+      id: 'custom',
+      name: 'Personalizado',
+      isCustom: true,
+      primary: customColors.primary,
+      secondary: customColors.secondary,
+      accent: customColors.accent,
+      background: customColors.background,
+      // Adjust other properties based on the current theme and selected primary/accent colors
+      foreground: isCurrentlyDark ? '210 40% 98%' : '222.2 84% 4.9%',
+      card: isCurrentlyDark ? customColors.background : '0 0% 100%',
+      cardForeground: isCurrentlyDark ? '210 40% 98%' : '222.2 84% 4.9%',
+      muted: customColors.secondary,
+      mutedForeground: isCurrentlyDark ? '215 20.2% 65.1%' : '215.4 16.3% 46.9%',
+      border: customColors.secondary,
+      sidebarBackground: isCurrentlyDark 
+        ? customColors.background.split(' ')[0] + ' 70% 8%' 
+        : customColors.background.split(' ')[0] + ' 33% 98%',
+      sidebarForeground: isCurrentlyDark ? '210 40% 95%' : '240 5.3% 26.1%',
+      sidebarAccent: isCurrentlyDark 
+        ? customColors.background.split(' ')[0] + ' 50% 12%' 
+        : customColors.background.split(' ')[0] + ' 4.8% 95.9%',
+    };
+    
+    return customScheme;
   };
 
   // Load saved preferences
@@ -329,6 +393,36 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('colorScheme', colorScheme);
   }, [colorScheme]);
 
+  // Create or fetch a custom scheme on load if needed
+  useEffect(() => {
+    // Check if we have saved custom colors
+    const savedCustomColors = localStorage.getItem('customColors');
+    if (savedCustomColors) {
+      try {
+        const parsedColors = JSON.parse(savedCustomColors);
+        setCustomColors(parsedColors);
+      } catch (e) {
+        console.error('Failed to parse saved custom colors');
+      }
+    }
+    
+    // Check if we need to add a custom scheme
+    if (colorScheme === 'custom') {
+      const customScheme = generateCustomScheme();
+      // Add to available schemes if not already there
+      setCustomSchemes(prev => 
+        prev.some(s => s.id === 'custom') 
+          ? prev 
+          : [...prev, customScheme]
+      );
+    }
+  }, []);
+  
+  // Save custom colors when they change
+  useEffect(() => {
+    localStorage.setItem('customColors', JSON.stringify(customColors));
+  }, [customColors]);
+
   return (
     <ThemeContext.Provider
       value={{
@@ -338,6 +432,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         setColorScheme: handleColorSchemeChange,
         availableColorSchemes: getActiveSchemes(),
         applyColorScheme,
+        createCustomColorScheme,
+        customColors
       }}
     >
       {children}
