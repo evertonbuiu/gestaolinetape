@@ -142,27 +142,29 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
   const applyColorScheme = (scheme: ColorScheme) => {
     const root = document.documentElement;
-    const isDark = theme === 'dark';
     
-    if (isDark) {
-      root.style.setProperty('--background', scheme.background);
-      root.style.setProperty('--foreground', scheme.foreground);
-      root.style.setProperty('--card', scheme.card);
-      root.style.setProperty('--card-foreground', scheme.cardForeground);
-      root.style.setProperty('--secondary', scheme.secondary);
-      root.style.setProperty('--secondary-foreground', scheme.foreground);
-      root.style.setProperty('--muted', scheme.muted);
-      root.style.setProperty('--muted-foreground', scheme.mutedForeground);
-      root.style.setProperty('--accent', scheme.accent);
-      root.style.setProperty('--accent-foreground', scheme.foreground);
-      root.style.setProperty('--border', scheme.border);
-      root.style.setProperty('--input', scheme.border);
-      root.style.setProperty('--sidebar-background', scheme.sidebarBackground);
-      root.style.setProperty('--sidebar-foreground', scheme.sidebarForeground);
-      root.style.setProperty('--sidebar-accent', scheme.sidebarAccent);
-      root.style.setProperty('--sidebar-accent-foreground', scheme.sidebarForeground);
-      root.style.setProperty('--sidebar-border', scheme.sidebarAccent);
-    }
+    // Apply color scheme regardless of theme
+    root.style.setProperty('--background', scheme.background);
+    root.style.setProperty('--foreground', scheme.foreground);
+    root.style.setProperty('--card', scheme.card);
+    root.style.setProperty('--card-foreground', scheme.cardForeground);
+    root.style.setProperty('--secondary', scheme.secondary);
+    root.style.setProperty('--secondary-foreground', scheme.foreground);
+    root.style.setProperty('--muted', scheme.muted);
+    root.style.setProperty('--muted-foreground', scheme.mutedForeground);
+    root.style.setProperty('--accent', scheme.accent);
+    root.style.setProperty('--accent-foreground', scheme.foreground);
+    root.style.setProperty('--border', scheme.border);
+    root.style.setProperty('--input', scheme.border);
+    root.style.setProperty('--sidebar-background', scheme.sidebarBackground);
+    root.style.setProperty('--sidebar-foreground', scheme.sidebarForeground);
+    root.style.setProperty('--sidebar-accent', scheme.sidebarAccent);
+    root.style.setProperty('--sidebar-accent-foreground', scheme.sidebarForeground);
+    root.style.setProperty('--sidebar-border', scheme.sidebarAccent);
+    
+    // Also apply primary since it's important for the theme
+    root.style.setProperty('--primary', scheme.primary);
+    root.style.setProperty('--primary-foreground', scheme.foreground);
   };
 
   const handleThemeChange = (newTheme: Theme) => {
