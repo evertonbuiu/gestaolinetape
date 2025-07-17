@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CustomAuthProvider } from "@/hooks/useCustomAuth";
+import { ThemeProvider } from "@/hooks/useTheme";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -49,11 +50,13 @@ const AppRoutes = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <CustomAuthProvider>
-        <Toaster />
-        <Sonner />
-        <AppRoutes />
-      </CustomAuthProvider>
+      <ThemeProvider>
+        <CustomAuthProvider>
+          <Toaster />
+          <Sonner />
+          <AppRoutes />
+        </CustomAuthProvider>
+      </ThemeProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

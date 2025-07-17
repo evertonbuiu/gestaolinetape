@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useCustomAuth } from '@/hooks/useCustomAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useOnlineUsers } from '@/hooks/useOnlineUsers';
+import { useTheme } from '@/hooks/useTheme';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Settings2, Shield, Eye, Edit3, Save, UserPlus, Mail, Lock, User, Users, Circle, Upload, Image, Trash2, Palette, EyeOff } from 'lucide-react';
+import { Loader2, Settings2, Shield, Eye, Edit3, Save, UserPlus, Mail, Lock, User, Users, Circle, Upload, Image, Trash2, Palette, EyeOff, Sun, Moon, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
 
@@ -21,6 +22,7 @@ export const SettingsPage = () => {
   const { userRole } = useCustomAuth();
   const { rolePermissions, loading, updateRolePermission } = usePermissions();
   const { onlineUsers, loading: loadingOnlineUsers } = useOnlineUsers();
+  const { theme, colorScheme, setTheme, setColorScheme, availableColorSchemes } = useTheme();
   const { toast } = useToast();
   const { settings: companySettings, updateSettings: updateCompanySettings } = useCompanySettings();
   
@@ -527,6 +529,103 @@ export const SettingsPage = () => {
         </CardContent>
       </Card>
 
+      {/* Theme and Color Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Palette className="w-5 h-5" />
+            Tema e Cores
+          </CardTitle>
+          <CardDescription>
+            Personalize a aparência do sistema
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Theme Toggle */}
+          <div className="space-y-3">
+            <Label>Tema</Label>
+            <div className="flex items-center gap-3">
+              <Button
+                variant={theme === 'light' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTheme('light')}
+                className="flex items-center gap-2"
+              >
+                <Sun className="h-4 w-4" />
+                Claro
+              </Button>
+              <Button
+                variant={theme === 'dark' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTheme('dark')}
+                className="flex items-center gap-2"
+              >
+                <Moon className="h-4 w-4" />
+                Escuro
+              </Button>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Color Scheme Selection */}
+          <div className="space-y-3">
+            <Label>Esquema de Cores</Label>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {availableColorSchemes.map((scheme) => (
+                <Button
+                  key={scheme.id}
+                  variant={colorScheme === scheme.id ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setColorScheme(scheme.id)}
+                  className="h-16 flex flex-col items-center justify-center gap-1 relative"
+                >
+                  {/* Color Preview */}
+                  <div className="flex gap-1 mb-1">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{
+                        backgroundColor: `hsl(${scheme.primary})`
+                      }}
+                    />
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{
+                        backgroundColor: `hsl(${scheme.secondary})`
+                      }}
+                    />
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{
+                        backgroundColor: `hsl(${scheme.accent})`
+                      }}
+                    />
+                  </div>
+                  
+                  <span className="text-xs font-medium">{scheme.name}</span>
+                  
+                  {/* Selected indicator */}
+                  {colorScheme === scheme.id && (
+                    <div className="absolute top-1 right-1">
+                      <Check className="h-3 w-3" />
+                    </div>
+                  )}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <p>• O tema claro/escuro pode ser alterado a qualquer momento</p>
+            <p>• Os esquemas de cores são aplicados em tempo real</p>
+            <p>• As preferências são salvas automaticamente</p>
+            <p>• Cada usuário pode ter suas próprias configurações de tema</p>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -778,3 +877,5 @@ export const SettingsPage = () => {
     </div>
   );
 };
+
+export default SettingsPage;
