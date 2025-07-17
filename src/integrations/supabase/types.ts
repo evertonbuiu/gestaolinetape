@@ -570,6 +570,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_theme_preferences: {
+        Row: {
+          color_scheme: string
+          created_at: string | null
+          custom_colors: Json | null
+          id: string
+          theme: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color_scheme?: string
+          created_at?: string | null
+          custom_colors?: Json | null
+          id?: string
+          theme?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color_scheme?: string
+          created_at?: string | null
+          custom_colors?: Json | null
+          id?: string
+          theme?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
