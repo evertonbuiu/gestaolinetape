@@ -23,7 +23,7 @@ interface DailyExpense {
   description: string;
   category: string;
   amount: number;
-  supplier?: string;
+  expense_bank_account?: string;
   notes?: string;
   created_by: string;
   created_at: string;
@@ -38,6 +38,7 @@ interface ExpenseCategory {
 export const ExpenseSpreadsheet = () => {
   const [expenses, setExpenses] = useState<DailyExpense[]>([]);
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -51,7 +52,7 @@ export const ExpenseSpreadsheet = () => {
     description: "",
     category: "",
     amount: 0,
-    supplier: "",
+    expense_bank_account: "",
     notes: ""
   });
 
@@ -75,7 +76,23 @@ export const ExpenseSpreadsheet = () => {
 
   useEffect(() => {
     loadExpenses();
+    loadBankAccounts();
   }, [selectedMonth, selectedYear]);
+
+  const loadBankAccounts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('bank_accounts')
+        .select('name')
+        .order('name');
+
+      if (error) throw error;
+
+      setBankAccounts(data?.map(account => account.name) || []);
+    } catch (error) {
+      console.error("Error loading bank accounts:", error);
+    }
+  };
 
   const loadExpenses = async () => {
     try {
@@ -101,7 +118,7 @@ export const ExpenseSpreadsheet = () => {
         description: expense.description,
         category: expense.category,
         amount: expense.total_price,
-        supplier: expense.supplier,
+        expense_bank_account: expense.expense_bank_account,
         notes: expense.notes,
         created_by: expense.created_by,
         created_at: expense.created_at
@@ -192,7 +209,7 @@ export const ExpenseSpreadsheet = () => {
           total_price: newExpense.amount,
           unit_price: newExpense.amount,
           quantity: 1,
-          supplier: newExpense.supplier || null,
+          expense_bank_account: newExpense.expense_bank_account || null,
           notes: newExpense.notes || null,
           expense_date: newExpense.date,
           event_id: eventId,
@@ -211,7 +228,7 @@ export const ExpenseSpreadsheet = () => {
         description: "",
         category: "",
         amount: 0,
-        supplier: "",
+        expense_bank_account: "",
         notes: ""
       });
       setIsAddingExpense(false);
@@ -238,7 +255,7 @@ export const ExpenseSpreadsheet = () => {
           category: editingExpense.category,
           total_price: editingExpense.amount,
           unit_price: editingExpense.amount,
-          supplier: editingExpense.supplier || null,
+          expense_bank_account: editingExpense.expense_bank_account || null,
           notes: editingExpense.notes || null,
           expense_date: editingExpense.date,
         })
@@ -297,7 +314,7 @@ export const ExpenseSpreadsheet = () => {
         Descrição: expense.description,
         Categoria: expense.category,
         Valor: expense.amount,
-        Fornecedor: expense.supplier || '',
+        'Conta Bancária': expense.expense_bank_account || '',
         Observações: expense.notes || ''
       }))
     );
@@ -415,13 +432,17 @@ export const ExpenseSpreadsheet = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="supplier">Fornecedor</Label>
-                    <Input
-                      id="supplier"
-                      value={newExpense.supplier}
-                      onChange={(e) => setNewExpense({ ...newExpense, supplier: e.target.value })}
-                      placeholder="Nome do fornecedor"
-                    />
+                    <Label htmlFor="expense_bank_account">Conta Bancária</Label>
+                    <Select value={newExpense.expense_bank_account} onValueChange={(value) => setNewExpense({ ...newExpense, expense_bank_account: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a conta..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {bankAccounts.map(account => (
+                          <SelectItem key={account} value={account}>{account}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -551,7 +572,7 @@ export const ExpenseSpreadsheet = () => {
                     <TableHead>Data</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead>Categoria</TableHead>
-                    <TableHead>Fornecedor</TableHead>
+                    <TableHead>Conta Bancária</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
                     <TableHead className="text-center">Ações</TableHead>
                   </TableRow>
@@ -564,7 +585,7 @@ export const ExpenseSpreadsheet = () => {
                       <TableCell>
                         <Badge variant="secondary">{expense.category}</Badge>
                       </TableCell>
-                      <TableCell>{expense.supplier || '-'}</TableCell>
+                      <TableCell>{expense.expense_bank_account || '-'}</TableCell>
                       <TableCell className="text-right font-medium">
                         {formatCurrency(expense.amount)}
                       </TableCell>
@@ -731,12 +752,17 @@ export const ExpenseSpreadsheet = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-supplier">Fornecedor</Label>
-                  <Input
-                    id="edit-supplier"
-                    value={editingExpense.supplier || ''}
-                    onChange={(e) => setEditingExpense({ ...editingExpense, supplier: e.target.value })}
-                  />
+                  <Label htmlFor="edit-expense_bank_account">Conta Bancária</Label>
+                  <Select value={editingExpense.expense_bank_account || ''} onValueChange={(value) => setEditingExpense({ ...editingExpense, expense_bank_account: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a conta..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bankAccounts.map(account => (
+                        <SelectItem key={account} value={account}>{account}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="space-y-2">
