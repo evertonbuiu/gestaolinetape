@@ -277,6 +277,16 @@ export const ExpenseSpreadsheet = () => {
         description: "Despesa atualizada com sucesso.",
       });
 
+      // Se a data da despesa mudou, atualizar os filtros para mostrar o período correto
+      const expenseDate = new Date(editingExpense.date);
+      const expenseMonth = expenseDate.getMonth() + 1;
+      const expenseYear = expenseDate.getFullYear();
+      
+      if (expenseMonth !== selectedMonth || expenseYear !== selectedYear) {
+        setSelectedMonth(expenseMonth);
+        setSelectedYear(expenseYear);
+      }
+
       setEditingExpense(null);
       loadExpenses();
 

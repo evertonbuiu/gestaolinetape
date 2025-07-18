@@ -171,8 +171,13 @@ export const PersonalExpenseSpreadsheet = () => {
         created_at: new Date().toISOString()
       };
 
-      // Salvar no localStorage
-      const storageKey = `personal_expenses_${selectedMonth}_${selectedYear}`;
+      // Determinar o mês/ano correto com base na data da despesa
+      const expenseDate = new Date(newExpense.date);
+      const expenseMonth = expenseDate.getMonth() + 1;
+      const expenseYear = expenseDate.getFullYear();
+
+      // Salvar no localStorage da data correta
+      const storageKey = `personal_expenses_${expenseMonth}_${expenseYear}`;
       const existingExpenses = JSON.parse(localStorage.getItem(storageKey) || '[]');
       const updatedExpenses = [...existingExpenses, expense];
       localStorage.setItem(storageKey, JSON.stringify(updatedExpenses));
@@ -181,6 +186,10 @@ export const PersonalExpenseSpreadsheet = () => {
         title: "Sucesso",
         description: "Despesa pessoal adicionada com sucesso.",
       });
+
+      // Atualizar filtros para mostrar o mês/ano da despesa adicionada
+      setSelectedMonth(expenseMonth);
+      setSelectedYear(expenseYear);
 
       setNewExpense({
         date: new Date().toISOString().split('T')[0],
@@ -191,7 +200,8 @@ export const PersonalExpenseSpreadsheet = () => {
         notes: ""
       });
       setIsAddingExpense(false);
-      loadPersonalExpenses();
+      
+      // Como mudamos os filtros, o useEffect irá carregar automaticamente as despesas do novo período
 
     } catch (error) {
       console.error("Error adding personal expense:", error);
@@ -207,12 +217,34 @@ export const PersonalExpenseSpreadsheet = () => {
     if (!editingExpense) return;
 
     try {
-      const storageKey = `personal_expenses_${selectedMonth}_${selectedYear}`;
-      const existingExpenses = JSON.parse(localStorage.getItem(storageKey) || '[]');
-      const updatedExpenses = existingExpenses.map((exp: PersonalExpense) => 
-        exp.id === editingExpense.id ? editingExpense : exp
-      );
-      localStorage.setItem(storageKey, JSON.stringify(updatedExpenses));
+      // Determinar o mês/ano correto com base na data da despesa
+      const expenseDate = new Date(editingExpense.date);
+      const expenseMonth = expenseDate.getMonth() + 1;
+      const expenseYear = expenseDate.getFullYear();
+      
+      const storageKey = `personal_expenses_${expenseMonth}_${expenseYear}`;
+      
+      // Se a data mudou, remover da chave original e adicionar na nova
+      const originalStorageKey = `personal_expenses_${selectedMonth}_${selectedYear}`;
+      
+      if (storageKey !== originalStorageKey) {
+        // Remover da chave original
+        const originalExpenses = JSON.parse(localStorage.getItem(originalStorageKey) || '[]');
+        const filteredOriginalExpenses = originalExpenses.filter((exp: PersonalExpense) => exp.id !== editingExpense.id);
+        localStorage.setItem(originalStorageKey, JSON.stringify(filteredOriginalExpenses));
+        
+        // Adicionar na nova chave
+        const newExpenses = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        const updatedNewExpenses = [...newExpenses, editingExpense];
+        localStorage.setItem(storageKey, JSON.stringify(updatedNewExpenses));
+      } else {
+        // Mesma chave, apenas atualizar
+        const existingExpenses = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        const updatedExpenses = existingExpenses.map((exp: PersonalExpense) => 
+          exp.id === editingExpense.id ? editingExpense : exp
+        );
+        localStorage.setItem(storageKey, JSON.stringify(updatedExpenses));
+      }
 
       toast({
         title: "Sucesso",
