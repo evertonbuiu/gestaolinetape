@@ -2598,6 +2598,60 @@ export const FinancialManagement = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="budget" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Controle Orçamentário</CardTitle>
+                  <CardDescription>Acompanhe o orçamento vs realizado por categoria</CardDescription>
+                </div>
+                <Button variant="outline" onClick={() => setIsEditingBudget(true)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Editar Orçamentos
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {budget.map((item) => (
+                  <div key={item.id} className="p-4 border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium">{item.category}</h4>
+                      <span className="text-sm text-muted-foreground">{item.percentage}% utilizado</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <div className="text-muted-foreground">Orçado</div>
+                        <div className="font-bold">{formatCurrency(item.budgeted)}</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">Gasto</div>
+                        <div className="font-bold text-red-600">{formatCurrency(item.spent)}</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">Restante</div>
+                        <div className="font-bold text-green-600">{formatCurrency(item.remaining)}</div>
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <div className="w-full bg-muted rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            item.percentage > 90 ? 'bg-red-500' : 
+                            item.percentage > 70 ? 'bg-orange-500' : 'bg-green-500'
+                          }`}
+                          style={{ width: `${Math.min(item.percentage, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Modal para Editar Orçamentos */}
           <Dialog open={isEditingBudget} onOpenChange={setIsEditingBudget}>
