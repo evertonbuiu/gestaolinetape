@@ -9,6 +9,7 @@ import { Clients } from "@/components/Clients";
 import { Collaborators } from "@/components/Collaborators";
 import { FinancialManagement } from "@/components/FinancialManagement";
 import { UserManagement } from "@/components/UserManagement";
+import { Maintenance } from "@/components/Maintenance";
 import { SettingsPage } from "@/components/Settings";
 import { ExpenseSpreadsheet } from "@/components/ExpenseSpreadsheet";
 import { PersonalExpenseSpreadsheet } from "@/components/PersonalExpenseSpreadsheet";
@@ -43,7 +44,7 @@ const Index = () => {
       case "user-management":
         return <UserManagement key="user-management" />;
       case "maintenance":
-        return <div key="maintenance" className="p-6"><h2 className="text-2xl font-bold">Manutenção - Em Desenvolvimento</h2></div>;
+        return <Maintenance key="maintenance" />;
       case "expense-spreadsheet":
         return <ExpenseSpreadsheet key="expense-spreadsheet" />;
       case "personal-expenses":

@@ -463,6 +463,66 @@ export type Database = {
           },
         ]
       }
+      maintenance_records: {
+        Row: {
+          completed_date: string | null
+          cost: number | null
+          created_at: string
+          created_by: string
+          description: string
+          equipment_id: string
+          equipment_name: string
+          id: string
+          maintenance_type: string
+          priority: string
+          problem_description: string | null
+          scheduled_date: string
+          solution_description: string | null
+          status: string
+          technician_contact: string | null
+          technician_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          completed_date?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by: string
+          description: string
+          equipment_id: string
+          equipment_name: string
+          id?: string
+          maintenance_type: string
+          priority?: string
+          problem_description?: string | null
+          scheduled_date: string
+          solution_description?: string | null
+          status?: string
+          technician_contact?: string | null
+          technician_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          completed_date?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by?: string
+          description?: string
+          equipment_id?: string
+          equipment_name?: string
+          id?: string
+          maintenance_type?: string
+          priority?: string
+          problem_description?: string | null
+          scheduled_date?: string
+          solution_description?: string | null
+          status?: string
+          technician_contact?: string | null
+          technician_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       permissions: {
         Row: {
           category: string
