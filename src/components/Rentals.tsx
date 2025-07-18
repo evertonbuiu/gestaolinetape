@@ -222,30 +222,32 @@ export const Rentals = () => {
 
   const fetchCollaborators = async () => {
     try {
-      // Mock data for collaborators since the table doesn't exist in schema
-      const mockCollaborators = [
-        {
-          id: "1",
-          name: "João Silva",
-          email: "joao@empresa.com",
-          phone: "(11) 99999-9999",
-          role: "Funcionário",
-          status: "active" as const,
-          createdAt: "2024-01-15"
-        },
-        {
-          id: "2",
-          name: "Maria Santos",
-          email: "maria@empresa.com",
-          phone: "(11) 88888-8888",
-          role: "Técnico",
-          status: "active" as const,
-          createdAt: "2024-01-10"
-        }
-      ];
-      setCollaborators(mockCollaborators);
+      const { data, error } = await supabase
+        .from('collaborators')
+        .select('*')
+        .eq('status', 'active')
+        .order('name');
+
+      if (error) throw error;
+      
+      const formattedCollaborators = (data || []).map(collaborator => ({
+        id: collaborator.id,
+        name: collaborator.name,
+        email: collaborator.email,
+        phone: collaborator.phone,
+        role: collaborator.role,
+        status: collaborator.status as 'active' | 'inactive',
+        createdAt: collaborator.created_at
+      }));
+      
+      setCollaborators(formattedCollaborators);
     } catch (error) {
       console.error('Error fetching collaborators:', error);
+      toast({
+        title: "Erro ao carregar colaboradores",
+        description: "Não foi possível carregar os colaboradores.",
+        variant: "destructive"
+      });
     }
   };
 
