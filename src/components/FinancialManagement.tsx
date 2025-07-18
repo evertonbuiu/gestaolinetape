@@ -87,6 +87,8 @@ export const FinancialManagement = () => {
   const [isViewingStatement, setIsViewingStatement] = useState(false);
   const [isEditingInventoryItem, setIsEditingInventoryItem] = useState(false);
   const [isViewingInventoryItem, setIsViewingInventoryItem] = useState(false);
+  const [isEditingBudget, setIsEditingBudget] = useState(false);
+  const [budgetValues, setBudgetValues] = useState<Record<string, number>>({});
   const [selectedAccount, setSelectedAccount] = useState<AccountBalance | null>(null);
   const [selectedInventoryItem, setSelectedInventoryItem] = useState<InventoryItem | null>(null);
   const [viewInventoryItem, setViewInventoryItem] = useState<InventoryItem | null>(null);
@@ -330,15 +332,15 @@ export const FinancialManagement = () => {
         return acc;
       }, {} as Record<string, number>) || {};
 
-      // Orçamentos padrão por categoria
+      // Orçamentos padrão por categoria (editáveis pelo admin)
       const budgetDefaults = {
-        "Equipamentos": 5000,
-        "Despesas Operacionais": 3000,
-        "Pessoal": 2000,
-        "Marketing": 1000,
-        "Alimentação": 1500,
-        "Transporte": 800,
-        "Outros": 500
+        "Equipamentos": budget.find(b => b.category === "Equipamentos")?.budgeted || 5000,
+        "Despesas Operacionais": budget.find(b => b.category === "Despesas Operacionais")?.budgeted || 3000,
+        "Pessoal": budget.find(b => b.category === "Pessoal")?.budgeted || 2000,
+        "Marketing": budget.find(b => b.category === "Marketing")?.budgeted || 1000,
+        "Alimentação": budget.find(b => b.category === "Alimentação")?.budgeted || 1500,
+        "Transporte": budget.find(b => b.category === "Transporte")?.budgeted || 800,
+        "Outros": budget.find(b => b.category === "Outros")?.budgeted || 500
       };
 
       const calculatedBudget: BudgetEntry[] = Object.entries(budgetDefaults).map(([category, budgeted]) => {
@@ -357,6 +359,15 @@ export const FinancialManagement = () => {
       });
 
       setBudget(calculatedBudget);
+
+      // Inicializar valores de orçamento se não existirem
+      if (Object.keys(budgetValues).length === 0) {
+        const initialBudgetValues = Object.entries(budgetDefaults).reduce((acc, [category, value]) => {
+          acc[category] = value;
+          return acc;
+        }, {} as Record<string, number>);
+        setBudgetValues(initialBudgetValues);
+      }
 
       // Calcular saldos das contas baseado nas movimentações
       const totalIncome = eventEntries
@@ -658,6 +669,31 @@ export const FinancialManagement = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleSaveBudgetValues = () => {
+    // Recalcular o orçamento com os novos valores
+    const updatedBudget = budget.map(item => {
+      const newBudgeted = budgetValues[item.category] ?? item.budgeted;
+      const remaining = newBudgeted - item.spent;
+      const percentage = item.spent > 0 ? (item.spent / newBudgeted) * 100 : 0;
+      
+      return {
+        ...item,
+        budgeted: newBudgeted,
+        remaining,
+        percentage: Math.round(percentage)
+      };
+    });
+    
+    setBudget(updatedBudget);
+    setBudgetValues({});
+    setIsEditingBudget(false);
+    
+    toast({
+      title: "Sucesso",
+      description: "Valores orçamentários atualizados com sucesso!",
+    });
   };
 
   const handleViewStatement = (account: AccountBalance) => {
@@ -2401,8 +2437,16 @@ export const FinancialManagement = () => {
         <TabsContent value="budget" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Controle Orçamentário</CardTitle>
-              <CardDescription>Acompanhe o orçamento vs realizado por categoria</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Controle Orçamentário</CardTitle>
+                  <CardDescription>Acompanhe o orçamento vs realizado por categoria</CardDescription>
+                </div>
+                <Button variant="outline" onClick={() => setIsEditingBudget(true)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Editar Orçamentos
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -2554,6 +2598,42 @@ export const FinancialManagement = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Modal para Editar Orçamentos */}
+          <Dialog open={isEditingBudget} onOpenChange={setIsEditingBudget}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Editar Valores Orçamentários</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                {budget.map((item) => (
+                  <div key={item.category} className="grid grid-cols-3 gap-4 items-center">
+                    <Label className="font-medium">{item.category}</Label>
+                    <Input
+                      type="number"
+                      value={budgetValues[item.category] ?? item.budgeted}
+                      onChange={(e) => setBudgetValues({
+                        ...budgetValues,
+                        [item.category]: parseFloat(e.target.value) || 0
+                      })}
+                      placeholder="0,00"
+                    />
+                    <div className="text-sm text-muted-foreground">
+                      Gasto: {formatCurrency(item.spent)}
+                    </div>
+                  </div>
+                ))}
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button variant="outline" onClick={() => setIsEditingBudget(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleSaveBudgetValues}>
+                    Salvar Orçamentos
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="inventory" className="space-y-4">
