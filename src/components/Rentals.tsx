@@ -612,7 +612,85 @@ export const Rentals = () => {
     fetchBankAccounts();
     fetchClients();
     fetchCollaborators();
+
+    // Setup realtime subscriptions for automatic updates
+    const eventsChannel = supabase
+      .channel('events-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'events'
+        },
+        () => {
+          fetchEvents();
+        }
+      )
+      .subscribe();
+
+    const expensesChannel = supabase
+      .channel('expenses-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'event_expenses'
+        },
+        () => {
+          if (selectedEvent) {
+            fetchExpenses(selectedEvent.id);
+          }
+          fetchEvents(); // Refresh events to update total_expenses
+        }
+      )
+      .subscribe();
+
+    const bankAccountsChannel = supabase
+      .channel('bank-accounts-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bank_accounts'
+        },
+        () => {
+          fetchBankAccounts();
+        }
+      )
+      .subscribe();
+
+    const collaboratorsChannel = supabase
+      .channel('collaborators-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'collaborators'
+        },
+        () => {
+          fetchCollaborators();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(eventsChannel);
+      supabase.removeChannel(expensesChannel);
+      supabase.removeChannel(bankAccountsChannel);
+      supabase.removeChannel(collaboratorsChannel);
+    };
   }, []);
+
+  // Fetch expenses when selectedEvent changes
+  useEffect(() => {
+    if (selectedEvent) {
+      fetchExpenses(selectedEvent.id);
+    }
+  }, [selectedEvent]);
 
   if (loading) {
     return (
