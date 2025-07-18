@@ -30,6 +30,7 @@ interface ThemeContextType {
   availableColorSchemes: ColorScheme[];
   applyColorScheme: (scheme: ColorScheme) => void;
   createCustomColorScheme: (colorKey: string, colorValue: string) => void;
+  saveThemePreferences: () => Promise<void>;
   customColors: {
     primary: string;
     secondary: string;
@@ -368,21 +369,34 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   // Load theme preferences from Supabase
   const loadThemePreferences = async () => {
     try {
+      const { data: session } = await supabase.auth.getSession();
+      
+      if (!session?.session?.user) {
+        console.log('No authenticated user, skipping theme preference loading');
+        return;
+      }
+
       const { data: prefs, error } = await supabase
         .from('user_theme_preferences')
         .select()
-        .single();
+        .eq('user_id', session.session.user.id)
+        .maybeSingle();
 
       if (error) {
-        if (error.code === 'PGRST116') { // No data found
-          return;
-        }
-        throw error;
+        console.error('Error loading theme preferences:', error);
+        return;
       }
 
       if (prefs) {
-        setTheme(prefs.theme as Theme);
-        setColorScheme(prefs.color_scheme);
+        const newTheme = prefs.theme as Theme;
+        const newColorScheme = prefs.color_scheme;
+        
+        setTheme(newTheme);
+        setColorScheme(newColorScheme);
+        
+        // Apply theme class to document
+        document.documentElement.classList.toggle('dark', newTheme === 'dark');
+        
         if (prefs.custom_colors && typeof prefs.custom_colors === 'object') {
           const colors = prefs.custom_colors as {
             primary: string;
@@ -397,6 +411,20 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
               ? prev.map(s => s.id === 'custom' ? customScheme : s)
               : [...prev, customScheme]
           );
+          
+          // Apply custom colors if the current scheme is custom
+          if (newColorScheme === 'custom') {
+            applyColorScheme(customScheme);
+          }
+        }
+        
+        // Apply the loaded color scheme
+        const allSchemes = newTheme === 'dark' ? darkColorSchemes : lightColorSchemes;
+        const scheme = allSchemes.find(s => s.id === newColorScheme) || 
+                     customSchemes.find(s => s.id === newColorScheme);
+        
+        if (scheme && newColorScheme !== 'custom') {
+          applyColorScheme(scheme);
         }
       }
     } catch (error) {
@@ -471,6 +499,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         availableColorSchemes: getActiveSchemes(),
         applyColorScheme,
         createCustomColorScheme,
+        saveThemePreferences,
         customColors
       }}
     >

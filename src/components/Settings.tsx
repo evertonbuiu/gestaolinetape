@@ -25,7 +25,7 @@ export const SettingsPage = () => {
   const { userRole } = useCustomAuth();
   const { rolePermissions, loading, updateRolePermission } = usePermissions();
   const { onlineUsers, loading: loadingOnlineUsers } = useOnlineUsers();
-  const { theme, colorScheme, setTheme, setColorScheme, availableColorSchemes, createCustomColorScheme, customColors } = useTheme();
+  const { theme, colorScheme, setTheme, setColorScheme, availableColorSchemes, createCustomColorScheme, customColors, saveThemePreferences } = useTheme();
   const { toast } = useToast();
   const { settings: companySettings, updateSettings: updateCompanySettings } = useCompanySettings();
   
