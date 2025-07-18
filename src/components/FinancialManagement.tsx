@@ -89,6 +89,9 @@ export const FinancialManagement = () => {
   const [isViewingInventoryItem, setIsViewingInventoryItem] = useState(false);
   const [isEditingBudget, setIsEditingBudget] = useState(false);
   const [budgetValues, setBudgetValues] = useState<Record<string, number>>({});
+  const [isEditingPersonalBudget, setIsEditingPersonalBudget] = useState(false);
+  const [personalBudget, setPersonalBudget] = useState<BudgetEntry[]>([]);
+  const [personalBudgetValues, setPersonalBudgetValues] = useState<Record<string, number>>({});
   const [selectedAccount, setSelectedAccount] = useState<AccountBalance | null>(null);
   const [selectedInventoryItem, setSelectedInventoryItem] = useState<InventoryItem | null>(null);
   const [viewInventoryItem, setViewInventoryItem] = useState<InventoryItem | null>(null);
@@ -367,6 +370,45 @@ export const FinancialManagement = () => {
           return acc;
         }, {} as Record<string, number>);
         setBudgetValues(initialBudgetValues);
+      }
+
+      // Inicializar orçamento pessoal com categorias pessoais
+      const personalBudgetDefaults = {
+        "Moradia": 2000,
+        "Alimentação": 800,
+        "Transporte": 500,
+        "Saúde": 400,
+        "Educação": 300,
+        "Lazer": 600,
+        "Roupas": 200,
+        "Poupança": 1000,
+        "Outros": 300
+      };
+
+      const personalBudgetData: BudgetEntry[] = Object.entries(personalBudgetDefaults).map(([category, budgeted]) => {
+        const spent = 0; // Por enquanto, sem gastos reais
+        const remaining = budgeted - spent;
+        const percentage = 0;
+        
+        return {
+          id: category,
+          category,
+          budgeted,
+          spent,
+          remaining,
+          percentage
+        };
+      });
+
+      setPersonalBudget(personalBudgetData);
+
+      // Inicializar valores de orçamento pessoal se não existirem
+      if (Object.keys(personalBudgetValues).length === 0) {
+        const initialPersonalBudgetValues = Object.entries(personalBudgetDefaults).reduce((acc, [category, value]) => {
+          acc[category] = value;
+          return acc;
+        }, {} as Record<string, number>);
+        setPersonalBudgetValues(initialPersonalBudgetValues);
       }
 
       // Calcular saldos das contas baseado nas movimentações
@@ -693,6 +735,31 @@ export const FinancialManagement = () => {
     toast({
       title: "Sucesso",
       description: "Valores orçamentários atualizados com sucesso!",
+    });
+  };
+
+  const handleSavePersonalBudgetValues = () => {
+    // Recalcular o orçamento pessoal com os novos valores
+    const updatedPersonalBudget = personalBudget.map(item => {
+      const newBudgeted = personalBudgetValues[item.category] ?? item.budgeted;
+      const remaining = newBudgeted - item.spent;
+      const percentage = item.spent > 0 ? (item.spent / newBudgeted) * 100 : 0;
+      
+      return {
+        ...item,
+        budgeted: newBudgeted,
+        remaining,
+        percentage: Math.round(percentage)
+      };
+    });
+    
+    setPersonalBudget(updatedPersonalBudget);
+    setPersonalBudgetValues({});
+    setIsEditingPersonalBudget(false);
+    
+    toast({
+      title: "Sucesso",
+      description: "Orçamento pessoal atualizado com sucesso!",
     });
   };
 
@@ -2181,9 +2248,10 @@ export const FinancialManagement = () => {
 
       {/* Tabs das Planilhas */}
       <Tabs defaultValue="cashflow" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="cashflow">Fluxo de Caixa</TabsTrigger>
-          <TabsTrigger value="budget">Orçamento</TabsTrigger>
+          <TabsTrigger value="budget-company">Orçamento Empresa</TabsTrigger>
+          <TabsTrigger value="budget-personal">Orçamento Pessoal</TabsTrigger>
           <TabsTrigger value="accounts">Contas</TabsTrigger>
           <TabsTrigger value="inventory">Inventário</TabsTrigger>
           <TabsTrigger value="reports">Relatórios</TabsTrigger>
@@ -2600,13 +2668,13 @@ export const FinancialManagement = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="budget" className="space-y-4">
+        <TabsContent value="budget-company" className="space-y-4">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Controle Orçamentário</CardTitle>
-                  <CardDescription>Acompanhe o orçamento vs realizado por categoria</CardDescription>
+                  <CardTitle>Controle Orçamentário da Empresa</CardTitle>
+                  <CardDescription>Acompanhe o orçamento vs realizado por categoria empresarial</CardDescription>
                 </div>
                 <Button variant="outline" onClick={() => setIsEditingBudget(true)}>
                   <Edit className="h-4 w-4 mr-2" />
@@ -2683,6 +2751,96 @@ export const FinancialManagement = () => {
                   </Button>
                   <Button onClick={handleSaveBudgetValues}>
                     Salvar Orçamentos
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
+
+        <TabsContent value="budget-personal" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Controle Orçamentário Pessoal</CardTitle>
+                  <CardDescription>Acompanhe seu orçamento pessoal vs gastos realizados</CardDescription>
+                </div>
+                <Button variant="outline" onClick={() => setIsEditingPersonalBudget(true)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Editar Orçamento Pessoal
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {personalBudget.map((item) => (
+                  <div key={item.id} className="p-4 border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium">{item.category}</h4>
+                      <span className="text-sm text-muted-foreground">{item.percentage}% utilizado</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <div className="text-muted-foreground">Orçado</div>
+                        <div className="font-bold">{formatCurrency(item.budgeted)}</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">Gasto</div>
+                        <div className="font-bold text-red-600">{formatCurrency(item.spent)}</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">Restante</div>
+                        <div className="font-bold text-green-600">{formatCurrency(item.remaining)}</div>
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <div className="w-full bg-muted rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            item.percentage > 90 ? 'bg-red-500' : 
+                            item.percentage > 70 ? 'bg-orange-500' : 'bg-green-500'
+                          }`}
+                          style={{ width: `${Math.min(item.percentage, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Modal para Editar Orçamento Pessoal */}
+          <Dialog open={isEditingPersonalBudget} onOpenChange={setIsEditingPersonalBudget}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Editar Orçamento Pessoal</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                {personalBudget.map((item) => (
+                  <div key={item.category} className="grid grid-cols-3 gap-4 items-center">
+                    <Label className="font-medium">{item.category}</Label>
+                    <Input
+                      type="number"
+                      value={personalBudgetValues[item.category] ?? item.budgeted}
+                      onChange={(e) => setPersonalBudgetValues({
+                        ...personalBudgetValues,
+                        [item.category]: parseFloat(e.target.value) || 0
+                      })}
+                      placeholder="0,00"
+                    />
+                    <div className="text-sm text-muted-foreground">
+                      Gasto: {formatCurrency(item.spent)}
+                    </div>
+                  </div>
+                ))}
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button variant="outline" onClick={() => setIsEditingPersonalBudget(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleSavePersonalBudgetValues}>
+                    Salvar Orçamento Pessoal
                   </Button>
                 </div>
               </div>
