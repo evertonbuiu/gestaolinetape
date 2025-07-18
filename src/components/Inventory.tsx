@@ -48,6 +48,29 @@ export const Inventory = () => {
     }
   }, [canViewInventory, fetchEquipment]);
 
+  // Add realtime updates for equipment
+  useEffect(() => {
+    const channel = supabase
+      .channel('inventory-equipment-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'equipment'
+        },
+        () => {
+          console.log('Equipment data updated, refreshing inventory...');
+          fetchEquipment();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchEquipment]);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "available":

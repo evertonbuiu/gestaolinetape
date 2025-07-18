@@ -100,6 +100,48 @@ export const EventEquipment = () => {
   });
   const [isNewCollaborator, setIsNewCollaborator] = useState(false);
 
+  // Add realtime updates
+  useEffect(() => {
+    const eventsChannel = supabase
+      .channel('events-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'events'
+        },
+        () => {
+          console.log('Events data updated, refreshing...');
+          fetchEvents();
+        }
+      )
+      .subscribe();
+
+    const equipmentChannel = supabase
+      .channel('event-equipment-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'event_equipment'
+        },
+        () => {
+          console.log('Event equipment data updated, refreshing...');
+          if (selectedEvent) {
+            fetchEquipment(selectedEvent.id);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(eventsChannel);
+      supabase.removeChannel(equipmentChannel);
+    };
+  }, [selectedEvent]);
+
   // Fetch events
   const fetchEvents = async () => {
     try {

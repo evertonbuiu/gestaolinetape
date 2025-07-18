@@ -17,6 +17,29 @@ import { useCustomAuth } from "@/hooks/useCustomAuth";
 export const Equipment = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { equipment, loading, fetchEquipment } = useEquipment();
+
+  // Add realtime updates for equipment
+  useEffect(() => {
+    const channel = supabase
+      .channel('equipment-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'equipment'
+        },
+        () => {
+          console.log('Equipment data updated, refreshing...');
+          fetchEquipment();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchEquipment]);
   const { hasPermission } = usePermissions();
   const { toast } = useToast();
   const { user } = useCustomAuth();

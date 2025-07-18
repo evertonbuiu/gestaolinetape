@@ -34,7 +34,7 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
     { id: "collaborators", label: "Colaboradores", icon: UserCheck },
     ...(userRole === 'admin' || userRole === 'financeiro' ? [{ id: "financial", label: "Gestão Financeira", icon: DollarSign }] : []),
     ...(userRole === 'admin' || userRole === 'financeiro' ? [{ id: "expense-spreadsheet", label: "Gastos Empresa", icon: FileSpreadsheet }] : []),
-    { id: "personal-expenses", label: "Gastos Pessoais", icon: User },
+    ...(userRole === 'admin' || userRole === 'financeiro' ? [{ id: "personal-expenses", label: "Gastos Pessoais", icon: User }] : []),
     ...(userRole === 'admin' ? [{ id: "user-management", label: "Gerenciar Usuários", icon: UserCog }] : []),
     { id: "maintenance", label: "Manutenção", icon: Wrench },
     ...(userRole === 'admin' && canAccessSettings ? [{ id: "settings", label: "Configurações", icon: Settings }] : []),
