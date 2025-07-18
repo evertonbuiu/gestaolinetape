@@ -301,9 +301,15 @@ export const FinancialManagement = () => {
         // Determinar a conta bancária baseada no payment_bank_account
         const account = event.payment_bank_account || "Conta Corrente Principal";
         
+        // Garantir que a data seja uma string no formato YYYY-MM-DD
+        const eventDate = event.payment_date || event.event_date;
+        const formattedDate = typeof eventDate === 'string' 
+          ? eventDate.split('T')[0] 
+          : new Date(eventDate).toISOString().split('T')[0];
+        
         return {
           id: event.id,
-          date: event.payment_date || event.event_date,
+          date: formattedDate,
           description: `${event.payment_type === 'entrada' ? 'Entrada' : 'Pagamento'} - ${event.name}`,
           category: "Receita de Eventos",
           type: "income" as const,
@@ -314,16 +320,24 @@ export const FinancialManagement = () => {
       }) || [];
 
       // Transformar despesas em entradas do fluxo de caixa
-      const expenseEntries: CashFlowEntry[] = expensesData?.map(expense => ({
-        id: expense.id,
-        date: expense.expense_date || expense.created_at.split('T')[0],
-        description: expense.description,
-        category: expense.category,
-        type: "expense" as const,
-        amount: expense.total_price,
-        account: expense.expense_bank_account || "Conta Corrente Principal",
-        status: "confirmed" as const
-      })) || [];
+      const expenseEntries: CashFlowEntry[] = expensesData?.map(expense => {
+        // Garantir que a data seja uma string no formato YYYY-MM-DD
+        const expenseDate = expense.expense_date || expense.created_at;
+        const formattedDate = typeof expenseDate === 'string' 
+          ? expenseDate.split('T')[0] 
+          : new Date(expenseDate).toISOString().split('T')[0];
+          
+        return {
+          id: expense.id,
+          date: formattedDate,
+          description: expense.description,
+          category: expense.category,
+          type: "expense" as const,
+          amount: expense.total_price,
+          account: expense.expense_bank_account || "Conta Corrente Principal",
+          status: "confirmed" as const
+        };
+      }) || [];
 
       // Combinar todas as entradas
       const allEntries = [...eventEntries, ...expenseEntries];
@@ -1635,7 +1649,7 @@ export const FinancialManagement = () => {
                         {(expenses as CashFlowEntry[]).map((expense: CashFlowEntry) => (
                           <TableRow key={expense.id}>
                             <TableCell>
-                              {new Date(expense.date).toLocaleDateString('pt-BR')}
+                              {expense.date.split('-').reverse().join('/')}
                             </TableCell>
                             <TableCell>{expense.description}</TableCell>
                             <TableCell>{expense.account}</TableCell>
@@ -1782,7 +1796,7 @@ export const FinancialManagement = () => {
                         {(expenses as CashFlowEntry[]).map((expense: CashFlowEntry) => (
                           <TableRow key={expense.id}>
                             <TableCell>
-                              {new Date(expense.date).toLocaleDateString('pt-BR')}
+                              {expense.date.split('-').reverse().join('/')}
                             </TableCell>
                             <TableCell>{expense.description}</TableCell>
                             <TableCell>{expense.account}</TableCell>
@@ -1822,7 +1836,7 @@ export const FinancialManagement = () => {
                       {reportData.data.nonDeductibleExpenses.slice(0, 10).map((expense: any) => (
                         <TableRow key={expense.id}>
                           <TableCell>
-                            {new Date(expense.date).toLocaleDateString('pt-BR')}
+                            {expense.date.split('-').reverse().join('/')}
                           </TableCell>
                           <TableCell>{expense.description}</TableCell>
                           <TableCell>{expense.category}</TableCell>
@@ -2462,7 +2476,7 @@ export const FinancialManagement = () => {
                     .map((entry) => (
                     <TableRow key={entry.id}>
                       <TableCell>
-                        {new Date(entry.date).toLocaleDateString('pt-BR')}
+                        {entry.date.split('-').reverse().join('/')}
                       </TableCell>
                       <TableCell>{entry.description}</TableCell>
                       <TableCell>{entry.category}</TableCell>
@@ -3431,7 +3445,7 @@ export const FinancialManagement = () => {
                   {selectedAccount && getAccountTransactions(selectedAccount.name).map((transaction) => (
                     <TableRow key={transaction.id}>
                       <TableCell>
-                        {new Date(transaction.date).toLocaleDateString('pt-BR')}
+                        {transaction.date.split('-').reverse().join('/')}
                       </TableCell>
                       <TableCell>{transaction.description}</TableCell>
                       <TableCell>{transaction.category}</TableCell>
