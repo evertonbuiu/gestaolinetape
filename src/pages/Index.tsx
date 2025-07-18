@@ -10,6 +10,7 @@ import { Collaborators } from "@/components/Collaborators";
 import { FinancialManagement } from "@/components/FinancialManagement";
 import { UserManagement } from "@/components/UserManagement";
 import { SettingsPage } from "@/components/Settings";
+import { ExpenseSpreadsheet } from "@/components/ExpenseSpreadsheet";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -42,6 +43,8 @@ const Index = () => {
         return <UserManagement key="user-management" />;
       case "maintenance":
         return <div key="maintenance" className="p-6"><h2 className="text-2xl font-bold">Manutenção - Em Desenvolvimento</h2></div>;
+      case "expense-spreadsheet":
+        return <ExpenseSpreadsheet key="expense-spreadsheet" />;
       case "settings":
         return <SettingsPage key="settings" />;
       default:

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Package, Settings, BarChart3, Calendar, Home, Users, Wrench, LogOut, Cog, UserCheck, DollarSign, UserCog } from "lucide-react";
+import { Package, Settings, BarChart3, Calendar, Home, Users, Wrench, LogOut, Cog, UserCheck, DollarSign, UserCog, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
@@ -33,6 +33,7 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
     ...(userRole === 'admin' || userRole === 'financeiro' ? [{ id: "clients", label: "Clientes", icon: Users }] : []),
     { id: "collaborators", label: "Colaboradores", icon: UserCheck },
     ...(userRole === 'admin' || userRole === 'financeiro' ? [{ id: "financial", label: "Gestão Financeira", icon: DollarSign }] : []),
+    ...(userRole === 'admin' || userRole === 'financeiro' ? [{ id: "expense-spreadsheet", label: "Planilha de Gastos", icon: FileSpreadsheet }] : []),
     ...(userRole === 'admin' ? [{ id: "user-management", label: "Gerenciar Usuários", icon: UserCog }] : []),
     { id: "maintenance", label: "Manutenção", icon: Wrench },
     ...(userRole === 'admin' && canAccessSettings ? [{ id: "settings", label: "Configurações", icon: Settings }] : []),
