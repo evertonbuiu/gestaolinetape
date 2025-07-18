@@ -223,6 +223,14 @@ export const ExpenseSpreadsheet = () => {
         description: "Despesa adicionada com sucesso.",
       });
 
+      // Atualizar filtros para mostrar o mês/ano da despesa adicionada
+      const expenseDate = new Date(newExpense.date);
+      const expenseMonth = expenseDate.getMonth() + 1;
+      const expenseYear = expenseDate.getFullYear();
+      
+      setSelectedMonth(expenseMonth);
+      setSelectedYear(expenseYear);
+
       setNewExpense({
         date: new Date().toISOString().split('T')[0],
         description: "",
@@ -232,7 +240,8 @@ export const ExpenseSpreadsheet = () => {
         notes: ""
       });
       setIsAddingExpense(false);
-      loadExpenses();
+      
+      // Como mudamos os filtros, o useEffect irá carregar automaticamente as despesas do novo período
 
     } catch (error) {
       console.error("Error adding expense:", error);
