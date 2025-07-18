@@ -328,24 +328,30 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   // Save theme preferences to Supabase
   const saveThemePreferences = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.log('No authenticated user, skipping theme preference saving');
+        return;
+      }
+
       const { data: existingPrefs, error: fetchError } = await supabase
         .from('user_theme_preferences')
         .select()
-        .single();
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no rows found
+      if (fetchError) {
         console.error('Error fetching theme preferences:', fetchError);
         return;
       }
 
       const themeData = {
-        user_id: (await supabase.auth.getUser()).data.user?.id,
+        user_id: user.id,
         theme,
         color_scheme: colorScheme,
         custom_colors: customColors
       };
-
-      if (!themeData.user_id) return; // Not authenticated
 
       if (existingPrefs) {
         const { error } = await supabase
@@ -353,14 +359,22 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
           .update(themeData)
           .eq('id', existingPrefs.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error updating theme preferences:', error);
+          throw error;
+        }
       } else {
         const { error } = await supabase
           .from('user_theme_preferences')
           .insert([themeData]);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error inserting theme preferences:', error);
+          throw error;
+        }
       }
+      
+      console.log('Theme preferences saved successfully');
     } catch (error) {
       console.error('Error saving theme preferences:', error);
     }
