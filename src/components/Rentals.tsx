@@ -1206,6 +1206,25 @@ export const Rentals = () => {
                 className="min-h-[100px]"
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit_status">Status do Evento</Label>
+              <Select
+                value={selectedEventForEdit?.status || 'pending'}
+                onValueChange={(value) => setSelectedEventForEdit(prev => prev ? {...prev, status: value} : null)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectItem value="confirmed">Confirmado</SelectItem>
+                  <SelectItem value="active">Em Andamento</SelectItem>
+                  <SelectItem value="completed">Concluído</SelectItem>
+                  <SelectItem value="cancelled">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setEditEventDialog(false)}>
