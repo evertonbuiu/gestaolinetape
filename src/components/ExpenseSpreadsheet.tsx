@@ -346,9 +346,8 @@ export const ExpenseSpreadsheet = () => {
     const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
     return daysInMonth.map(day => {
-      const dayExpenses = expenses.filter(expense => 
-        isSameDay(new Date(expense.date), day)
-      );
+      const dayString = format(day, 'yyyy-MM-dd');
+      const dayExpenses = expenses.filter(expense => expense.date === dayString);
       const totalDay = dayExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
       return {
@@ -589,7 +588,7 @@ export const ExpenseSpreadsheet = () => {
                 <TableBody>
                   {expenses.map((expense) => (
                     <TableRow key={expense.id}>
-                      <TableCell>{format(new Date(expense.date), 'dd/MM/yyyy')}</TableCell>
+                      <TableCell>{expense.date.split('-').reverse().join('/')}</TableCell>
                       <TableCell>{expense.description}</TableCell>
                       <TableCell>
                         <Badge variant="secondary">{expense.category}</Badge>
