@@ -353,25 +353,16 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         custom_colors: customColors
       };
 
-      if (existingPrefs) {
-        const { error } = await supabase
-          .from('user_theme_preferences')
-          .update(themeData)
-          .eq('id', existingPrefs.id);
+      // Use UPSERT to handle duplicates gracefully
+      const { error } = await supabase
+        .from('user_theme_preferences')
+        .upsert(themeData, {
+          onConflict: 'user_id'
+        });
 
-        if (error) {
-          console.error('Error updating theme preferences:', error);
-          throw error;
-        }
-      } else {
-        const { error } = await supabase
-          .from('user_theme_preferences')
-          .insert([themeData]);
-
-        if (error) {
-          console.error('Error inserting theme preferences:', error);
-          throw error;
-        }
+      if (error) {
+        console.error('Error upserting theme preferences:', error);
+        throw error;
       }
       
       console.log('Theme preferences saved successfully');
