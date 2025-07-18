@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Plus, Edit, Trash2, UserCheck, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 
 interface Collaborator {
   id: string;
@@ -35,38 +36,50 @@ export const Collaborators = () => {
   const [selectedCollaborator, setSelectedCollaborator] = useState<Collaborator | null>(null);
   const [selectedEventId, setSelectedEventId] = useState("");
   const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(false);
   const [newCollaborator, setNewCollaborator] = useState({
     name: "",
     email: "",
     phone: "",
     role: "funcionario"
   });
-  const [collaborators, setCollaborators] = useState<Collaborator[]>([
-    {
-      id: "1",
-      name: "João Silva",
-      email: "joao@empresa.com",
-      phone: "(11) 99999-9999",
-      role: "Funcionário",
-      status: "active",
-      createdAt: "2024-01-15"
-    },
-    {
-      id: "2", 
-      name: "Maria Santos",
-      email: "maria@empresa.com",
-      phone: "(11) 88888-8888",
-      role: "Administrador",
-      status: "active",
-      createdAt: "2024-01-10"
-    }
-  ]);
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
 
   const { toast } = useToast();
+  const { user } = useCustomAuth();
 
   useEffect(() => {
     fetchEvents();
+    fetchCollaborators();
   }, []);
+
+  const fetchCollaborators = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('collaborators')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching collaborators:', error);
+        return;
+      }
+
+      const formattedCollaborators = data?.map(collab => ({
+        id: collab.id,
+        name: collab.name,
+        email: collab.email,
+        phone: collab.phone,
+        role: collab.role === 'admin' ? 'Administrador' : 'Funcionário',
+        status: collab.status as 'active' | 'inactive',
+        createdAt: collab.created_at.split('T')[0]
+      })) || [];
+
+      setCollaborators(formattedCollaborators);
+    } catch (error) {
+      console.error('Error fetching collaborators:', error);
+    }
+  };
 
   const fetchEvents = async () => {
     try {
@@ -87,7 +100,7 @@ export const Collaborators = () => {
     }
   };
 
-  const handleAddCollaborator = () => {
+  const handleAddCollaborator = async () => {
     if (!newCollaborator.name || !newCollaborator.email) {
       toast({
         title: "Erro",
@@ -97,24 +110,60 @@ export const Collaborators = () => {
       return;
     }
 
-    const collaborator: Collaborator = {
-      id: Date.now().toString(),
-      name: newCollaborator.name,
-      email: newCollaborator.email,
-      phone: newCollaborator.phone || undefined,
-      role: newCollaborator.role === "admin" ? "Administrador" : "Funcionário",
-      status: "active",
-      createdAt: new Date().toISOString().split('T')[0]
-    };
+    if (!user?.id) {
+      toast({
+        title: "Erro",
+        description: "Usuário não autenticado",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    setCollaborators([...collaborators, collaborator]);
-    setNewCollaborator({ name: "", email: "", phone: "", role: "funcionario" });
-    setIsDialogOpen(false);
-    
-    toast({
-      title: "Sucesso",
-      description: "Colaborador adicionado com sucesso",
-    });
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('collaborators')
+        .insert({
+          name: newCollaborator.name,
+          email: newCollaborator.email,
+          phone: newCollaborator.phone || null,
+          role: newCollaborator.role,
+          status: 'active',
+          created_by: user.id
+        })
+        .select();
+
+      if (error) {
+        console.error('Error adding collaborator:', error);
+        toast({
+          title: "Erro",
+          description: "Erro ao adicionar colaborador",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Refresh the list
+      await fetchCollaborators();
+      
+      setNewCollaborator({ name: "", email: "", phone: "", role: "funcionario" });
+      setIsDialogOpen(false);
+      
+      toast({
+        title: "Sucesso",
+        description: "Colaborador adicionado com sucesso",
+      });
+    } catch (error) {
+      console.error('Error adding collaborator:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao adicionar colaborador",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filteredCollaborators = collaborators.filter(collaborator =>
@@ -123,18 +172,49 @@ export const Collaborators = () => {
   );
 
   const handleEdit = (collaborator: Collaborator) => {
+    // Por enquanto apenas mostra toast - implementar edição completa depois
     toast({
       title: "Editar Colaborador",
       description: `Editando: ${collaborator.name}`,
     });
   };
 
-  const handleDelete = (collaborator: Collaborator) => {
-    toast({
-      title: "Excluir Colaborador",
-      description: `Excluindo: ${collaborator.name}`,
-      variant: "destructive",
-    });
+  const handleDelete = async (collaborator: Collaborator) => {
+    if (!confirm(`Tem certeza que deseja excluir ${collaborator.name}?`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('collaborators')
+        .delete()
+        .eq('id', collaborator.id);
+
+      if (error) {
+        console.error('Error deleting collaborator:', error);
+        toast({
+          title: "Erro",
+          description: "Erro ao excluir colaborador",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Refresh the list
+      await fetchCollaborators();
+      
+      toast({
+        title: "Sucesso",
+        description: `${collaborator.name} foi excluído com sucesso`,
+      });
+    } catch (error) {
+      console.error('Error deleting collaborator:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir colaborador",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleAddToEvent = (collaborator: Collaborator) => {
@@ -254,8 +334,8 @@ export const Collaborators = () => {
                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={handleAddCollaborator}>
-                  Salvar
+                <Button onClick={handleAddCollaborator} disabled={loading}>
+                  {loading ? "Salvando..." : "Salvar"}
                 </Button>
               </div>
             </div>
