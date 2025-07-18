@@ -298,8 +298,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Helper to generate a custom color scheme based on custom colors
-  const generateCustomScheme = (colors = customColors): ColorScheme => {
-    const isCurrentlyDark = theme === 'dark';
+  const generateCustomScheme = (colors = customColors, themeMode = theme): ColorScheme => {
+    const isCurrentlyDark = themeMode === 'dark';
     
     return {
       id: 'custom',
@@ -365,7 +365,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
       
-      console.log('Theme preferences saved successfully');
+      
     } catch (error) {
       console.error('Error saving theme preferences:', error);
     }
@@ -381,8 +381,6 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      console.log('Loading theme preferences for user:', session.session.user.id);
-
       const { data: prefs, error } = await supabase
         .from('user_theme_preferences')
         .select()
@@ -394,13 +392,9 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      console.log('Loaded preferences:', prefs);
-
       if (prefs) {
         const newTheme = prefs.theme as Theme;
         const newColorScheme = prefs.color_scheme;
-        
-        console.log('Setting theme:', newTheme, 'color scheme:', newColorScheme);
         
         setTheme(newTheme);
         setColorScheme(newColorScheme);
@@ -416,11 +410,9 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
             background: string;
           };
           
-          console.log('Setting custom colors:', colors);
           setCustomColors(colors);
           
-          const customScheme = generateCustomScheme(colors);
-          console.log('Generated custom scheme:', customScheme);
+          const customScheme = generateCustomScheme(colors, newTheme);
           
           setCustomSchemes(prev => 
             prev.some(s => s.id === 'custom') 
@@ -430,7 +422,6 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
           
           // Apply custom colors if the current scheme is custom
           if (newColorScheme === 'custom') {
-            console.log('Applying custom colors since scheme is custom');
             applyColorScheme(customScheme);
             return; // Early return to avoid applying other schemes
           }
@@ -442,7 +433,6 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
           const scheme = allSchemes.find(s => s.id === newColorScheme);
           
           if (scheme) {
-            console.log('Applying color scheme:', scheme);
             applyColorScheme(scheme);
           }
         }
@@ -457,12 +447,22 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     setTheme(newTheme);
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
     
-    const schemes = newTheme === 'dark' ? darkColorSchemes : lightColorSchemes;
-    const currentScheme = schemes.find(s => s.id === colorScheme) || 
-                         customSchemes.find(s => s.id === colorScheme);
-    
-    if (currentScheme) {
-      applyColorScheme(currentScheme);
+    // If we're using custom scheme, regenerate it with the new theme
+    if (colorScheme === 'custom') {
+      const customScheme = generateCustomScheme(customColors, newTheme);
+      setCustomSchemes(prev => 
+        prev.some(s => s.id === 'custom') 
+          ? prev.map(s => s.id === 'custom' ? customScheme : s)
+          : [...prev, customScheme]
+      );
+      applyColorScheme(customScheme);
+    } else {
+      const schemes = newTheme === 'dark' ? darkColorSchemes : lightColorSchemes;
+      const currentScheme = schemes.find(s => s.id === colorScheme);
+      
+      if (currentScheme) {
+        applyColorScheme(currentScheme);
+      }
     }
 
     await saveThemePreferences();
@@ -490,7 +490,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
     setCustomColors(updatedColors);
     
-    const customScheme = generateCustomScheme(updatedColors);
+    const customScheme = generateCustomScheme(updatedColors, theme);
     setCustomSchemes(prev => 
       prev.some(s => s.id === 'custom') 
         ? prev.map(s => s.id === 'custom' ? customScheme : s)
