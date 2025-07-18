@@ -596,8 +596,9 @@ export const EventEquipment = () => {
   const fetchAvailableCollaborators = async () => {
     try {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('collaborators')
         .select('*')
+        .eq('status', 'active')
         .order('name');
 
       if (error) throw error;
