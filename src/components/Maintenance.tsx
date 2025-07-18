@@ -424,7 +424,12 @@ export const Maintenance = () => {
     vencidas: maintenanceRecords.filter(r => 
       r.status === 'agendada' && isBefore(parseISO(r.scheduled_date), new Date())
     ).length,
-    criticas: maintenanceRecords.filter(r => r.priority === 'critica' && r.status !== 'concluida').length
+    criticas: maintenanceRecords.filter(r => r.priority === 'critica' && r.status !== 'concluida').length,
+    equipamentos_em_manutencao: new Set(
+      maintenanceRecords
+        .filter(r => r.status === 'agendada' || r.status === 'em_andamento')
+        .map(r => r.equipment_name)
+    ).size
   };
 
   // Get equipment that need maintenance (based on usage)
@@ -662,7 +667,7 @@ export const Maintenance = () => {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">Total</CardTitle>
@@ -714,6 +719,16 @@ export const Maintenance = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-600">{stats.criticas}</div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Equipamentos</CardTitle>
+                <CardDescription className="text-xs">Em Manutenção</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-orange-600">{stats.equipamentos_em_manutencao}</div>
               </CardContent>
             </Card>
           </div>
