@@ -349,26 +349,41 @@ export const FinancialManagement = () => {
         return acc;
       }, {} as Record<string, number>) || {};
 
-      // Orçamentos padrão por categoria (editáveis pelo admin)
-      const budgetDefaults = {
-        "Equipamentos": budget.find(b => b.category === "Equipamentos")?.budgeted || 5000,
-        "Despesas Operacionais": budget.find(b => b.category === "Despesas Operacionais")?.budgeted || 3000,
-        "Pessoal": budget.find(b => b.category === "Pessoal")?.budgeted || 2000,
-        "Marketing": budget.find(b => b.category === "Marketing")?.budgeted || 1000,
-        "Alimentação": budget.find(b => b.category === "Alimentação")?.budgeted || 1500,
-        "Transporte": budget.find(b => b.category === "Transporte")?.budgeted || 800,
-        "Outros": budget.find(b => b.category === "Outros")?.budgeted || 500
-      };
+      // Carregar orçamentos salvos do localStorage ou usar padrões
+      const budgetKey = `company_budget_${selectedMonth}_${selectedYear}`;
+      const savedBudget = localStorage.getItem(budgetKey);
+      
+      let budgetDefaults;
+      if (savedBudget) {
+        // Se existe orçamento salvo, usar os valores salvos
+        const savedBudgetData = JSON.parse(savedBudget);
+        budgetDefaults = savedBudgetData.reduce((acc: Record<string, number>, item: BudgetEntry) => {
+          acc[item.category] = item.budgeted;
+          return acc;
+        }, {});
+      } else {
+        // Usar valores padrão se não há nada salvo
+        budgetDefaults = {
+          "Equipamentos": budget.find(b => b.category === "Equipamentos")?.budgeted || 5000,
+          "Despesas Operacionais": budget.find(b => b.category === "Despesas Operacionais")?.budgeted || 3000,
+          "Pessoal": budget.find(b => b.category === "Pessoal")?.budgeted || 2000,
+          "Marketing": budget.find(b => b.category === "Marketing")?.budgeted || 1000,
+          "Alimentação": budget.find(b => b.category === "Alimentação")?.budgeted || 1500,
+          "Transporte": budget.find(b => b.category === "Transporte")?.budgeted || 800,
+          "Outros": budget.find(b => b.category === "Outros")?.budgeted || 500
+        };
+      }
 
       const calculatedBudget: BudgetEntry[] = Object.entries(budgetDefaults).map(([category, budgeted]) => {
+        const budgetedAmount = Number(budgeted);
         const spent = categorySpending[category] || 0;
-        const remaining = budgeted - spent;
-        const percentage = (spent / budgeted) * 100;
+        const remaining = budgetedAmount - spent;
+        const percentage = (spent / budgetedAmount) * 100;
         
         return {
           id: category,
           category,
-          budgeted,
+          budgeted: budgetedAmount,
           spent,
           remaining,
           percentage: Math.round(percentage)
@@ -380,34 +395,49 @@ export const FinancialManagement = () => {
       // Inicializar valores de orçamento se não existirem
       if (Object.keys(budgetValues).length === 0) {
         const initialBudgetValues = Object.entries(budgetDefaults).reduce((acc, [category, value]) => {
-          acc[category] = value;
+          acc[category] = Number(value);
           return acc;
         }, {} as Record<string, number>);
         setBudgetValues(initialBudgetValues);
       }
 
-      // Inicializar orçamento pessoal com categorias pessoais
-      const personalBudgetDefaults = {
-        "Moradia": 2000,
-        "Alimentação": 800,
-        "Transporte": 500,
-        "Saúde": 400,
-        "Educação": 300,
-        "Lazer": 600,
-        "Roupas": 200,
-        "Poupança": 1000,
-        "Outros": 300
-      };
+      // Carregar orçamento pessoal salvo do localStorage ou usar padrões
+      const personalBudgetKey = `personal_budget_${selectedMonth}_${selectedYear}`;
+      const savedPersonalBudget = localStorage.getItem(personalBudgetKey);
+      
+      let personalBudgetDefaults;
+      if (savedPersonalBudget) {
+        // Se existe orçamento pessoal salvo, usar os valores salvos
+        const savedPersonalBudgetData = JSON.parse(savedPersonalBudget);
+        personalBudgetDefaults = savedPersonalBudgetData.reduce((acc: Record<string, number>, item: BudgetEntry) => {
+          acc[item.category] = item.budgeted;
+          return acc;
+        }, {});
+      } else {
+        // Usar valores padrão se não há nada salvo
+        personalBudgetDefaults = {
+          "Moradia": 2000,
+          "Alimentação": 800,
+          "Transporte": 500,
+          "Saúde": 400,
+          "Educação": 300,
+          "Lazer": 600,
+          "Roupas": 200,
+          "Poupança": 1000,
+          "Outros": 300
+        };
+      }
 
       const personalBudgetData: BudgetEntry[] = Object.entries(personalBudgetDefaults).map(([category, budgeted]) => {
+        const budgetedAmount = Number(budgeted);
         const spent = 0; // Por enquanto, sem gastos reais
-        const remaining = budgeted - spent;
+        const remaining = budgetedAmount - spent;
         const percentage = 0;
         
         return {
           id: category,
           category,
-          budgeted,
+          budgeted: budgetedAmount,
           spent,
           remaining,
           percentage
@@ -419,7 +449,7 @@ export const FinancialManagement = () => {
       // Inicializar valores de orçamento pessoal se não existirem
       if (Object.keys(personalBudgetValues).length === 0) {
         const initialPersonalBudgetValues = Object.entries(personalBudgetDefaults).reduce((acc, [category, value]) => {
-          acc[category] = value;
+          acc[category] = Number(value);
           return acc;
         }, {} as Record<string, number>);
         setPersonalBudgetValues(initialPersonalBudgetValues);
@@ -743,6 +773,11 @@ export const FinancialManagement = () => {
     });
     
     setBudget(updatedBudget);
+    
+    // Salvar no localStorage para persistir os valores
+    const budgetKey = `company_budget_${selectedMonth}_${selectedYear}`;
+    localStorage.setItem(budgetKey, JSON.stringify(updatedBudget));
+    
     setBudgetValues({});
     setIsEditingBudget(false);
     
@@ -768,6 +803,11 @@ export const FinancialManagement = () => {
     });
     
     setPersonalBudget(updatedPersonalBudget);
+    
+    // Salvar no localStorage para persistir os valores
+    const personalBudgetKey = `personal_budget_${selectedMonth}_${selectedYear}`;
+    localStorage.setItem(personalBudgetKey, JSON.stringify(updatedPersonalBudget));
+    
     setPersonalBudgetValues({});
     setIsEditingPersonalBudget(false);
     
