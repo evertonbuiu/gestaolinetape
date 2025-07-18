@@ -8,8 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Download, Calendar, Edit, Trash2, FileSpreadsheet } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Plus, Download, Calendar, Edit, Trash2, FileSpreadsheet, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
 import * as XLSX from 'xlsx';
@@ -17,13 +16,13 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "
 import { ptBR } from "date-fns/locale";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
 
-interface DailyExpense {
+interface PersonalExpense {
   id: string;
   date: string;
   description: string;
   category: string;
   amount: number;
-  supplier?: string;
+  paymentMethod?: string;
   notes?: string;
   created_by: string;
   created_at: string;
@@ -35,14 +34,14 @@ interface ExpenseCategory {
   spent: number;
 }
 
-export const ExpenseSpreadsheet = () => {
-  const [expenses, setExpenses] = useState<DailyExpense[]>([]);
+export const PersonalExpenseSpreadsheet = () => {
+  const [expenses, setExpenses] = useState<PersonalExpense[]>([]);
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [isAddingExpense, setIsAddingExpense] = useState(false);
-  const [editingExpense, setEditingExpense] = useState<DailyExpense | null>(null);
+  const [editingExpense, setEditingExpense] = useState<PersonalExpense | null>(null);
   const { toast } = useToast();
   const { user } = useCustomAuth();
 
@@ -51,61 +50,54 @@ export const ExpenseSpreadsheet = () => {
     description: "",
     category: "",
     amount: 0,
-    supplier: "",
+    paymentMethod: "",
     notes: ""
   });
 
-  const expenseCategories = [
-    "Aluguel",
-    "Energia Elétrica", 
-    "Água",
-    "Internet",
-    "Telefone",
-    "Combustível",
-    "Manutenção",
-    "Material de Escritório",
+  const personalExpenseCategories = [
+    "Moradia",
     "Alimentação",
-    "Transporte",
-    "Marketing",
-    "Consultoria",
-    "Impostos",
-    "Equipamentos",
+    "Transporte", 
+    "Saúde",
+    "Educação",
+    "Lazer",
+    "Roupas",
+    "Beleza",
+    "Telefone",
+    "Internet",
+    "Subscriptions",
+    "Presentes",
+    "Viagens",
+    "Investimentos",
+    "Outros"
+  ];
+
+  const paymentMethods = [
+    "Dinheiro",
+    "Cartão de Débito",
+    "Cartão de Crédito",
+    "PIX",
+    "Transferência Bancária",
     "Outros"
   ];
 
   useEffect(() => {
-    loadExpenses();
+    loadPersonalExpenses();
   }, [selectedMonth, selectedYear]);
 
-  const loadExpenses = async () => {
+  const loadPersonalExpenses = async () => {
     try {
       setLoading(true);
       
-      const startDate = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}-01`;
-      const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
-      const endDate = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}-${lastDay}`;
-
-      // Buscar despesas do período
-      const { data: expensesData, error } = await supabase
-        .from('event_expenses')
-        .select('*')
-        .gte('expense_date', startDate)
-        .lte('expense_date', endDate)
-        .order('expense_date', { ascending: false });
-
-      if (error) throw error;
-
-      const mappedExpenses: DailyExpense[] = expensesData?.map(expense => ({
-        id: expense.id,
-        date: expense.expense_date || expense.created_at.split('T')[0],
-        description: expense.description,
-        category: expense.category,
-        amount: expense.total_price,
-        supplier: expense.supplier,
-        notes: expense.notes,
-        created_by: expense.created_by,
-        created_at: expense.created_at
-      })) || [];
+      // Para gastos pessoais, vamos usar localStorage por enquanto
+      // já que não temos uma tabela específica no Supabase para isso
+      const storageKey = `personal_expenses_${selectedMonth}_${selectedYear}`;
+      const storedExpenses = localStorage.getItem(storageKey);
+      
+      let mappedExpenses: PersonalExpense[] = [];
+      if (storedExpenses) {
+        mappedExpenses = JSON.parse(storedExpenses);
+      }
 
       setExpenses(mappedExpenses);
 
@@ -115,7 +107,7 @@ export const ExpenseSpreadsheet = () => {
         return acc;
       }, {} as Record<string, number>);
 
-      const calculatedCategories: ExpenseCategory[] = expenseCategories.map(category => ({
+      const calculatedCategories: ExpenseCategory[] = personalExpenseCategories.map(category => ({
         name: category,
         budget: getCategoryBudget(category),
         spent: categorySpending[category] || 0
@@ -124,10 +116,10 @@ export const ExpenseSpreadsheet = () => {
       setCategories(calculatedCategories);
 
     } catch (error) {
-      console.error("Error loading expenses:", error);
+      console.error("Error loading personal expenses:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível carregar as despesas.",
+        description: "Não foi possível carregar as despesas pessoais.",
         variant: "destructive",
       });
     } finally {
@@ -137,23 +129,23 @@ export const ExpenseSpreadsheet = () => {
 
   const getCategoryBudget = (category: string): number => {
     const budgets: Record<string, number> = {
-      "Aluguel": 3000,
-      "Energia Elétrica": 500,
-      "Água": 200,
-      "Internet": 150,
-      "Telefone": 100,
-      "Combustível": 800,
-      "Manutenção": 600,
-      "Material de Escritório": 300,
-      "Alimentação": 1000,
-      "Transporte": 400,
-      "Marketing": 1500,
-      "Consultoria": 800,
-      "Impostos": 2000,
-      "Equipamentos": 2000,
-      "Outros": 500
+      "Moradia": 2000,
+      "Alimentação": 800,
+      "Transporte": 500,
+      "Saúde": 400,
+      "Educação": 300,
+      "Lazer": 600,
+      "Roupas": 200,
+      "Beleza": 150,
+      "Telefone": 80,
+      "Internet": 100,
+      "Subscriptions": 150,
+      "Presentes": 200,
+      "Viagens": 1000,
+      "Investimentos": 1500,
+      "Outros": 300
     };
-    return budgets[category] || 500;
+    return budgets[category] || 300;
   };
 
   const handleAddExpense = async () => {
@@ -167,43 +159,27 @@ export const ExpenseSpreadsheet = () => {
     }
 
     try {
-      // Buscar o primeiro evento ou criar um genérico
-      const { data: events } = await supabase
-        .from('events')
-        .select('id')
-        .limit(1);
+      const expense: PersonalExpense = {
+        id: Date.now().toString(),
+        date: newExpense.date,
+        description: newExpense.description,
+        category: newExpense.category,
+        amount: newExpense.amount,
+        paymentMethod: newExpense.paymentMethod,
+        notes: newExpense.notes,
+        created_by: user?.id || 'anonymous',
+        created_at: new Date().toISOString()
+      };
 
-      const eventId = events && events.length > 0 ? events[0].id : null;
-
-      if (!eventId) {
-        toast({
-          title: "Erro",
-          description: "É necessário ter pelo menos um evento cadastrado.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const { error } = await supabase
-        .from('event_expenses')
-        .insert({
-          description: newExpense.description,
-          category: newExpense.category,
-          total_price: newExpense.amount,
-          unit_price: newExpense.amount,
-          quantity: 1,
-          supplier: newExpense.supplier || null,
-          notes: newExpense.notes || null,
-          expense_date: newExpense.date,
-          event_id: eventId,
-          created_by: user?.id || ''
-        });
-
-      if (error) throw error;
+      // Salvar no localStorage
+      const storageKey = `personal_expenses_${selectedMonth}_${selectedYear}`;
+      const existingExpenses = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      const updatedExpenses = [...existingExpenses, expense];
+      localStorage.setItem(storageKey, JSON.stringify(updatedExpenses));
 
       toast({
         title: "Sucesso",
-        description: "Despesa adicionada com sucesso.",
+        description: "Despesa pessoal adicionada com sucesso.",
       });
 
       setNewExpense({
@@ -211,17 +187,17 @@ export const ExpenseSpreadsheet = () => {
         description: "",
         category: "",
         amount: 0,
-        supplier: "",
+        paymentMethod: "",
         notes: ""
       });
       setIsAddingExpense(false);
-      loadExpenses();
+      loadPersonalExpenses();
 
     } catch (error) {
-      console.error("Error adding expense:", error);
+      console.error("Error adding personal expense:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível adicionar a despesa.",
+        description: "Não foi possível adicionar a despesa pessoal.",
         variant: "destructive",
       });
     }
@@ -231,34 +207,26 @@ export const ExpenseSpreadsheet = () => {
     if (!editingExpense) return;
 
     try {
-      const { error } = await supabase
-        .from('event_expenses')
-        .update({
-          description: editingExpense.description,
-          category: editingExpense.category,
-          total_price: editingExpense.amount,
-          unit_price: editingExpense.amount,
-          supplier: editingExpense.supplier || null,
-          notes: editingExpense.notes || null,
-          expense_date: editingExpense.date,
-        })
-        .eq('id', editingExpense.id);
-
-      if (error) throw error;
+      const storageKey = `personal_expenses_${selectedMonth}_${selectedYear}`;
+      const existingExpenses = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      const updatedExpenses = existingExpenses.map((exp: PersonalExpense) => 
+        exp.id === editingExpense.id ? editingExpense : exp
+      );
+      localStorage.setItem(storageKey, JSON.stringify(updatedExpenses));
 
       toast({
         title: "Sucesso",
-        description: "Despesa atualizada com sucesso.",
+        description: "Despesa pessoal atualizada com sucesso.",
       });
 
       setEditingExpense(null);
-      loadExpenses();
+      loadPersonalExpenses();
 
     } catch (error) {
-      console.error("Error updating expense:", error);
+      console.error("Error updating personal expense:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível atualizar a despesa.",
+        description: "Não foi possível atualizar a despesa pessoal.",
         variant: "destructive",
       });
     }
@@ -266,25 +234,23 @@ export const ExpenseSpreadsheet = () => {
 
   const handleDeleteExpense = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('event_expenses')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      const storageKey = `personal_expenses_${selectedMonth}_${selectedYear}`;
+      const existingExpenses = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      const updatedExpenses = existingExpenses.filter((exp: PersonalExpense) => exp.id !== id);
+      localStorage.setItem(storageKey, JSON.stringify(updatedExpenses));
 
       toast({
         title: "Sucesso",
-        description: "Despesa removida com sucesso.",
+        description: "Despesa pessoal removida com sucesso.",
       });
 
-      loadExpenses();
+      loadPersonalExpenses();
 
     } catch (error) {
-      console.error("Error deleting expense:", error);
+      console.error("Error deleting personal expense:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível remover a despesa.",
+        description: "Não foi possível remover a despesa pessoal.",
         variant: "destructive",
       });
     }
@@ -297,20 +263,20 @@ export const ExpenseSpreadsheet = () => {
         Descrição: expense.description,
         Categoria: expense.category,
         Valor: expense.amount,
-        Fornecedor: expense.supplier || '',
+        'Forma de Pagamento': expense.paymentMethod || '',
         Observações: expense.notes || ''
       }))
     );
 
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Despesas");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Despesas Pessoais");
 
-    const fileName = `despesas_${selectedMonth}_${selectedYear}.xlsx`;
+    const fileName = `despesas_pessoais_${selectedMonth}_${selectedYear}.xlsx`;
     XLSX.writeFile(workbook, fileName);
 
     toast({
       title: "Sucesso",
-      description: "Planilha exportada com sucesso.",
+      description: "Planilha de despesas pessoais exportada com sucesso.",
     });
   };
 
@@ -342,7 +308,7 @@ export const ExpenseSpreadsheet = () => {
       <div className="p-6">
         <Card>
           <CardContent className="p-6">
-            <div className="text-center">Carregando planilha de gastos...</div>
+            <div className="text-center">Carregando planilha de gastos pessoais...</div>
           </CardContent>
         </Card>
       </div>
@@ -353,20 +319,23 @@ export const ExpenseSpreadsheet = () => {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Planilha de Gastos da Empresa</h1>
-          <p className="text-muted-foreground">Controle de despesas empresariais diárias e mensais</p>
+          <div className="flex items-center gap-2">
+            <User className="h-8 w-8 text-primary" />
+            <h1 className="text-3xl font-bold">Planilha de Gastos Pessoais</h1>
+          </div>
+          <p className="text-muted-foreground">Controle de despesas pessoais diárias e mensais</p>
         </div>
         <div className="flex gap-2">
           <Dialog open={isAddingExpense} onOpenChange={setIsAddingExpense}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                Nova Despesa
+                Nova Despesa Pessoal
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Adicionar Despesa</DialogTitle>
+                <DialogTitle>Adicionar Despesa Pessoal</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -386,7 +355,7 @@ export const ExpenseSpreadsheet = () => {
                         <SelectValue placeholder="Selecione..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {expenseCategories.map(category => (
+                        {personalExpenseCategories.map(category => (
                           <SelectItem key={category} value={category}>{category}</SelectItem>
                         ))}
                       </SelectContent>
@@ -415,13 +384,17 @@ export const ExpenseSpreadsheet = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="supplier">Fornecedor</Label>
-                    <Input
-                      id="supplier"
-                      value={newExpense.supplier}
-                      onChange={(e) => setNewExpense({ ...newExpense, supplier: e.target.value })}
-                      placeholder="Nome do fornecedor"
-                    />
+                    <Label htmlFor="paymentMethod">Forma de Pagamento</Label>
+                    <Select value={newExpense.paymentMethod} onValueChange={(value) => setNewExpense({ ...newExpense, paymentMethod: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {paymentMethods.map(method => (
+                          <SelectItem key={method} value={method}>{method}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -539,7 +512,7 @@ export const ExpenseSpreadsheet = () => {
         <TabsContent value="monthly">
           <Card>
             <CardHeader>
-              <CardTitle>Despesas do Mês</CardTitle>
+              <CardTitle>Despesas Pessoais do Mês</CardTitle>
               <CardDescription>
                 {format(new Date(selectedYear, selectedMonth - 1), 'MMMM yyyy', { locale: ptBR })}
               </CardDescription>
@@ -551,7 +524,7 @@ export const ExpenseSpreadsheet = () => {
                     <TableHead>Data</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead>Categoria</TableHead>
-                    <TableHead>Fornecedor</TableHead>
+                    <TableHead>Pagamento</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
                     <TableHead className="text-center">Ações</TableHead>
                   </TableRow>
@@ -564,7 +537,7 @@ export const ExpenseSpreadsheet = () => {
                       <TableCell>
                         <Badge variant="secondary">{expense.category}</Badge>
                       </TableCell>
-                      <TableCell>{expense.supplier || '-'}</TableCell>
+                      <TableCell>{expense.paymentMethod || '-'}</TableCell>
                       <TableCell className="text-right font-medium">
                         {formatCurrency(expense.amount)}
                       </TableCell>
@@ -591,7 +564,7 @@ export const ExpenseSpreadsheet = () => {
                   {expenses.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center text-muted-foreground">
-                        Nenhuma despesa encontrada para este período
+                        Nenhuma despesa pessoal encontrada para este período
                       </TableCell>
                     </TableRow>
                   )}
@@ -605,7 +578,7 @@ export const ExpenseSpreadsheet = () => {
           <Card>
             <CardHeader>
               <CardTitle>Planilha Diária</CardTitle>
-              <CardDescription>Despesas organizadas por dia do mês</CardDescription>
+              <CardDescription>Despesas pessoais organizadas por dia do mês</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
@@ -638,7 +611,7 @@ export const ExpenseSpreadsheet = () => {
           <Card>
             <CardHeader>
               <CardTitle>Gastos por Categoria</CardTitle>
-              <CardDescription>Comparação entre orçado e gasto por categoria</CardDescription>
+              <CardDescription>Comparação entre orçado e gasto por categoria pessoal</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
@@ -683,7 +656,7 @@ export const ExpenseSpreadsheet = () => {
       <Dialog open={!!editingExpense} onOpenChange={() => setEditingExpense(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar Despesa</DialogTitle>
+            <DialogTitle>Editar Despesa Pessoal</DialogTitle>
           </DialogHeader>
           {editingExpense && (
             <div className="space-y-4">
@@ -704,7 +677,7 @@ export const ExpenseSpreadsheet = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {expenseCategories.map(category => (
+                      {personalExpenseCategories.map(category => (
                         <SelectItem key={category} value={category}>{category}</SelectItem>
                       ))}
                     </SelectContent>
@@ -731,12 +704,17 @@ export const ExpenseSpreadsheet = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-supplier">Fornecedor</Label>
-                  <Input
-                    id="edit-supplier"
-                    value={editingExpense.supplier || ''}
-                    onChange={(e) => setEditingExpense({ ...editingExpense, supplier: e.target.value })}
-                  />
+                  <Label htmlFor="edit-paymentMethod">Forma de Pagamento</Label>
+                  <Select value={editingExpense.paymentMethod || ''} onValueChange={(value) => setEditingExpense({ ...editingExpense, paymentMethod: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentMethods.map(method => (
+                        <SelectItem key={method} value={method}>{method}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="space-y-2">
