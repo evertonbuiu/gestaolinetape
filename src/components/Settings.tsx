@@ -140,6 +140,11 @@ export const SettingsPage = () => {
 
   // Check if there are pending changes
   const hasChanges = Object.keys(changes).length > 0;
+  const hasCompanyChanges = companySettings && (
+    companyName !== companySettings.company_name || 
+    companyTagline !== companySettings.tagline
+  );
+  const hasAnyChanges = hasChanges || hasCompanyChanges;
 
   // Create new employee
   const createEmployee = async () => {
@@ -321,15 +326,27 @@ export const SettingsPage = () => {
           </p>
         </div>
         
-        {hasChanges && (
-          <Button onClick={saveChanges} disabled={saving}>
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
+        {hasAnyChanges && (
+          <div className="flex gap-2">
+            <Button onClick={saveChanges} disabled={saving || !hasChanges} variant={hasChanges ? "default" : "outline"}>
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Salvar Permissões
+            </Button>
+            {hasCompanyChanges && (
+              <Button onClick={saveCompanySettings} disabled={savingCompany} variant="outline">
+                {savingCompany ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                Salvar Empresa
+              </Button>
             )}
-            Salvar Alterações
-          </Button>
+          </div>
         )}
       </div>
 
