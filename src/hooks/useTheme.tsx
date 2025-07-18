@@ -381,6 +381,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      console.log('Loading theme preferences for user:', session.session.user.id);
+
       const { data: prefs, error } = await supabase
         .from('user_theme_preferences')
         .select()
@@ -392,9 +394,13 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      console.log('Loaded preferences:', prefs);
+
       if (prefs) {
         const newTheme = prefs.theme as Theme;
         const newColorScheme = prefs.color_scheme;
+        
+        console.log('Setting theme:', newTheme, 'color scheme:', newColorScheme);
         
         setTheme(newTheme);
         setColorScheme(newColorScheme);
@@ -409,8 +415,13 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
             accent: string;
             background: string;
           };
+          
+          console.log('Setting custom colors:', colors);
           setCustomColors(colors);
+          
           const customScheme = generateCustomScheme(colors);
+          console.log('Generated custom scheme:', customScheme);
+          
           setCustomSchemes(prev => 
             prev.some(s => s.id === 'custom') 
               ? prev.map(s => s.id === 'custom' ? customScheme : s)
@@ -419,17 +430,21 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
           
           // Apply custom colors if the current scheme is custom
           if (newColorScheme === 'custom') {
+            console.log('Applying custom colors since scheme is custom');
             applyColorScheme(customScheme);
+            return; // Early return to avoid applying other schemes
           }
         }
         
-        // Apply the loaded color scheme
-        const allSchemes = newTheme === 'dark' ? darkColorSchemes : lightColorSchemes;
-        const scheme = allSchemes.find(s => s.id === newColorScheme) || 
-                     customSchemes.find(s => s.id === newColorScheme);
-        
-        if (scheme && newColorScheme !== 'custom') {
-          applyColorScheme(scheme);
+        // Apply the loaded color scheme (only if not custom)
+        if (newColorScheme !== 'custom') {
+          const allSchemes = newTheme === 'dark' ? darkColorSchemes : lightColorSchemes;
+          const scheme = allSchemes.find(s => s.id === newColorScheme);
+          
+          if (scheme) {
+            console.log('Applying color scheme:', scheme);
+            applyColorScheme(scheme);
+          }
         }
       }
     } catch (error) {
