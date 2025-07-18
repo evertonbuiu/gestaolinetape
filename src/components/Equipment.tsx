@@ -20,7 +20,7 @@ export const Equipment = () => {
 
   // Add realtime updates for equipment
   useEffect(() => {
-    const channel = supabase
+    const equipmentChannel = supabase
       .channel('equipment-changes')
       .on(
         'postgres_changes',
@@ -36,8 +36,25 @@ export const Equipment = () => {
       )
       .subscribe();
 
+    const maintenanceChannel = supabase
+      .channel('maintenance-equipment-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'maintenance_records'
+        },
+        () => {
+          console.log('Maintenance data updated, refreshing...');
+          fetchMaintenanceRecords();
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(equipmentChannel);
+      supabase.removeChannel(maintenanceChannel);
     };
   }, [fetchEquipment]);
   const { hasPermission } = usePermissions();
@@ -47,6 +64,7 @@ export const Equipment = () => {
   const [canEdit, setCanEdit] = useState(false);
   const [equipmentDialog, setEquipmentDialog] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<any>(null);
+  const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([]);
   const [newEquipment, setNewEquipment] = useState({
     name: '',
     category: '',
@@ -54,6 +72,21 @@ export const Equipment = () => {
     total_stock: 0,
     price_per_day: 0
   });
+
+  // Fetch maintenance records
+  const fetchMaintenanceRecords = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('maintenance_records')
+        .select('*')
+        .in('status', ['agendada', 'em_andamento']);
+
+      if (error) throw error;
+      setMaintenanceRecords(data || []);
+    } catch (error) {
+      console.error('Error fetching maintenance records:', error);
+    }
+  };
 
   // Check permissions on mount
   useEffect(() => {
@@ -64,6 +97,7 @@ export const Equipment = () => {
       setCanEdit(canEditResult);
     };
     checkPermissions();
+    fetchMaintenanceRecords();
   }, [hasPermission]);
 
   const getStatusColor = (status: string) => {
@@ -263,6 +297,16 @@ export const Equipment = () => {
     );
   }
 
+  // Check if equipment is in maintenance
+  const isInMaintenance = (equipmentName: string) => {
+    return maintenanceRecords.some(record => record.equipment_name === equipmentName);
+  };
+
+  // Get maintenance info for equipment
+  const getMaintenanceInfo = (equipmentName: string) => {
+    return maintenanceRecords.find(record => record.equipment_name === equipmentName);
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -411,18 +455,36 @@ export const Equipment = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredEquipment.map((item) => (
-          <Card key={item.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <Package className="w-8 h-8 text-primary" />
-                <Badge className={getStatusColor(item.status)}>
-                  {getStatusText(item.status)}
-                </Badge>
-              </div>
-              <CardTitle className="text-lg">{item.name}</CardTitle>
-              <CardDescription>{item.category}</CardDescription>
-            </CardHeader>
+        {filteredEquipment.map((item) => {
+          const inMaintenance = isInMaintenance(item.name);
+          const maintenanceInfo = getMaintenanceInfo(item.name);
+          
+          return (
+            <Card key={item.id} className={`hover:shadow-lg transition-shadow ${inMaintenance ? 'border-orange-200 bg-orange-50' : ''}`}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <Package className="w-8 h-8 text-primary" />
+                  <div className="flex flex-col gap-1">
+                    <Badge className={getStatusColor(item.status)}>
+                      {getStatusText(item.status)}
+                    </Badge>
+                    {inMaintenance && (
+                      <Badge className="bg-orange-100 text-orange-800 text-xs">
+                        🔧 Manutenção
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <CardTitle className="text-lg">{item.name}</CardTitle>
+                <CardDescription>{item.category}</CardDescription>
+                {inMaintenance && maintenanceInfo && (
+                  <div className="text-sm text-orange-600 bg-orange-100 p-2 rounded">
+                    <div className="font-medium">Em manutenção:</div>
+                    <div className="text-xs">{maintenanceInfo.description}</div>
+                    <div className="text-xs">Status: {maintenanceInfo.status}</div>
+                  </div>
+                )}
+              </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
@@ -463,7 +525,8 @@ export const Equipment = () => {
               )}
             </CardContent>
           </Card>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

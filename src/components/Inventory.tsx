@@ -23,12 +23,28 @@ export const Inventory = () => {
   const [canViewPrices, setCanViewPrices] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [showMovementDialog, setShowMovementDialog] = useState(false);
+  const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([]);
   const [movementForm, setMovementForm] = useState({
     equipment_id: "",
     type: "entrada", // entrada or saida
     quantity: "",
     description: ""
   });
+
+  // Fetch maintenance records
+  const fetchMaintenanceRecords = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('maintenance_records')
+        .select('*')
+        .in('status', ['agendada', 'em_andamento']);
+
+      if (error) throw error;
+      setMaintenanceRecords(data || []);
+    } catch (error) {
+      console.error('Error fetching maintenance records:', error);
+    }
+  };
 
   // Check permissions on mount and when component becomes active
   useEffect(() => {
@@ -39,6 +55,7 @@ export const Inventory = () => {
       setCanViewPrices(canViewPricesResult);
     };
     checkPermissions();
+    fetchMaintenanceRecords();
   }, [hasPermission, userRole]);
 
   // Refresh equipment data when component mounts or becomes active
@@ -50,7 +67,7 @@ export const Inventory = () => {
 
   // Add realtime updates for equipment
   useEffect(() => {
-    const channel = supabase
+    const equipmentChannel = supabase
       .channel('inventory-equipment-changes')
       .on(
         'postgres_changes',
@@ -66,8 +83,25 @@ export const Inventory = () => {
       )
       .subscribe();
 
+    const maintenanceChannel = supabase
+      .channel('inventory-maintenance-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'maintenance_records'
+        },
+        () => {
+          console.log('Maintenance data updated, refreshing...');
+          fetchMaintenanceRecords();
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(equipmentChannel);
+      supabase.removeChannel(maintenanceChannel);
     };
   }, [fetchEquipment]);
 
@@ -103,6 +137,16 @@ export const Inventory = () => {
 
   const getMovementColor = (available: number, rented: number) => {
     return rented > available ? "text-red-600" : "text-green-600";
+  };
+
+  // Check if equipment is in maintenance
+  const isInMaintenance = (equipmentName: string) => {
+    return maintenanceRecords.some(record => record.equipment_name === equipmentName);
+  };
+
+  // Get maintenance info for equipment
+  const getMaintenanceInfo = (equipmentName: string) => {
+    return maintenanceRecords.find(record => record.equipment_name === equipmentName);
   };
 
   // Register movement function
@@ -418,6 +462,7 @@ export const Inventory = () => {
                   <th className="text-center py-3 px-4">Disponível</th>
                   <th className="text-center py-3 px-4">Locado</th>
                   <th className="text-center py-3 px-4">Status</th>
+                  <th className="text-center py-3 px-4">Manutenção</th>
                   <th className="text-center py-3 px-4">Última Atualização</th>
                   <th className="text-center py-3 px-4">Ações</th>
                 </tr>
@@ -426,8 +471,11 @@ export const Inventory = () => {
                 {filteredEquipment.map((item) => {
                   const MovementIcon = getMovementIcon(item.available, item.rented);
                   const movementColor = getMovementColor(item.available, item.rented);
+                  const inMaintenance = isInMaintenance(item.name);
+                  const maintenanceInfo = getMaintenanceInfo(item.name);
+                  
                   return (
-                    <tr key={item.id} className="border-b hover:bg-muted/50">
+                    <tr key={item.id} className={`border-b hover:bg-muted/50 ${inMaintenance ? 'bg-orange-50' : ''}`}>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
                           <Package className="w-5 h-5 text-primary" />
@@ -445,6 +493,20 @@ export const Inventory = () => {
                         </Badge>
                       </td>
                       <td className="py-3 px-4 text-center">
+                        {inMaintenance ? (
+                          <div className="flex flex-col items-center gap-1">
+                            <Badge className="bg-orange-100 text-orange-800">
+                              🔧 {maintenanceInfo?.status}
+                            </Badge>
+                            <div className="text-xs text-orange-600 max-w-32 truncate" title={maintenanceInfo?.description}>
+                              {maintenanceInfo?.description}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-green-600">✓ OK</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-center">
                         <div className="flex items-center justify-center gap-1">
                           <MovementIcon className={`w-4 h-4 ${movementColor}`} />
                           <span className="text-sm">{new Date(item.updated_at).toLocaleDateString('pt-BR')}</span>
@@ -460,7 +522,7 @@ export const Inventory = () => {
                 })}
                 {filteredEquipment.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="py-8 text-center text-muted-foreground">
+                    <td colSpan={9} className="py-8 text-center text-muted-foreground">
                       {selectedCategory === "all" 
                         ? "Nenhum equipamento encontrado" 
                         : `Nenhum item encontrado na categoria "${categories.find(c => c.value === selectedCategory)?.label}"`
