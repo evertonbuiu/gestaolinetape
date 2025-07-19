@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useCustomAuth } from '@/hooks/useCustomAuth';
 
 type Theme = 'light' | 'dark';
 
@@ -255,6 +256,7 @@ const lightColorSchemes: ColorScheme[] = [
 ];
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
+  const { user } = useCustomAuth(); // Use custom auth instead of Supabase auth
   const [theme, setTheme] = useState<Theme>('dark');
   const [colorScheme, setColorScheme] = useState<string>('blue');
   const [customSchemes, setCustomSchemes] = useState<ColorScheme[]>([]);
@@ -329,8 +331,6 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   // Save theme preferences to Supabase
   const saveThemePreferences = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
       if (!user) {
         console.log('No authenticated user, skipping theme preference saving');
         return;
@@ -366,6 +366,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
       
+      console.log('Theme preferences saved successfully for user:', user.id);
       
     } catch (error) {
       console.error('Error saving theme preferences:', error);
@@ -375,9 +376,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   // Load theme preferences from Supabase
   const loadThemePreferences = async () => {
     try {
-      const { data: session } = await supabase.auth.getSession();
-      
-      if (!session?.session?.user) {
+      if (!user) {
         console.log('No authenticated user, skipping theme preference loading');
         return;
       }
@@ -385,7 +384,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       const { data: prefs, error } = await supabase
         .from('user_theme_preferences')
         .select()
-        .eq('user_id', session.session.user.id)
+        .eq('user_id', user.id)
         .maybeSingle();
 
       if (error) {
@@ -437,6 +436,10 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
             applyColorScheme(scheme);
           }
         }
+        
+        console.log('Theme preferences loaded successfully for user:', user.id);
+      } else {
+        console.log('No theme preferences found for user:', user.id, '- using defaults');
       }
     } catch (error) {
       console.error('Error loading theme preferences:', error);
@@ -527,10 +530,10 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     }, 100);
   };
 
-  // Load preferences on mount
+  // Load preferences on mount and when user changes
   useEffect(() => {
     loadThemePreferences();
-  }, []);
+  }, [user]); // Re-run when user login status changes
 
   return (
     <ThemeContext.Provider
