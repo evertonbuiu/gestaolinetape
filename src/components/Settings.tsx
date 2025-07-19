@@ -29,6 +29,9 @@ export const SettingsPage = () => {
   const { toast } = useToast();
   const { settings: companySettings, updateSettings: updateCompanySettings, updateCompanyData, isLoading: isLoadingCompanySettings } = useCompanySettings();
   
+  // Flag para evitar reset dos dados após save
+  const [justSaved, setJustSaved] = useState(false);
+  
   // States para dados completos da empresa
   const [companyData, setCompanyData] = useState({
     company_name: "",
@@ -149,9 +152,9 @@ export const SettingsPage = () => {
     }
   };
 
-  // Função para salvar dados completos da empresa
   const saveCompanyData = async () => {
     setSavingCompanyData(true);
+    setJustSaved(true);
     try {
       const success = await updateCompanyData(companyData);
       if (success) {
@@ -170,6 +173,8 @@ export const SettingsPage = () => {
       });
     } finally {
       setSavingCompanyData(false);
+      // Reset flag após um pequeno delay
+      setTimeout(() => setJustSaved(false), 1000);
     }
   };
 
@@ -326,6 +331,9 @@ export const SettingsPage = () => {
 
   // Separate effect to initialize company data only when first loaded
   useEffect(() => {
+    // Se acabou de salvar, não resetar os dados
+    if (justSaved) return;
+    
     if (companySettings && !isLoadingCompanySettings) {
       setCompanyName(companySettings.company_name);
       setCompanyTagline(companySettings.tagline || "");
@@ -352,7 +360,7 @@ export const SettingsPage = () => {
         website: ""
       });
     }
-  }, [companySettings, isLoadingCompanySettings]);
+  }, [companySettings, isLoadingCompanySettings, justSaved]);
 
   if (userRole !== 'admin') {
     return (
