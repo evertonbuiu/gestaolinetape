@@ -2408,11 +2408,15 @@ export const FinancialManagement = () => {
 
   const exportCashFlowToPDF = () => {
     const doc = new jsPDF();
+    let yPos = addLetterhead(doc);
     
-    doc.setFontSize(20);
-    doc.text('FLUXO DE CAIXA', 20, 30);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('FLUXO DE CAIXA', 15, yPos);
     doc.setFontSize(12);
-    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 20, 45);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 15, yPos + 8);
+    yPos += 25;
     
     const tableData = cashFlow.map(entry => [
       entry.date,
@@ -2425,17 +2429,18 @@ export const FinancialManagement = () => {
     
     // Verificar se existem dados
     if (tableData.length === 0) {
-      doc.text('Nenhum dado encontrado para o período selecionado.', 20, 70);
+      doc.text('Nenhum dado encontrado para o período selecionado.', 15, yPos);
     } else {
       (doc as any).autoTable({
         head: [['Data', 'Descrição', 'Categoria', 'Tipo', 'Valor', 'Status']],
         body: tableData,
-        startY: 60,
+        startY: yPos,
         theme: 'grid',
         styles: { fontSize: 8 }
       });
     }
     
+    addFooter(doc);
     doc.save(`fluxo_caixa_${new Date().toISOString().split('T')[0]}.pdf`);
     
     toast({
@@ -2473,11 +2478,15 @@ export const FinancialManagement = () => {
 
   const exportBudgetToPDF = () => {
     const doc = new jsPDF();
+    let yPos = addLetterhead(doc);
     
-    doc.setFontSize(20);
-    doc.text('CONTROLE ORÇAMENTÁRIO', 20, 30);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('CONTROLE ORÇAMENTÁRIO', 15, yPos);
     doc.setFontSize(12);
-    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 20, 45);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 15, yPos + 8);
+    yPos += 25;
     
     const tableData = budget.map(item => [
       item.category,
@@ -2490,11 +2499,12 @@ export const FinancialManagement = () => {
     (doc as any).autoTable({
       head: [['Categoria', 'Orçado', 'Realizado', 'Restante', 'Percentual']],
       body: tableData,
-      startY: 60,
+      startY: yPos,
       theme: 'grid',
       styles: { fontSize: 10 }
     });
     
+    addFooter(doc);
     doc.save(`orcamento_${new Date().toISOString().split('T')[0]}.pdf`);
     
     toast({
@@ -2530,11 +2540,15 @@ export const FinancialManagement = () => {
 
   const exportAccountsToPDF = () => {
     const doc = new jsPDF();
+    let yPos = addLetterhead(doc);
     
-    doc.setFontSize(20);
-    doc.text('CONTAS BANCÁRIAS', 20, 30);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('CONTAS BANCÁRIAS', 15, yPos);
     doc.setFontSize(12);
-    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 20, 45);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 15, yPos + 8);
+    yPos += 25;
     
     const tableData = accounts.map(account => [
       account.name,
@@ -2545,17 +2559,18 @@ export const FinancialManagement = () => {
     (doc as any).autoTable({
       head: [['Nome da Conta', 'Tipo', 'Saldo']],
       body: tableData,
-      startY: 60,
+      startY: yPos,
       theme: 'grid',
       styles: { fontSize: 12 }
     });
     
     const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
-    const finalY = (doc as any).lastAutoTable.finalY || 60;
+    const finalY = (doc as any).lastAutoTable.finalY || yPos;
     
     doc.setFontSize(14);
-    doc.text(`Total Geral: R$ ${totalBalance.toFixed(2).replace('.', ',')}`, 20, finalY + 20);
+    doc.text(`Total Geral: R$ ${totalBalance.toFixed(2).replace('.', ',')}`, 15, finalY + 20);
     
+    addFooter(doc);
     doc.save(`contas_bancarias_${new Date().toISOString().split('T')[0]}.pdf`);
     
     toast({
