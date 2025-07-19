@@ -52,7 +52,7 @@ serve(async (req) => {
     }
 
     // Validate role
-    if (!['admin', 'funcionario', 'financeiro'].includes(role)) {
+    if (!['admin', 'funcionario', 'financeiro', 'deposito'].includes(role)) {
       throw new Error('Invalid role specified')
     }
 
