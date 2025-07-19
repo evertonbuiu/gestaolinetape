@@ -69,6 +69,7 @@ interface EventCollaborator {
 export const EventEquipment = () => {
   const { user } = useCustomAuth();
   const { toast } = useToast();
+  const { hasPermission } = usePermissions();
   const [events, setEvents] = useState<Event[]>([]);
   const [equipment, setEquipment] = useState<EventEquipment[]>([]);
   const [availableEquipment, setAvailableEquipment] = useState<Equipment[]>([]);
@@ -1134,13 +1135,14 @@ export const EventEquipment = () => {
                     <Printer className="h-4 w-4" />
                     Imprimir Lista
                   </Button>
-                  <Dialog open={equipmentDialog} onOpenChange={setEquipmentDialog}>
-                    <DialogTrigger asChild>
-                      <Button>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Adicionar Equipamento
-                      </Button>
-                    </DialogTrigger>
+                  {hasPermission('event_equipment_edit', 'edit') && (
+                    <Dialog open={equipmentDialog} onOpenChange={setEquipmentDialog}>
+                      <DialogTrigger asChild>
+                        <Button>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Adicionar Equipamento
+                        </Button>
+                      </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
                         <DialogTitle>Novo Equipamento</DialogTitle>
@@ -1214,6 +1216,7 @@ export const EventEquipment = () => {
                       </div>
                     </DialogContent>
                   </Dialog>
+                  )}
                 </div>
               </div>
 
@@ -1256,35 +1259,39 @@ export const EventEquipment = () => {
                                 </Badge>
                               </TableCell>
                               <TableCell>{item.description || '-'}</TableCell>
-                              <TableCell>
+                               <TableCell>
                                 <div className="flex gap-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      setSelectedEquipmentForEdit(item);
-                                      setNewEquipment({
-                                        equipment_name: item.equipment_name,
-                                        quantity: item.quantity,
-                                        description: item.description,
-                                        status: item.status
-                                      });
-                                      setEditEquipmentDialog(true);
-                                    }}
-                                    className="text-blue-600 hover:text-blue-800"
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => deleteEquipment(item.id)}
-                                    className="text-red-600 hover:text-red-800"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
+                                  {hasPermission('event_equipment_edit', 'edit') && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedEquipmentForEdit(item);
+                                        setNewEquipment({
+                                          equipment_name: item.equipment_name,
+                                          quantity: item.quantity,
+                                          description: item.description,
+                                          status: item.status
+                                        });
+                                        setEditEquipmentDialog(true);
+                                      }}
+                                      className="text-blue-600 hover:text-blue-800"
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                  {hasPermission('event_equipment_edit', 'edit') && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => deleteEquipment(item.id)}
+                                      className="text-red-600 hover:text-red-800"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  )}
                                 </div>
-                              </TableCell>
+                               </TableCell>
                             </TableRow>
                           ))
                         )}
