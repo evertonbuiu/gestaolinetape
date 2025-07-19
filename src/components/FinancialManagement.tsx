@@ -180,7 +180,19 @@ export const FinancialManagement = () => {
           table: 'event_expenses'
         },
         () => {
-          console.log('Expense change detected, reloading financial data');
+          console.log('Event expense change detected, reloading financial data');
+          loadFinancialData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'company_expenses'
+        },
+        (payload) => {
+          console.log('Company expense change detected:', payload);
           loadFinancialData();
         }
       )
@@ -293,6 +305,16 @@ export const FinancialManagement = () => {
 
       if (expensesError) throw expensesError;
 
+      // Buscar despesas da empresa do período selecionado
+      const { data: companyExpensesData, error: companyExpensesError } = await supabase
+        .from('company_expenses')
+        .select('*')
+        .gte('expense_date', startDate)
+        .lte('expense_date', endDate)
+        .order('expense_date', { ascending: false });
+
+      if (companyExpensesError) throw companyExpensesError;
+
       // Transformar eventos em receitas do fluxo de caixa
       const eventEntries: CashFlowEntry[] = eventsData?.map(event => {
         // Usar payment_amount se disponível, senão usar total_budget
@@ -319,8 +341,8 @@ export const FinancialManagement = () => {
         };
       }) || [];
 
-      // Transformar despesas em entradas do fluxo de caixa
-      const expenseEntries: CashFlowEntry[] = expensesData?.map(expense => {
+      // Transformar despesas dos eventos em entradas do fluxo de caixa
+      const eventExpenseEntries: CashFlowEntry[] = expensesData?.map(expense => {
         // Garantir que a data seja uma string no formato YYYY-MM-DD
         const expenseDate = expense.expense_date || expense.created_at;
         const formattedDate = typeof expenseDate === 'string' 
@@ -330,7 +352,27 @@ export const FinancialManagement = () => {
         return {
           id: expense.id,
           date: formattedDate,
-          description: expense.description,
+          description: `[Evento] ${expense.description}`,
+          category: expense.category,
+          type: "expense" as const,
+          amount: expense.total_price,
+          account: expense.expense_bank_account || "Conta Corrente Principal",
+          status: "confirmed" as const
+        };
+      }) || [];
+
+      // Transformar despesas da empresa em entradas do fluxo de caixa
+      const companyExpenseEntries: CashFlowEntry[] = companyExpensesData?.map(expense => {
+        // Garantir que a data seja uma string no formato YYYY-MM-DD
+        const expenseDate = expense.expense_date || expense.created_at;
+        const formattedDate = typeof expenseDate === 'string' 
+          ? expenseDate.split('T')[0] 
+          : new Date(expenseDate).toISOString().split('T')[0];
+          
+        return {
+          id: expense.id,
+          date: formattedDate,
+          description: `[Empresa] ${expense.description}`,
           category: expense.category,
           type: "expense" as const,
           amount: expense.total_price,
@@ -340,11 +382,12 @@ export const FinancialManagement = () => {
       }) || [];
 
       // Combinar todas as entradas
-      const allEntries = [...eventEntries, ...expenseEntries];
+      const allEntries = [...eventEntries, ...eventExpenseEntries, ...companyExpenseEntries];
       setCashFlow(allEntries);
 
-      // Calcular orçamento baseado nas categorias de despesas
-      const categorySpending = expensesData?.reduce((acc, expense) => {
+      // Calcular orçamento baseado nas categorias de despesas (eventos + empresa)
+      const allExpenses = [...(expensesData || []), ...(companyExpensesData || [])];
+      const categorySpending = allExpenses.reduce((acc, expense) => {
         acc[expense.category] = (acc[expense.category] || 0) + expense.total_price;
         return acc;
       }, {} as Record<string, number>) || {};
@@ -460,7 +503,7 @@ export const FinancialManagement = () => {
         .filter(entry => entry.status === 'confirmed')
         .reduce((sum, entry) => sum + entry.amount, 0);
       
-      const totalExpenses = expenseEntries
+      const totalExpenses = [...eventExpenseEntries, ...companyExpenseEntries]
         .reduce((sum, entry) => sum + entry.amount, 0);
 
       // Buscar contas bancárias do banco de dados
