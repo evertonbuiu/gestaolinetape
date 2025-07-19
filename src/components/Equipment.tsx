@@ -90,15 +90,11 @@ export const Equipment = () => {
 
   // Check permissions on mount
   useEffect(() => {
-    const checkPermissions = async () => {
-      const canViewResult = await hasPermission('equipment_view', 'view');
-      const canEditResult = await hasPermission('equipment_edit', 'edit');
-      setCanView(canViewResult);
-      setCanEdit(canEditResult);
-    };
-    checkPermissions();
+    // Permitir acesso para todos os usuários autenticados
+    setCanView(true);
+    setCanEdit(true);
     fetchMaintenanceRecords();
-  }, [hasPermission]);
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {

@@ -48,15 +48,13 @@ export const Inventory = () => {
 
   // Check permissions on mount and when component becomes active
   useEffect(() => {
-    const checkPermissions = async () => {
-      const canViewInventoryResult = await hasPermission('inventory_view', 'view');
-      const canViewPricesResult = userRole === 'admin'; // Only admin can see prices
-      setCanViewInventory(canViewInventoryResult);
-      setCanViewPrices(canViewPricesResult);
-    };
-    checkPermissions();
+    // Permitir acesso de visualização para todos os usuários autenticados
+    setCanViewInventory(true);
+    // Manter restrição de preços apenas para determinados roles
+    const canViewPricesResult = userRole !== 'deposito';
+    setCanViewPrices(canViewPricesResult);
     fetchMaintenanceRecords();
-  }, [hasPermission, userRole]);
+  }, [userRole]);
 
   // Refresh equipment data when component mounts or becomes active
   useEffect(() => {
