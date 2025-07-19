@@ -869,10 +869,18 @@ export const PersonalExpenseSpreadsheet = () => {
         <TabsContent value="monthly">
           <Card>
             <CardHeader>
-              <CardTitle>Despesas Pessoais do Mês</CardTitle>
-              <CardDescription>
-                {format(new Date(selectedYear, selectedMonth - 1), 'MMMM yyyy', { locale: ptBR })}
-              </CardDescription>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Despesas Pessoais do Mês</CardTitle>
+                  <CardDescription>
+                    {format(new Date(selectedYear, selectedMonth - 1), 'MMMM yyyy', { locale: ptBR })}
+                  </CardDescription>
+                </div>
+                <Button onClick={generatePDF} variant="outline" size="sm">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Gerar PDF
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <Table>
