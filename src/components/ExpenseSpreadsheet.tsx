@@ -95,26 +95,42 @@ export const ExpenseSpreadsheet = () => {
       const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
       const endDate = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}-${lastDay}`;
 
-      // Buscar despesas da empresa do período
-      let query = supabase
+      // Buscar despesas da empresa (company_expenses)
+      let companyQuery = supabase
         .from('company_expenses')
         .select('*');
 
       if (selectedDay) {
-        // Filtrar por dia específico
-        query = query.eq('expense_date', selectedDay);
+        companyQuery = companyQuery.eq('expense_date', selectedDay);
       } else {
-        // Filtrar por mês/ano
-        query = query
+        companyQuery = companyQuery
           .gte('expense_date', startDate)
           .lte('expense_date', endDate);
       }
 
-      const { data: expensesData, error } = await query.order('expense_date', { ascending: false });
+      // Buscar despesas dos eventos (event_expenses)
+      let eventQuery = supabase
+        .from('event_expenses')
+        .select('*');
 
-      if (error) throw error;
+      if (selectedDay) {
+        eventQuery = eventQuery.eq('expense_date', selectedDay);
+      } else {
+        eventQuery = eventQuery
+          .gte('expense_date', startDate)
+          .lte('expense_date', endDate);
+      }
 
-      const mappedExpenses: DailyExpense[] = expensesData?.map(expense => ({
+      const [companyResult, eventResult] = await Promise.all([
+        companyQuery.order('expense_date', { ascending: false }),
+        eventQuery.order('expense_date', { ascending: false })
+      ]);
+
+      if (companyResult.error) throw companyResult.error;
+      if (eventResult.error) throw eventResult.error;
+
+      // Mapear despesas da empresa
+      const companyExpenses: DailyExpense[] = companyResult.data?.map(expense => ({
         id: expense.id,
         date: expense.expense_date || expense.created_at.split('T')[0],
         description: expense.description,
@@ -126,10 +142,27 @@ export const ExpenseSpreadsheet = () => {
         created_at: expense.created_at
       })) || [];
 
-      setExpenses(mappedExpenses);
+      // Mapear despesas dos eventos
+      const eventExpenses: DailyExpense[] = eventResult.data?.map(expense => ({
+        id: expense.id,
+        date: expense.expense_date || expense.created_at.split('T')[0],
+        description: `[Evento] ${expense.description}`,
+        category: expense.category,
+        amount: expense.total_price,
+        expense_bank_account: expense.expense_bank_account,
+        notes: expense.notes,
+        created_by: expense.created_by,
+        created_at: expense.created_at
+      })) || [];
 
-      // Calcular categorias com gastos
-      const categorySpending = mappedExpenses.reduce((acc, expense) => {
+      // Combinar todas as despesas e ordenar por data
+      const allExpenses = [...companyExpenses, ...eventExpenses]
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      setExpenses(allExpenses);
+
+      // Calcular categorias com gastos (incluindo ambas as fontes)
+      const categorySpending = allExpenses.reduce((acc, expense) => {
         acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
         return acc;
       }, {} as Record<string, number>);
