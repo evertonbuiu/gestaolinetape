@@ -137,9 +137,27 @@ export const EventEquipment = () => {
       )
       .subscribe();
 
+    // Add listener for equipment table changes to update available equipment
+    const availableEquipmentChannel = supabase
+      .channel('available-equipment-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'equipment'
+        },
+        () => {
+          console.log('Equipment data updated, refreshing available equipment...');
+          fetchAvailableEquipment();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(eventsChannel);
       supabase.removeChannel(equipmentChannel);
+      supabase.removeChannel(availableEquipmentChannel);
     };
   }, [selectedEvent]);
 
