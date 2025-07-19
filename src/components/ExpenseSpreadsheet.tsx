@@ -163,7 +163,24 @@ export const ExpenseSpreadsheet = () => {
   };
 
   const getCategoryBudget = (category: string): number => {
-    const budgets: Record<string, number> = {
+    // Carregar orçamento salvo no localStorage da gestão financeira
+    const budgetKey = `company_budget_${selectedMonth}_${selectedYear}`;
+    const savedBudget = localStorage.getItem(budgetKey);
+    
+    if (savedBudget) {
+      try {
+        const budgetData = JSON.parse(savedBudget);
+        const budgetItem = budgetData.find((item: any) => item.category === category);
+        if (budgetItem) {
+          return budgetItem.budgeted;
+        }
+      } catch (error) {
+        console.error("Error parsing saved budget:", error);
+      }
+    }
+    
+    // Valores padrão se não houver orçamento salvo
+    const defaultBudgets: Record<string, number> = {
       "Aluguel": 3000,
       "Energia Elétrica": 500,
       "Água": 200,
@@ -180,7 +197,7 @@ export const ExpenseSpreadsheet = () => {
       "Equipamentos": 2000,
       "Outros": 500
     };
-    return budgets[category] || 500;
+    return defaultBudgets[category] || 500;
   };
 
   const handleAddExpense = async () => {

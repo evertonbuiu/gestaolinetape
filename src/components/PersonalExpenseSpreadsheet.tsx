@@ -140,7 +140,24 @@ export const PersonalExpenseSpreadsheet = () => {
   };
 
   const getCategoryBudget = (category: string): number => {
-    const budgets: Record<string, number> = {
+    // Carregar orçamento pessoal salvo no localStorage da gestão financeira
+    const personalBudgetKey = `personal_budget_${selectedMonth}_${selectedYear}`;
+    const savedPersonalBudget = localStorage.getItem(personalBudgetKey);
+    
+    if (savedPersonalBudget) {
+      try {
+        const budgetData = JSON.parse(savedPersonalBudget);
+        const budgetItem = budgetData.find((item: any) => item.category === category);
+        if (budgetItem) {
+          return budgetItem.budgeted;
+        }
+      } catch (error) {
+        console.error("Error parsing saved personal budget:", error);
+      }
+    }
+    
+    // Valores padrão se não houver orçamento salvo
+    const defaultBudgets: Record<string, number> = {
       "Moradia": 2000,
       "Alimentação": 800,
       "Transporte": 500,
@@ -157,7 +174,7 @@ export const PersonalExpenseSpreadsheet = () => {
       "Investimentos": 1500,
       "Outros": 300
     };
-    return budgets[category] || 300;
+    return defaultBudgets[category] || 300;
   };
 
   const handleAddExpense = async () => {
