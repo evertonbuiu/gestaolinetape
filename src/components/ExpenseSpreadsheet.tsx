@@ -81,8 +81,10 @@ export const ExpenseSpreadsheet = () => {
           schema: 'public',
           table: 'company_expenses'
         },
-        (payload) => {
-          console.log('Company expense change detected:', payload);
+        async (payload) => {
+          console.log('Company expense change detected, syncing:', payload);
+          // Sincronizar transações e recarregar
+          await supabase.rpc('sync_bank_transactions');
           loadExpenses();
         }
       )
@@ -93,8 +95,10 @@ export const ExpenseSpreadsheet = () => {
           schema: 'public',
           table: 'event_expenses'
         },
-        (payload) => {
-          console.log('Event expense change detected:', payload);
+        async (payload) => {
+          console.log('Event expense change detected, syncing:', payload);
+          // Sincronizar transações e recarregar
+          await supabase.rpc('sync_bank_transactions');
           loadExpenses();
         }
       )

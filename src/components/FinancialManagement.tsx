@@ -204,9 +204,13 @@ export const FinancialManagement = () => {
           schema: 'public',
           table: 'events'
         },
-        () => {
-          console.log('Event change detected, reloading financial data');
+        async (payload) => {
+          console.log('Event change detected, syncing transactions:', payload);
+          // Sincronizar transações automaticamente
+          await supabase.rpc('sync_bank_transactions');
+          // Recarregar dados financeiros
           loadFinancialData();
+          loadBankAccounts();
         }
       )
       .on(
@@ -216,9 +220,13 @@ export const FinancialManagement = () => {
           schema: 'public',
           table: 'event_expenses'
         },
-        () => {
-          console.log('Event expense change detected, reloading financial data');
+        async (payload) => {
+          console.log('Event expense change detected, syncing transactions:', payload);
+          // Sincronizar transações automaticamente
+          await supabase.rpc('sync_bank_transactions');
+          // Recarregar dados financeiros
           loadFinancialData();
+          loadBankAccounts();
         }
       )
       .on(
@@ -228,9 +236,13 @@ export const FinancialManagement = () => {
           schema: 'public',
           table: 'company_expenses'
         },
-        (payload) => {
-          console.log('Company expense change detected:', payload);
+        async (payload) => {
+          console.log('Company expense change detected, syncing transactions:', payload);
+          // Sincronizar transações automaticamente
+          await supabase.rpc('sync_bank_transactions');
+          // Recarregar dados financeiros
           loadFinancialData();
+          loadBankAccounts();
         }
       )
       .on(
