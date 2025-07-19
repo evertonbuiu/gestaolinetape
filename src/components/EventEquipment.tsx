@@ -131,7 +131,7 @@ export const EventEquipment = () => {
         () => {
           console.log('Event equipment data updated, refreshing...');
           if (selectedEvent) {
-            fetchEquipment(selectedEvent.id);
+            fetchEquipment(selectedEvent.id, true);
           }
         }
       )
@@ -187,9 +187,13 @@ export const EventEquipment = () => {
   };
 
   // Fetch equipment for selected event
-  const fetchEquipment = async (eventId: string) => {
+  const fetchEquipment = async (eventId: string, forceRefresh = false) => {
     try {
-      console.log('Fetching equipment for event:', eventId);
+      console.log('Fetching equipment for event:', eventId, { forceRefresh });
+      
+      // Add a small cache-busting parameter if force refresh
+      const cacheParam = forceRefresh ? `?t=${Date.now()}` : '';
+      
       const { data, error } = await supabase
         .from('event_equipment')
         .select('*')
@@ -197,8 +201,15 @@ export const EventEquipment = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      
       console.log('Equipment data loaded:', data);
       console.log('Setting equipment state with data:', data?.length || 0, 'items');
+      console.log('Equipment details:', data?.map(item => ({
+        name: item.equipment_name,
+        status: item.status,
+        quantity: item.quantity
+      })));
+      
       setEquipment(data || []);
     } catch (error) {
       console.error('Error fetching equipment:', error);
@@ -1003,7 +1014,7 @@ export const EventEquipment = () => {
     if (events.length > 0 && !selectedEvent) {
       console.log('Auto-selecting first event:', events[0]);
       setSelectedEvent(events[0]);
-      fetchEquipment(events[0].id);
+      fetchEquipment(events[0].id, true);
       fetchCollaborators(events[0].id);
     }
   }, [events, selectedEvent]);
@@ -1308,12 +1319,27 @@ export const EventEquipment = () => {
               <div className="space-y-6">
                 {/* Active Equipment Section */}
                 <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-md font-semibold text-foreground">Equipamentos Ativos</h4>
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                      {equipment.filter(item => ['pending', 'confirmed', 'allocated', 'active'].includes(item.status)).length} ativo(s)
-                    </Badge>
-                  </div>
+                   <div className="flex items-center justify-between mb-4">
+                     <h4 className="text-md font-semibold text-foreground">Equipamentos Ativos</h4>
+                     <div className="flex items-center gap-2">
+                       <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                         {equipment.filter(item => ['pending', 'confirmed', 'allocated', 'active'].includes(item.status)).length} ativo(s)
+                       </Badge>
+                       {selectedEvent && (
+                         <Badge variant="secondary" className="text-xs">
+                           Evento: {selectedEvent.name}
+                         </Badge>
+                       )}
+                       <Button 
+                         variant="ghost" 
+                         size="sm"
+                         onClick={() => selectedEvent && fetchEquipment(selectedEvent.id)}
+                         className="text-xs"
+                       >
+                         🔄 Atualizar
+                       </Button>
+                     </div>
+                   </div>
                   <div className="border rounded-lg">
                     <Table>
                       <TableHeader>
@@ -1326,12 +1352,15 @@ export const EventEquipment = () => {
                         </TableRow>
                       </TableHeader>
                        <TableBody>
-                          {(() => {
-                            const activeEquipment = equipment.filter(item => 
-                              ['pending', 'confirmed', 'allocated', 'active'].includes(item.status)
-                            );
-                            console.log('Active equipment:', activeEquipment);
-                            console.log('All equipment:', equipment);
+                           {(() => {
+                             const activeEquipment = equipment.filter(item => 
+                               ['pending', 'confirmed', 'allocated', 'active'].includes(item.status)
+                             );
+                             console.log('Rendering equipment list:');
+                             console.log('- Selected event:', selectedEvent?.name);
+                             console.log('- Total equipment items:', equipment.length);
+                             console.log('- Active equipment:', activeEquipment);
+                             console.log('- Equipment data structure:', equipment);
                            
                             if (activeEquipment.length === 0) {
                               return (
