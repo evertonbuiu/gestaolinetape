@@ -121,6 +121,7 @@ export const FinancialManagement = () => {
   const [lastUpdate, setLastUpdate] = useState(Date.now()); // Para forçar re-render
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [isRecalculatingBalances, setIsRecalculatingBalances] = useState(false);
   const { toast } = useToast();
 
   const loadBankAccounts = async () => {
@@ -579,6 +580,33 @@ export const FinancialManagement = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRecalculateBalances = async () => {
+    try {
+      setIsRecalculatingBalances(true);
+      
+      // Sincronizar transações bancárias
+      await supabase.rpc('sync_bank_transactions');
+      
+      // Recarregar contas bancárias para mostrar saldos atualizados
+      await loadBankAccounts();
+      
+      toast({
+        title: "Sucesso",
+        description: "Saldos das contas sincronizados com sucesso.",
+      });
+      
+    } catch (error) {
+      console.error("Error recalculating balances:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível sincronizar os saldos das contas.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRecalculatingBalances(false);
     }
   };
 
@@ -2661,13 +2689,21 @@ export const FinancialManagement = () => {
                   <CardTitle>Contas Bancárias</CardTitle>
                   <CardDescription>Saldos e movimentações das contas</CardDescription>
                 </div>
-                <Dialog open={isAddingAccount} onOpenChange={setIsAddingAccount}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Nova Conta
-                    </Button>
-                  </DialogTrigger>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleRecalculateBalances}
+                    disabled={isRecalculatingBalances}
+                  >
+                    {isRecalculatingBalances ? "Sincronizando..." : "Sincronizar Saldos"}
+                  </Button>
+                  <Dialog open={isAddingAccount} onOpenChange={setIsAddingAccount}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Nova Conta
+                      </Button>
+                    </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Adicionar Conta</DialogTitle>
@@ -2715,7 +2751,8 @@ export const FinancialManagement = () => {
                       </div>
                     </div>
                   </DialogContent>
-                </Dialog>
+                  </Dialog>
+                </div>
               </div>
             </CardHeader>
             <CardContent>

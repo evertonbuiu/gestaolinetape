@@ -776,6 +776,16 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      force_sync_all_balances: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          account_name: string
+          old_balance: number
+          new_balance: number
+          income_total: number
+          expense_total: number
+        }[]
+      }
       get_account_statement: {
         Args: { account_name_param: string }
         Returns: {
