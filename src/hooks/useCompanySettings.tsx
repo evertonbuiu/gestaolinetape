@@ -30,17 +30,8 @@ export const useCompanySettings = () => {
       if (data) {
         setSettings(data);
       } else {
-        // Se não houver configurações, criar uma default
-        setSettings({
-          id: '',
-          company_name: 'Luz Locação',
-          tagline: 'Controle de Estoque',
-          address: '',
-          phone: '',
-          email: '',
-          cnpj: '',
-          website: ''
-        });
+        // Se não houver configurações, não definir um estado default ainda
+        setSettings(null);
       }
     } catch (error) {
       console.error('Error fetching company settings:', error);

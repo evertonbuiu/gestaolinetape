@@ -27,7 +27,7 @@ export const SettingsPage = () => {
   const { onlineUsers, loading: loadingOnlineUsers } = useOnlineUsers();
   const { theme, colorScheme, setTheme, setColorScheme, availableColorSchemes, createCustomColorScheme, customColors, saveThemePreferences } = useTheme();
   const { toast } = useToast();
-  const { settings: companySettings, updateSettings: updateCompanySettings, updateCompanyData } = useCompanySettings();
+  const { settings: companySettings, updateSettings: updateCompanySettings, updateCompanyData, isLoading: isLoadingCompanySettings } = useCompanySettings();
   
   // States para dados completos da empresa
   const [companyData, setCompanyData] = useState({
@@ -334,8 +334,21 @@ export const SettingsPage = () => {
         cnpj: companySettings.cnpj || "",
         website: companySettings.website || ""
       });
+    } else if (!isLoadingCompanySettings) {
+      // Se não há configurações e não está carregando, definir valores padrão
+      setCompanyName("Luz Locação");
+      setCompanyTagline("Controle de Estoque");
+      setCompanyData({
+        company_name: "Luz Locação",
+        tagline: "Controle de Estoque",
+        address: "",
+        phone: "",
+        email: "",
+        cnpj: "",
+        website: ""
+      });
     }
-  }, [companySettings]);
+  }, [companySettings, isLoadingCompanySettings]);
 
   if (userRole !== 'admin') {
     return (
