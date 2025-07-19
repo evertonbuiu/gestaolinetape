@@ -1140,7 +1140,7 @@ export const FinancialManagement = () => {
         }
       }
       
-      // Cabeçalho da empresa (lado direito)
+      // Cabeçalho da empresa usando dados dinâmicos das configurações
       const companyName = settings?.company_name || 'LUZ LOCAÇÃO';
       const tagline = settings?.tagline || 'Controle de Estoque e Patrimônio';
       
@@ -1154,10 +1154,25 @@ export const FinancialManagement = () => {
       doc.setTextColor(102, 102, 102);
       doc.text(tagline, pageWidth - 15, 32, { align: 'right' });
       
+      // Informações adicionais da empresa
+      let yPos = 38;
+      if (settings?.cnpj) {
+        doc.text(`CNPJ: ${settings.cnpj}`, pageWidth - 15, yPos, { align: 'right' });
+        yPos += 6;
+      }
+      if (settings?.phone) {
+        doc.text(`Tel: ${settings.phone}`, pageWidth - 15, yPos, { align: 'right' });
+        yPos += 6;
+      }
+      if (settings?.email) {
+        doc.text(settings.email, pageWidth - 15, yPos, { align: 'right' });
+        yPos += 6;
+      }
+      
       // Linha divisória
       doc.setDrawColor(0, 102, 204);
       doc.setLineWidth(0.5);
-      doc.line(15, 45, pageWidth - 15, 45);
+      doc.line(15, yPos + 3, pageWidth - 15, yPos + 3);
     };
 
     // Função para adicionar rodapé oficial
@@ -1169,16 +1184,17 @@ export const FinancialManagement = () => {
       doc.setLineWidth(0.5);
       doc.line(15, footerY - 5, pageWidth - 15, footerY - 5);
       
-      // Informações da empresa
+      // Informações da empresa usando dados dinâmicos das configurações
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(102, 102, 102);
       
       const companyInfo = [
         `${settings?.company_name || 'Luz Locação'} - ${settings?.tagline || 'Controle de Estoque e Patrimônio'}`,
+        settings?.address ? `Endereço: ${settings.address}` : '',
         'Documento gerado automaticamente pelo sistema de gestão patrimonial',
         `Data de emissão: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`
-      ];
+      ].filter(Boolean); // Remove linhas vazias
       
       companyInfo.forEach((line, index) => {
         doc.text(line, pageWidth / 2, footerY + (index * 4), { align: 'center' });
@@ -2549,7 +2565,7 @@ export const FinancialManagement = () => {
       doc.addImage(logoUrl, 'PNG', 15, 15, 40, 40);
     }
     
-    // Informações da empresa
+    // Informações da empresa usando dados dinâmicos das configurações
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
     doc.text(settings?.company_name || 'Luz Locação', logoUrl ? 65 : 15, 25);
@@ -2558,22 +2574,30 @@ export const FinancialManagement = () => {
     doc.setFont('helvetica', 'normal');
     doc.text(settings?.tagline || 'Controle de Estoque', logoUrl ? 65 : 15, 35);
     
+    let yPosition = 42;
     if (settings?.address) {
-      doc.text(settings.address, logoUrl ? 65 : 15, 42);
+      doc.text(settings.address, logoUrl ? 65 : 15, yPosition);
+      yPosition += 7;
     }
     if (settings?.phone) {
-      doc.text(`Tel: ${settings.phone}`, logoUrl ? 65 : 15, 49);
+      doc.text(`Tel: ${settings.phone}`, logoUrl ? 65 : 15, yPosition);
+      yPosition += 7;
     }
     if (settings?.email) {
-      doc.text(`Email: ${settings.email}`, logoUrl ? 65 : 15, 56);
+      doc.text(`Email: ${settings.email}`, logoUrl ? 65 : 15, yPosition);
+      yPosition += 7;
+    }
+    if (settings?.website) {
+      doc.text(`Site: ${settings.website}`, logoUrl ? 65 : 15, yPosition);
+      yPosition += 7;
     }
     
     // Linha separadora
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(0.5);
-    doc.line(15, 65, 195, 65);
+    doc.line(15, yPosition + 5, 195, yPosition + 5);
     
-    return 75; // Retorna a posição Y após o cabeçalho
+    return yPosition + 15; // Retorna a posição Y após o cabeçalho
   };
 
   const addFooter = (doc: jsPDF) => {
@@ -2584,11 +2608,14 @@ export const FinancialManagement = () => {
     doc.setLineWidth(0.3);
     doc.line(15, pageHeight - 25, 195, pageHeight - 25);
     
-    // Informações do rodapé
+    // Informações do rodapé usando dados dinâmicos das configurações
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.text(settings?.company_name || 'Luz Locação', 15, pageHeight - 18);
-    doc.text('CNPJ: 12.345.678/0001-90', 15, pageHeight - 12);
+    
+    if (settings?.cnpj) {
+      doc.text(`CNPJ: ${settings.cnpj}`, 15, pageHeight - 12);
+    }
     
     // Data de geração
     const currentDate = new Date().toLocaleDateString('pt-BR', {
