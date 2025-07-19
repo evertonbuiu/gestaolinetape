@@ -147,9 +147,12 @@ export const EventEquipment = () => {
           schema: 'public',
           table: 'equipment'
         },
-        () => {
-          console.log('Equipment data updated, refreshing available equipment...');
-          fetchAvailableEquipment();
+        (payload) => {
+          console.log('Equipment data updated, refreshing available equipment...', payload);
+          // Force refresh with a slight delay to ensure database consistency
+          setTimeout(() => {
+            fetchAvailableEquipment(true);
+          }, 500);
         }
       )
       .subscribe();
@@ -659,14 +662,16 @@ export const EventEquipment = () => {
   };
 
   // Fetch available equipment
-  const fetchAvailableEquipment = async () => {
+  const fetchAvailableEquipment = async (forceRefresh = false) => {
     try {
+      console.log('Fetching available equipment...', { forceRefresh });
       const { data, error } = await supabase
         .from('equipment')
         .select('*')
         .order('name');
 
       if (error) throw error;
+      console.log('Available equipment loaded:', data?.length || 0, 'items');
       setAvailableEquipment(data || []);
     } catch (error) {
       console.error('Error fetching available equipment:', error);
@@ -995,7 +1000,8 @@ export const EventEquipment = () => {
   // Fetch equipment and collaborators when dialogs open
   useEffect(() => {
     if (equipmentDialog) {
-      fetchAvailableEquipment();
+      console.log('Equipment dialog opened, refreshing available equipment...');
+      fetchAvailableEquipment(true);
     }
   }, [equipmentDialog]);
 
@@ -1207,8 +1213,19 @@ export const EventEquipment = () => {
                           </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4">
-                          <div>
-                            <Label htmlFor="equipment_name">Nome do Equipamento *</Label>
+                           <div>
+                             <div className="flex items-center justify-between">
+                               <Label htmlFor="equipment_name">Nome do Equipamento *</Label>
+                               <Button 
+                                 type="button" 
+                                 variant="ghost" 
+                                 size="sm"
+                                 onClick={() => fetchAvailableEquipment(true)}
+                                 className="text-xs"
+                               >
+                                 🔄 Atualizar Lista
+                               </Button>
+                             </div>
                             <Select value={newEquipment.equipment_name} onValueChange={(value) => setNewEquipment(prev => ({ ...prev, equipment_name: value }))}>
                               <SelectTrigger>
                                 <SelectValue placeholder="Selecione um equipamento" />
