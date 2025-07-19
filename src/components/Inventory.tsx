@@ -19,8 +19,8 @@ export const Inventory = () => {
   const { hasPermission } = usePermissions();
   const { userRole } = useCustomAuth();
   const { toast } = useToast();
-  const [canViewInventory, setCanViewInventory] = useState(false);
-  const [canViewPrices, setCanViewPrices] = useState(false);
+  const [canViewInventory, setCanViewInventory] = useState(true);
+  const [canViewPrices, setCanViewPrices] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [showMovementDialog, setShowMovementDialog] = useState(false);
   const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([]);

@@ -20,8 +20,8 @@ export const Equipment = () => {
   const { hasPermission } = usePermissions();
   const { toast } = useToast();
   const { user } = useCustomAuth();
-  const [canView, setCanView] = useState(false);
-  const [canEdit, setCanEdit] = useState(false);
+  const [canView, setCanView] = useState(true);
+  const [canEdit, setCanEdit] = useState(true);
   const [equipmentDialog, setEquipmentDialog] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<any>(null);
   const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([]);
