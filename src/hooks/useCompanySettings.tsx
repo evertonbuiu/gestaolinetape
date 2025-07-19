@@ -90,6 +90,8 @@ export const useCompanySettings = () => {
 
   const updateCompanyData = async (data: Partial<CompanySettings>) => {
     try {
+      console.log('Updating company data with:', data);
+      
       // Verificar se já existe uma configuração
       const { data: existing, error: fetchError } = await supabase
         .from('company_settings')
@@ -102,6 +104,7 @@ export const useCompanySettings = () => {
       }
 
       if (existing) {
+        console.log('Updating existing company settings:', existing.id);
         // Atualizar existente
         const { error } = await supabase
           .from('company_settings')
@@ -109,7 +112,9 @@ export const useCompanySettings = () => {
           .eq('id', existing.id);
 
         if (error) throw error;
+        console.log('Company settings updated successfully');
       } else {
+        console.log('Creating new company settings');
         // Criar novo
         const { error } = await supabase
           .from('company_settings')
@@ -120,8 +125,11 @@ export const useCompanySettings = () => {
           });
 
         if (error) throw error;
+        console.log('Company settings created successfully');
       }
 
+      // Buscar dados atualizados
+      console.log('Refreshing company settings after update...');
       await fetchSettings();
       return true;
     } catch (error) {
