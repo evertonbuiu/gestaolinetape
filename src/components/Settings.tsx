@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useCustomAuth } from '@/hooks/useCustomAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useOnlineUsers } from '@/hooks/useOnlineUsers';
@@ -28,6 +28,9 @@ export const SettingsPage = () => {
   const { theme, colorScheme, setTheme, setColorScheme, availableColorSchemes, createCustomColorScheme, customColors, saveThemePreferences } = useTheme();
   const { toast } = useToast();
   const { settings: companySettings, updateSettings: updateCompanySettings, updateCompanyData, isLoading: isLoadingCompanySettings } = useCompanySettings();
+  
+  // Ref para controlar se já inicializou os dados
+  const initializedRef = useRef(false);
   
   // States para dados completos da empresa
   const [companyData, setCompanyData] = useState({
@@ -325,36 +328,32 @@ export const SettingsPage = () => {
 
   // Separate effect to initialize company data only when first loaded
   useEffect(() => {
-    if (companySettings && !isLoadingCompanySettings) {
-      // Só atualizar se os campos estão vazios (primeira carga)
-      if (!companyData.company_name) {
-        setCompanyName(companySettings.company_name);
-        setCompanyTagline(companySettings.tagline || "");
-        setCompanyData({
-          company_name: companySettings.company_name || "",
-          tagline: companySettings.tagline || "",
-          address: companySettings.address || "",
-          phone: companySettings.phone || "",
-          email: companySettings.email || "",
-          cnpj: companySettings.cnpj || "",
-          website: companySettings.website || ""
-        });
-      }
-    } else if (!companySettings && !isLoadingCompanySettings) {
-      // Se não há configurações e não está carregando, definir valores padrão apenas se vazios
-      if (!companyData.company_name) {
-        setCompanyName("Luz Locação");
-        setCompanyTagline("Controle de Estoque");
-        setCompanyData({
-          company_name: "Luz Locação",
-          tagline: "Controle de Estoque",
-          address: "",
-          phone: "",
-          email: "",
-          cnpj: "",
-          website: ""
-        });
-      }
+    if (companySettings && !isLoadingCompanySettings && !initializedRef.current) {
+      initializedRef.current = true;
+      setCompanyName(companySettings.company_name);
+      setCompanyTagline(companySettings.tagline || "");
+      setCompanyData({
+        company_name: companySettings.company_name || "",
+        tagline: companySettings.tagline || "",
+        address: companySettings.address || "",
+        phone: companySettings.phone || "",
+        email: companySettings.email || "",
+        cnpj: companySettings.cnpj || "",
+        website: companySettings.website || ""
+      });
+    } else if (!companySettings && !isLoadingCompanySettings && !initializedRef.current) {
+      initializedRef.current = true;
+      setCompanyName("Luz Locação");
+      setCompanyTagline("Controle de Estoque");
+      setCompanyData({
+        company_name: "Luz Locação",
+        tagline: "Controle de Estoque",
+        address: "",
+        phone: "",
+        email: "",
+        cnpj: "",
+        website: ""
+      });
     }
   }, [companySettings, isLoadingCompanySettings]);
 

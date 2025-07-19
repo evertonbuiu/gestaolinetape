@@ -35,12 +35,8 @@ export const useCompanySettings = () => {
       }
     } catch (error) {
       console.error('Error fetching company settings:', error);
-      // Se não houver configurações, criar uma default
-      setSettings({
-        id: '',
-        company_name: 'Luz Locação',
-        tagline: 'Controle de Estoque'
-      });
+      // Se houver erro, manter null e deixar o componente lidar com isso
+      setSettings(null);
     } finally {
       setIsLoading(false);
     }
