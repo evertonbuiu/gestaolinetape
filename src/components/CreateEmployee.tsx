@@ -18,7 +18,7 @@ export const CreateEmployee = ({ onSuccess, onCancel }: CreateEmployeeProps) => 
     username: '',
     password: '',
     name: '',
-    role: 'funcionario' as 'admin' | 'funcionario' | 'financeiro'
+    role: 'funcionario' as 'admin' | 'funcionario' | 'financeiro' | 'deposito'
   });
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -77,6 +77,8 @@ export const CreateEmployee = ({ onSuccess, onCancel }: CreateEmployeeProps) => 
         return 'Financeiro';
       case 'funcionario':
         return 'Funcionário';
+      case 'deposito':
+        return 'Depósito';
       default:
         return role;
     }
@@ -90,6 +92,8 @@ export const CreateEmployee = ({ onSuccess, onCancel }: CreateEmployeeProps) => 
         return 'Acesso completo às áreas financeiras e visualização de eventos/equipamentos';
       case 'funcionario':
         return 'Acesso básico conforme permissões configuradas';
+      case 'deposito':
+        return 'Acesso operacional sem visualização de valores monetários';
       default:
         return '';
     }
@@ -146,7 +150,7 @@ export const CreateEmployee = ({ onSuccess, onCancel }: CreateEmployeeProps) => 
             <Label htmlFor="role">Nível de Acesso</Label>
             <Select
               value={formData.role}
-              onValueChange={(value: 'admin' | 'funcionario' | 'financeiro') => 
+              onValueChange={(value: 'admin' | 'funcionario' | 'financeiro' | 'deposito') => 
                 setFormData({ ...formData, role: value })
               }
             >
@@ -159,6 +163,14 @@ export const CreateEmployee = ({ onSuccess, onCancel }: CreateEmployeeProps) => 
                     <span>Funcionário</span>
                     <span className="text-xs text-muted-foreground">
                       Acesso básico conforme permissões
+                    </span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="deposito">
+                  <div className="flex flex-col items-start">
+                    <span>Depósito</span>
+                    <span className="text-xs text-muted-foreground">
+                      Acesso operacional sem valores
                     </span>
                   </div>
                 </SelectItem>

@@ -31,7 +31,7 @@ interface User {
   name: string;
   is_active: boolean;
   created_at: string;
-  role?: 'admin' | 'funcionario' | 'financeiro';
+  role?: 'admin' | 'funcionario' | 'financeiro' | 'deposito';
 }
 
 interface UserPermission {
@@ -60,7 +60,7 @@ export const UserManagement = () => {
     name: '',
     username: '',
     password: '',
-    role: 'funcionario' as 'admin' | 'funcionario' | 'financeiro',
+    role: 'funcionario' as 'admin' | 'funcionario' | 'financeiro' | 'deposito',
     is_active: true
   });
 
@@ -267,6 +267,7 @@ export const UserManagement = () => {
       case 'admin': return 'Administrador';
       case 'financeiro': return 'Financeiro';
       case 'funcionario': return 'Funcionário';
+      case 'deposito': return 'Depósito';
       default: return role;
     }
   };
@@ -277,6 +278,7 @@ export const UserManagement = () => {
       case 'admin': return 'destructive';
       case 'financeiro': return 'default';
       case 'funcionario': return 'secondary';
+      case 'deposito': return 'outline';
       default: return 'secondary';
     }
   };
@@ -444,7 +446,7 @@ export const UserManagement = () => {
               <Label htmlFor="edit-role">Função</Label>
               <Select
                 value={editForm.role}
-                onValueChange={(value: 'admin' | 'funcionario' | 'financeiro') => 
+                onValueChange={(value: 'admin' | 'funcionario' | 'financeiro' | 'deposito') => 
                   setEditForm({ ...editForm, role: value })
                 }
               >
@@ -454,6 +456,7 @@ export const UserManagement = () => {
                 <SelectContent>
                   <SelectItem value="funcionario">Funcionário</SelectItem>
                   <SelectItem value="financeiro">Financeiro</SelectItem>
+                  <SelectItem value="deposito">Depósito</SelectItem>
                   <SelectItem value="admin">Administrador</SelectItem>
                 </SelectContent>
               </Select>

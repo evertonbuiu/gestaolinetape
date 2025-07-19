@@ -45,8 +45,8 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
     <div className="p-6 border-b border-border">
       <Logo size="md" />
       <div className="mt-3">
-        <Badge variant={userRole === 'admin' ? 'default' : userRole === 'financeiro' ? 'secondary' : 'outline'}>
-          {userRole === 'admin' ? 'Administrador' : userRole === 'financeiro' ? 'Financeiro' : 'Funcionário'}
+        <Badge variant={userRole === 'admin' ? 'default' : userRole === 'financeiro' ? 'secondary' : userRole === 'deposito' ? 'destructive' : 'outline'}>
+          {userRole === 'admin' ? 'Administrador' : userRole === 'financeiro' ? 'Financeiro' : userRole === 'deposito' ? 'Depósito' : 'Funcionário'}
         </Badge>
       </div>
     </div>
