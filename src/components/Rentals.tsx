@@ -91,8 +91,8 @@ export const Rentals = () => {
   const [selectedExpenseForEdit, setSelectedExpenseForEdit] = useState<EventExpense | null>(null);
   const [newStatus, setNewStatus] = useState('');
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
-  const [canViewRentals, setCanViewRentals] = useState(false);
-  const [canEditRentals, setCanEditRentals] = useState(false);
+  const [canViewRentals, setCanViewRentals] = useState(true);
+  const [canEditRentals, setCanEditRentals] = useState(true);
   const [canViewFinancials, setCanViewFinancials] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -121,18 +121,19 @@ export const Rentals = () => {
   });
   const [selectedCollaborator, setSelectedCollaborator] = useState<string>('');
 
-  // Check permissions on mount
+  // Check permissions on mount - Admin and Financeiro have full access
   useEffect(() => {
     const checkPermissions = async () => {
-      const canViewRentalsResult = await hasPermission('rentals_view', 'view');
-      const canEditRentalsResult = await hasPermission('rentals_edit', 'edit');
-      const canViewFinancialsResult = userRole === 'admin'; // Only admin can see financials
-      setCanViewRentals(canViewRentalsResult);
-      setCanEditRentals(canEditRentalsResult);
+      // Admin and financeiro users have full access to rentals
+      const isAuthorized = userRole === 'admin' || userRole === 'financeiro' || userRole === 'deposito';
+      const canViewFinancialsResult = userRole === 'admin' || userRole === 'financeiro';
+      
+      setCanViewRentals(isAuthorized);
+      setCanEditRentals(isAuthorized);
       setCanViewFinancials(canViewFinancialsResult);
     };
     checkPermissions();
-  }, [hasPermission, userRole]);
+  }, [userRole]);
 
   // Update selectedMonth when year changes
   useEffect(() => {

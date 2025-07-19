@@ -33,8 +33,8 @@ export const Clients = () => {
   const [loading, setLoading] = useState(true);
   const [clientDialog, setClientDialog] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
-  const [canViewClients, setCanViewClients] = useState(false);
-  const [canEditClients, setCanEditClients] = useState(false);
+  const [canViewClients, setCanViewClients] = useState(true);
+  const [canEditClients, setCanEditClients] = useState(true);
   const [newClient, setNewClient] = useState<Partial<Client>>({
     name: '',
     email: '',
@@ -43,16 +43,16 @@ export const Clients = () => {
     notes: ''
   });
 
-  // Check permissions on mount
+  // Check permissions on mount - Admin, Financeiro and Deposito have access  
   useEffect(() => {
     const checkPermissions = async () => {
-      const canViewResult = await hasPermission('clients_view', 'view');
-      const canEditResult = await hasPermission('clients_edit', 'edit');
-      setCanViewClients(canViewResult);
-      setCanEditClients(canEditResult);
+      // Admin, financeiro and deposito users have access to clients
+      const isAuthorized = userRole === 'admin' || userRole === 'financeiro' || userRole === 'deposito';
+      setCanViewClients(isAuthorized);
+      setCanEditClients(isAuthorized);
     };
     checkPermissions();
-  }, [hasPermission]);
+  }, [userRole]);
 
   // Fetch clients
   const fetchClients = async () => {
