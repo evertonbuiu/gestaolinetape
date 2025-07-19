@@ -54,7 +54,7 @@ export const Dashboard = ({ onNavigate }: { onNavigate?: (tab: string) => void }
       const { data, error } = await supabase
         .from('event_equipment')
         .select('*, events!inner(*)')
-        .in('status', ['confirmed', 'active']);
+        .in('status', ['confirmed', 'in_progress']);
       if (error) throw error;
       return data;
     },
@@ -88,7 +88,7 @@ export const Dashboard = ({ onNavigate }: { onNavigate?: (tab: string) => void }
   
   // Eventos ativos no mês
   const activeEvents = eventsData?.filter(event => 
-    event.status === 'confirmed' || event.status === 'active'
+    event.status === 'confirmed' || event.status === 'in_progress'
   ).length || 0;
   // Generate years and months for tabs
   const generateYearsAndMonths = () => {

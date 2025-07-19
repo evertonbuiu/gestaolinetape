@@ -694,7 +694,7 @@ export const EventEquipment = () => {
         .from('event_equipment')
         .select('equipment_name, quantity, status')
         .eq('event_id', eventId)
-        .in('status', ['confirmed', 'active', 'pending', 'allocated']);
+        .in('status', ['confirmed', 'in_progress', 'pending', 'allocated']);
 
       if (equipmentError) throw equipmentError;
 

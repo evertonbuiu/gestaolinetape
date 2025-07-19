@@ -582,7 +582,7 @@ export const Rentals = () => {
     switch (status) {
       case 'completed':
         return 'bg-green-100 text-green-800';
-      case 'active':
+      case 'in_progress':
         return 'bg-blue-100 text-blue-800';
       case 'cancelled':
         return 'bg-red-100 text-red-800';
@@ -597,7 +597,7 @@ export const Rentals = () => {
         return 'Pendente';
       case 'confirmed':
         return 'Confirmado';
-      case 'active':
+      case 'in_progress':
         return 'Em Andamento';
       case 'completed':
         return 'Concluído';
@@ -1300,7 +1300,7 @@ export const Rentals = () => {
                 <SelectContent>
                   <SelectItem value="pending">Pendente</SelectItem>
                   <SelectItem value="confirmed">Confirmado</SelectItem>
-                  <SelectItem value="active">Em Andamento</SelectItem>
+                  <SelectItem value="in_progress">Em Andamento</SelectItem>
                   <SelectItem value="completed">Concluído</SelectItem>
                   <SelectItem value="cancelled">Cancelado</SelectItem>
                 </SelectContent>
