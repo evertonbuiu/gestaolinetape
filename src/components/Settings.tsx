@@ -328,7 +328,14 @@ export const SettingsPage = () => {
 
   // Separate effect to initialize company data only when first loaded
   useEffect(() => {
+    console.log('Settings useEffect triggered:', { 
+      companySettings, 
+      isLoadingCompanySettings, 
+      initialized: initializedRef.current 
+    });
+    
     if (companySettings && !isLoadingCompanySettings && !initializedRef.current) {
+      console.log('Initializing with company settings:', companySettings);
       initializedRef.current = true;
       setCompanyName(companySettings.company_name);
       setCompanyTagline(companySettings.tagline || "");
@@ -342,6 +349,7 @@ export const SettingsPage = () => {
         website: companySettings.website || ""
       });
     } else if (!companySettings && !isLoadingCompanySettings && !initializedRef.current) {
+      console.log('Initializing with default values');
       initializedRef.current = true;
       setCompanyName("Luz Locação");
       setCompanyTagline("Controle de Estoque");

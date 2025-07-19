@@ -19,6 +19,7 @@ export const useCompanySettings = () => {
   const fetchSettings = async () => {
     setIsLoading(true);
     try {
+      console.log('Fetching company settings...');
       const { data, error } = await supabase
         .from('company_settings')
         .select('*')
@@ -28,9 +29,10 @@ export const useCompanySettings = () => {
       if (error) throw error;
       
       if (data) {
+        console.log('Company settings loaded:', data);
         setSettings(data);
       } else {
-        // Se não houver configurações, não definir um estado default ainda
+        console.log('No company settings found');
         setSettings(null);
       }
     } catch (error) {
