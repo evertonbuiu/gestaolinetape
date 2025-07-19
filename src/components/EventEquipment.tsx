@@ -198,7 +198,6 @@ export const EventEquipment = () => {
 
       if (error) throw error;
       console.log('Equipment data loaded:', data);
-      console.log('Setting equipment state with data:', data?.length || 0, 'items');
       setEquipment(data || []);
     } catch (error) {
       console.error('Error fetching equipment:', error);
@@ -998,16 +997,6 @@ export const EventEquipment = () => {
     fetchLogo();
   }, []);
 
-  // Auto-select first event and load its equipment
-  useEffect(() => {
-    if (events.length > 0 && !selectedEvent) {
-      console.log('Auto-selecting first event:', events[0]);
-      setSelectedEvent(events[0]);
-      fetchEquipment(events[0].id);
-      fetchCollaborators(events[0].id);
-    }
-  }, [events, selectedEvent]);
-
   // Fetch equipment and collaborators when dialogs open
   useEffect(() => {
     if (equipmentDialog) {
@@ -1333,24 +1322,15 @@ export const EventEquipment = () => {
                             console.log('Active equipment:', activeEquipment);
                             console.log('All equipment:', equipment);
                            
-                            if (activeEquipment.length === 0) {
-                              return (
-                                <TableRow>
-                                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                                    <div className="flex flex-col items-center gap-2">
-                                      <Package className="h-8 w-8 text-muted-foreground/50" />
-                                      <p>Nenhum equipamento ativo encontrado</p>
-                                      <p className="text-sm">
-                                        {selectedEvent ? 
-                                          `Para o evento: ${selectedEvent.name}` : 
-                                          'Selecione um evento para ver os equipamentos'
-                                        }
-                                      </p>
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            }
+                           if (activeEquipment.length === 0) {
+                             return (
+                               <TableRow>
+                                 <TableCell colSpan={5} className="text-center text-muted-foreground">
+                                   Nenhum equipamento ativo
+                                 </TableCell>
+                               </TableRow>
+                             );
+                           }
                            
                            return activeEquipment.map((item) => (
                             <TableRow key={item.id}>
