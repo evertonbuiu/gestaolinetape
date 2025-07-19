@@ -253,6 +253,30 @@ export const FinancialManagement = () => {
           table: 'bank_accounts'
         },
         (payload) => {
+          console.log('Bank account balance updated:', payload);
+          loadBankAccounts();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bank_transactions'
+        },
+        (payload) => {
+          console.log('Bank transaction updated:', payload);
+          loadBankAccounts();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bank_accounts'
+        },
+        (payload) => {
           console.log('Bank account change detected:', payload);
           // Recarregar apenas as contas bancárias para atualizar saldos
           loadBankAccounts();
