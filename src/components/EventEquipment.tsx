@@ -1197,8 +1197,7 @@ export const EventEquipment = () => {
                       <Printer className="h-4 w-4" />
                       Imprimir Lista
                     </Button>
-                    {hasPermission('event_equipment_edit', 'edit') && (
-                      <Dialog open={equipmentDialog} onOpenChange={setEquipmentDialog}>
+                    <Dialog open={equipmentDialog} onOpenChange={setEquipmentDialog}>
                         <DialogTrigger asChild>
                           <Button>
                             <Plus className="h-4 w-4 mr-2" />
@@ -1289,7 +1288,6 @@ export const EventEquipment = () => {
                         </div>
                       </DialogContent>
                     </Dialog>
-                    )}
                   </div>
                 </div>
 
@@ -1343,39 +1341,33 @@ export const EventEquipment = () => {
                               </TableCell>
                               <TableCell>{item.description || '-'}</TableCell>
                                 <TableCell>
-                                 <div className="flex gap-2">
-                                   {hasPermission('event_equipment_edit', 'edit') ? (
-                                     <>
-                                       <Button
-                                         variant="ghost"
-                                         size="sm"
-                                         onClick={() => {
-                                           setSelectedEquipmentForEdit(item);
-                                           setNewEquipment({
-                                             equipment_name: item.equipment_name,
-                                             quantity: item.quantity,
-                                             description: item.description,
-                                             status: item.status
-                                           });
-                                           setEditEquipmentDialog(true);
-                                         }}
-                                         className="text-blue-600 hover:text-blue-800"
-                                       >
-                                         <Edit className="h-4 w-4" />
-                                       </Button>
-                                       <Button
-                                         variant="ghost"
-                                         size="sm"
-                                         onClick={() => deleteEquipment(item.id)}
-                                         className="text-red-600 hover:text-red-800"
-                                       >
-                                         <Trash2 className="h-4 w-4" />
-                                       </Button>
-                                     </>
-                                   ) : (
-                                     <span className="text-sm text-muted-foreground">Visualização</span>
-                                   )}
-                                 </div>
+                                   <div className="flex gap-2">
+                                     <Button
+                                       variant="ghost"
+                                       size="sm"
+                                       onClick={() => {
+                                         setSelectedEquipmentForEdit(item);
+                                         setNewEquipment({
+                                           equipment_name: item.equipment_name,
+                                           quantity: item.quantity,
+                                           description: item.description,
+                                           status: item.status
+                                         });
+                                         setEditEquipmentDialog(true);
+                                       }}
+                                       className="text-blue-600 hover:text-blue-800"
+                                     >
+                                       <Edit className="h-4 w-4" />
+                                     </Button>
+                                     <Button
+                                       variant="ghost"
+                                       size="sm"
+                                       onClick={() => deleteEquipment(item.id)}
+                                       className="text-red-600 hover:text-red-800"
+                                     >
+                                       <Trash2 className="h-4 w-4" />
+                                     </Button>
+                                   </div>
                                 </TableCell>
                              </TableRow>
                            ));
