@@ -33,6 +33,7 @@ interface ThemeContextType {
   createCustomColorScheme: (colorKey: string, colorValue: string) => void;
   updateAllCustomColors: (colors: { primary: string; secondary: string; accent: string; background: string }) => void;
   saveThemePreferences: () => Promise<void>;
+  resetToDefaults: () => void;
   customColors: {
     primary: string;
     secondary: string;
@@ -377,7 +378,23 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const loadThemePreferences = async () => {
     try {
       if (!user) {
-        console.log('No authenticated user, skipping theme preference loading');
+        console.log('No authenticated user, resetting to default theme');
+        // Reset to default values when no user is logged in
+        setTheme('dark');
+        setColorScheme('blue');
+        setCustomColors({
+          primary: '220 60% 50%',
+          secondary: '220 40% 80%',
+          accent: '220 40% 70%',
+          background: '220 60% 15%'
+        });
+        setCustomSchemes([]);
+        document.documentElement.classList.toggle('dark', true);
+        // Apply default blue scheme
+        const defaultScheme = darkColorSchemes.find(s => s.id === 'blue');
+        if (defaultScheme) {
+          applyColorScheme(defaultScheme);
+        }
         return;
       }
 
@@ -439,7 +456,23 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         
         console.log('Theme preferences loaded successfully for user:', user.id);
       } else {
-        console.log('No theme preferences found for user:', user.id, '- using defaults');
+        console.log('No theme preferences found for user:', user.id, '- setting defaults');
+        // Reset to defaults for new user without preferences
+        setTheme('dark');
+        setColorScheme('blue');
+        setCustomColors({
+          primary: '220 60% 50%',
+          secondary: '220 40% 80%',
+          accent: '220 40% 70%',
+          background: '220 60% 15%'
+        });
+        setCustomSchemes([]);
+        document.documentElement.classList.toggle('dark', true);
+        // Apply default blue scheme
+        const defaultScheme = darkColorSchemes.find(s => s.id === 'blue');
+        if (defaultScheme) {
+          applyColorScheme(defaultScheme);
+        }
       }
     } catch (error) {
       console.error('Error loading theme preferences:', error);
@@ -530,6 +563,25 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     }, 100);
   };
 
+  // Reset to default theme values
+  const resetToDefaults = () => {
+    setTheme('dark');
+    setColorScheme('blue');
+    setCustomColors({
+      primary: '220 60% 50%',
+      secondary: '220 40% 80%',
+      accent: '220 40% 70%',
+      background: '220 60% 15%'
+    });
+    setCustomSchemes([]);
+    document.documentElement.classList.toggle('dark', true);
+    // Apply default blue scheme
+    const defaultScheme = darkColorSchemes.find(s => s.id === 'blue');
+    if (defaultScheme) {
+      applyColorScheme(defaultScheme);
+    }
+  };
+
   // Load preferences on mount and when user changes
   useEffect(() => {
     loadThemePreferences();
@@ -547,6 +599,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         createCustomColorScheme,
         updateAllCustomColors,
         saveThemePreferences,
+        resetToDefaults,
         customColors
       }}
     >
