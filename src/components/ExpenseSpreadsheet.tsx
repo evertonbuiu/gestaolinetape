@@ -70,6 +70,39 @@ export const ExpenseSpreadsheet = () => {
   useEffect(() => {
     loadExpenses();
     loadBankAccounts();
+    
+    // Configurar real-time updates para company_expenses e event_expenses
+    const channel = supabase
+      .channel('expense-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'company_expenses'
+        },
+        (payload) => {
+          console.log('Company expense change detected:', payload);
+          loadExpenses();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'event_expenses'
+        },
+        (payload) => {
+          console.log('Event expense change detected:', payload);
+          loadExpenses();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [selectedMonth, selectedYear, selectedDay]);
 
   const loadBankAccounts = async () => {
@@ -268,7 +301,8 @@ export const ExpenseSpreadsheet = () => {
       });
       setIsAddingExpense(false);
       
-      // Como mudamos os filtros, o useEffect irá carregar automaticamente as despesas do novo período
+      // Forçar atualização imediata
+      loadExpenses();
 
     } catch (error) {
       console.error("Error adding expense:", error);

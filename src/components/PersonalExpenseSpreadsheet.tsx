@@ -78,6 +78,20 @@ export const PersonalExpenseSpreadsheet = () => {
 
   useEffect(() => {
     loadPersonalExpenses();
+    
+    // Escutar mudanças no localStorage (para atualizações em outras abas)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key && e.key.startsWith('personal_expenses_')) {
+        console.log('Personal expense storage change detected');
+        loadPersonalExpenses();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, [selectedMonth, selectedYear, selectedDay]);
 
   const loadPersonalExpenses = async () => {
@@ -218,7 +232,8 @@ export const PersonalExpenseSpreadsheet = () => {
       });
       setIsAddingExpense(false);
       
-      // Como mudamos os filtros, o useEffect irá carregar automaticamente as despesas do novo período
+      // Forçar atualização imediata
+      loadPersonalExpenses();
 
     } catch (error) {
       console.error("Error adding personal expense:", error);
