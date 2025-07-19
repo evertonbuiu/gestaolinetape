@@ -337,16 +337,11 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      const { data: existingPrefs, error: fetchError } = await supabase
-        .from('user_theme_preferences')
-        .select()
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (fetchError) {
-        console.error('Error fetching theme preferences:', fetchError);
-        return;
-      }
+      console.log('Saving theme preferences for user:', user.id, {
+        theme,
+        color_scheme: colorScheme,
+        custom_colors: customColors
+      });
 
       const themeData = {
         user_id: user.id,
@@ -398,11 +393,15 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      console.log('Loading theme preferences for user:', user.id);
+      
       const { data: prefs, error } = await supabase
         .from('user_theme_preferences')
         .select()
         .eq('user_id', user.id)
         .maybeSingle();
+
+      console.log('Theme preferences query result:', { prefs, error });
 
       if (error) {
         console.error('Error loading theme preferences:', error);
