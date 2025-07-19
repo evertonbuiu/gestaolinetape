@@ -87,6 +87,7 @@ export const EventEquipment = () => {
   const [availableCollaborators, setAvailableCollaborators] = useState<any[]>([]);
   const [selectedEquipmentForEdit, setSelectedEquipmentForEdit] = useState<EventEquipment | null>(null);
   const [missingEquipmentList, setMissingEquipmentList] = useState<any[]>([]);
+  const [allocatedEquipmentForReturn, setAllocatedEquipmentForReturn] = useState<any[]>([]);
   const [newEquipment, setNewEquipment] = useState<Partial<EventEquipment>>({
     equipment_name: '',
     quantity: 1,
@@ -683,6 +684,72 @@ export const EventEquipment = () => {
     }
   };
 
+  // Fetch allocated equipment for the selected event for return purposes
+  const fetchAllocatedEquipmentForReturn = async (eventId: string) => {
+    try {
+      console.log('Fetching allocated equipment for return...', { eventId });
+      
+      // Get all equipment allocated in this event (not returned yet)
+      const { data: eventEquipment, error: equipmentError } = await supabase
+        .from('event_equipment')
+        .select('equipment_name, quantity, status')
+        .eq('event_id', eventId)
+        .in('status', ['confirmed', 'active', 'pending', 'allocated']);
+
+      if (equipmentError) throw equipmentError;
+
+      // Group by equipment name and sum quantities
+      const equipmentMap = new Map<string, { allocated: number; returned: number }>();
+      
+      // Get allocated equipment
+      eventEquipment?.forEach(item => {
+        if (!equipmentMap.has(item.equipment_name)) {
+          equipmentMap.set(item.equipment_name, { allocated: 0, returned: 0 });
+        }
+        equipmentMap.get(item.equipment_name)!.allocated += item.quantity;
+      });
+
+      // Get returned equipment to subtract from available for return
+      const { data: returnedEquipment, error: returnedError } = await supabase
+        .from('event_equipment')
+        .select('equipment_name, quantity')
+        .eq('event_id', eventId)
+        .eq('status', 'returned');
+
+      if (returnedError) throw returnedError;
+
+      returnedEquipment?.forEach(item => {
+        if (equipmentMap.has(item.equipment_name)) {
+          equipmentMap.get(item.equipment_name)!.returned += item.quantity;
+        }
+      });
+
+      // Create list of equipment available for return (allocated - returned > 0)
+      const availableForReturn = [];
+      for (const [equipmentName, quantities] of equipmentMap) {
+        const availableQty = quantities.allocated - quantities.returned;
+        if (availableQty > 0) {
+          availableForReturn.push({
+            name: equipmentName,
+            availableForReturn: availableQty,
+            allocated: quantities.allocated,
+            returned: quantities.returned
+          });
+        }
+      }
+
+      console.log('Equipment available for return:', availableForReturn);
+      setAllocatedEquipmentForReturn(availableForReturn);
+    } catch (error) {
+      console.error('Error fetching allocated equipment for return:', error);
+      toast({
+        title: "Erro ao carregar equipamentos",
+        description: "Não foi possível carregar os equipamentos alocados.",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Fetch available collaborators
   const fetchAvailableCollaborators = async () => {
     try {
@@ -1010,6 +1077,13 @@ export const EventEquipment = () => {
       fetchAvailableCollaborators();
     }
   }, [collaboratorDialog]);
+
+  useEffect(() => {
+    if (returnedEquipmentDialog && selectedEvent) {
+      console.log('Return equipment dialog opened, fetching allocated equipment...');
+      fetchAllocatedEquipmentForReturn(selectedEvent.id);
+    }
+  }, [returnedEquipmentDialog, selectedEvent]);
 
   if (loading) {
     return <div className="p-6">Carregando eventos...</div>;
@@ -1400,33 +1474,51 @@ export const EventEquipment = () => {
                             </DialogDescription>
                           </DialogHeader>
                           <div className="space-y-4">
-                            <div>
-                              <Label htmlFor="returned_equipment_name">Nome do Equipamento *</Label>
-                              <Select value={newEquipment.equipment_name} onValueChange={(value) => setNewEquipment(prev => ({ ...prev, equipment_name: value }))}>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Selecione um equipamento" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {availableEquipment.map((item) => (
-                                    <SelectItem key={item.id} value={item.name}>
-                                      {item.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
+                             <div>
+                               <Label htmlFor="returned_equipment_name">Nome do Equipamento Alocado *</Label>
+                               <Select value={newEquipment.equipment_name} onValueChange={(value) => setNewEquipment(prev => ({ ...prev, equipment_name: value }))}>
+                                 <SelectTrigger>
+                                   <SelectValue placeholder="Selecione um equipamento alocado" />
+                                 </SelectTrigger>
+                                 <SelectContent>
+                                   {allocatedEquipmentForReturn.map((item) => (
+                                     <SelectItem key={item.name} value={item.name}>
+                                       {item.name} - {item.availableForReturn} unidade(s) para devolver
+                                     </SelectItem>
+                                   ))}
+                                   {allocatedEquipmentForReturn.length === 0 && (
+                                     <div className="p-2 text-sm text-muted-foreground">
+                                       Nenhum equipamento alocado para devolver
+                                     </div>
+                                   )}
+                                 </SelectContent>
+                               </Select>
+                             </div>
                             
-                            <div>
-                              <Label htmlFor="returned_equipment_quantity">Quantidade *</Label>
-                              <Input
-                                id="returned_equipment_quantity"
-                                type="number"
-                                min="1"
-                                value={newEquipment.quantity || ''}
-                                onChange={(e) => setNewEquipment(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
-                                placeholder="Digite a quantidade"
-                              />
-                            </div>
+                             <div>
+                               <Label htmlFor="returned_equipment_quantity">
+                                 Quantidade * 
+                                 {newEquipment.equipment_name && (
+                                   <span className="text-sm text-muted-foreground ml-2">
+                                     (Máx: {allocatedEquipmentForReturn.find(item => item.name === newEquipment.equipment_name)?.availableForReturn || 0})
+                                   </span>
+                                 )}
+                               </Label>
+                               <Input
+                                 id="returned_equipment_quantity"
+                                 type="number"
+                                 min="1"
+                                 max={allocatedEquipmentForReturn.find(item => item.name === newEquipment.equipment_name)?.availableForReturn || 1}
+                                 value={newEquipment.quantity || ''}
+                                 onChange={(e) => {
+                                   const maxAvailable = allocatedEquipmentForReturn.find(item => item.name === newEquipment.equipment_name)?.availableForReturn || 1;
+                                   const inputValue = parseInt(e.target.value) || 1;
+                                   const validQuantity = Math.min(inputValue, maxAvailable);
+                                   setNewEquipment(prev => ({ ...prev, quantity: validQuantity }));
+                                 }}
+                                 placeholder="Digite a quantidade"
+                               />
+                             </div>
                             
                             <div>
                               <Label htmlFor="returned_equipment_description">Descrição</Label>
