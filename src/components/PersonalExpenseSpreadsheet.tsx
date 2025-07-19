@@ -63,13 +63,7 @@ export const PersonalExpenseSpreadsheet = () => {
     "Educação",
     "Lazer",
     "Roupas",
-    "Beleza",
-    "Telefone",
-    "Internet",
-    "Subscriptions",
-    "Presentes",
-    "Viagens",
-    "Investimentos",
+    "Poupança",
     "Outros"
   ];
 
@@ -165,13 +159,7 @@ export const PersonalExpenseSpreadsheet = () => {
       "Educação": 300,
       "Lazer": 600,
       "Roupas": 200,
-      "Beleza": 150,
-      "Telefone": 80,
-      "Internet": 100,
-      "Subscriptions": 150,
-      "Presentes": 200,
-      "Viagens": 1000,
-      "Investimentos": 1500,
+      "Poupança": 1000,
       "Outros": 300
     };
     return defaultBudgets[category] || 300;

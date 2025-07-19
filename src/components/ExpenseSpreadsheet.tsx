@@ -58,20 +58,12 @@ export const ExpenseSpreadsheet = () => {
   });
 
   const expenseCategories = [
-    "Aluguel",
-    "Energia Elétrica", 
-    "Água",
-    "Internet",
-    "Telefone",
-    "Combustível",
-    "Manutenção",
-    "Material de Escritório",
+    "Equipamentos",
+    "Despesas Operacionais", 
+    "Pessoal",
+    "Marketing",
     "Alimentação",
     "Transporte",
-    "Marketing",
-    "Consultoria",
-    "Impostos",
-    "Equipamentos",
     "Outros"
   ];
 
@@ -181,20 +173,12 @@ export const ExpenseSpreadsheet = () => {
     
     // Valores padrão se não houver orçamento salvo
     const defaultBudgets: Record<string, number> = {
-      "Aluguel": 3000,
-      "Energia Elétrica": 500,
-      "Água": 200,
-      "Internet": 150,
-      "Telefone": 100,
-      "Combustível": 800,
-      "Manutenção": 600,
-      "Material de Escritório": 300,
-      "Alimentação": 1000,
-      "Transporte": 400,
-      "Marketing": 1500,
-      "Consultoria": 800,
-      "Impostos": 2000,
-      "Equipamentos": 2000,
+      "Equipamentos": 5000,
+      "Despesas Operacionais": 3000,
+      "Pessoal": 2000,
+      "Marketing": 1000,
+      "Alimentação": 1500,
+      "Transporte": 800,
       "Outros": 500
     };
     return defaultBudgets[category] || 500;
