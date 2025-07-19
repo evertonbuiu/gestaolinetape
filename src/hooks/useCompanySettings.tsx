@@ -111,7 +111,7 @@ export const useCompanySettings = () => {
           .update(data)
           .eq('id', existing.id)
           .select()
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error('Update error:', error);
