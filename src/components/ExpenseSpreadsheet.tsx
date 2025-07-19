@@ -95,9 +95,9 @@ export const ExpenseSpreadsheet = () => {
       const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
       const endDate = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}-${lastDay}`;
 
-      // Buscar despesas do período
+      // Buscar despesas da empresa do período
       let query = supabase
-        .from('event_expenses')
+        .from('company_expenses')
         .select('*');
 
       if (selectedDay) {
@@ -195,25 +195,9 @@ export const ExpenseSpreadsheet = () => {
     }
 
     try {
-      // Buscar o primeiro evento ou criar um genérico
-      const { data: events } = await supabase
-        .from('events')
-        .select('id')
-        .limit(1);
-
-      const eventId = events && events.length > 0 ? events[0].id : null;
-
-      if (!eventId) {
-        toast({
-          title: "Erro",
-          description: "É necessário ter pelo menos um evento cadastrado.",
-          variant: "destructive",
-        });
-        return;
-      }
-
+      // Salvar despesa na tabela company_expenses (despesas da empresa)
       const { error } = await supabase
-        .from('event_expenses')
+        .from('company_expenses')
         .insert({
           description: newExpense.description,
           category: newExpense.category,
@@ -223,7 +207,6 @@ export const ExpenseSpreadsheet = () => {
           expense_bank_account: newExpense.expense_bank_account || null,
           notes: newExpense.notes || null,
           expense_date: newExpense.date,
-          event_id: eventId,
           created_by: user?.id || ''
         });
 
@@ -269,7 +252,7 @@ export const ExpenseSpreadsheet = () => {
 
     try {
       const { error } = await supabase
-        .from('event_expenses')
+        .from('company_expenses')
         .update({
           description: editingExpense.description,
           category: editingExpense.category,
@@ -314,7 +297,7 @@ export const ExpenseSpreadsheet = () => {
   const handleDeleteExpense = async (id: string) => {
     try {
       const { error } = await supabase
-        .from('event_expenses')
+        .from('company_expenses')
         .delete()
         .eq('id', id);
 
