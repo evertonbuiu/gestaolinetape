@@ -1242,7 +1242,7 @@ export const EventEquipment = () => {
                   <div className="flex items-center justify-between mb-4">
                     <h4 className="text-md font-semibold text-foreground">Equipamentos Ativos</h4>
                     <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                      {equipment.filter(item => item.status !== 'returned').length} ativo(s)
+                      {equipment.filter(item => ['pending', 'confirmed', 'allocated', 'active'].includes(item.status)).length} ativo(s)
                     </Badge>
                   </div>
                   <div className="border rounded-lg">
@@ -1257,10 +1257,12 @@ export const EventEquipment = () => {
                         </TableRow>
                       </TableHeader>
                        <TableBody>
-                         {(() => {
-                           const activeEquipment = equipment.filter(item => item.status !== 'returned');
-                           console.log('Active equipment:', activeEquipment);
-                           console.log('All equipment:', equipment);
+                          {(() => {
+                            const activeEquipment = equipment.filter(item => 
+                              ['pending', 'confirmed', 'allocated', 'active'].includes(item.status)
+                            );
+                            console.log('Active equipment:', activeEquipment);
+                            console.log('All equipment:', equipment);
                            
                            if (activeEquipment.length === 0) {
                              return (
@@ -1505,7 +1507,7 @@ export const EventEquipment = () => {
                   <div className="grid grid-cols-3 gap-4 text-center">
                     <div>
                       <div className="text-2xl font-bold text-blue-600">
-                        {equipment.filter(item => item.status !== 'returned').length}
+                        {equipment.filter(item => ['pending', 'confirmed', 'allocated', 'active'].includes(item.status)).length}
                       </div>
                       <div className="text-sm text-muted-foreground">Equipamentos Pendentes</div>
                     </div>
