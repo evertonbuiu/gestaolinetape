@@ -190,7 +190,20 @@ export const EventEquipment = () => {
 
   // Add new equipment
   const addEquipment = async () => {
+    console.log('Attempting to add equipment:', {
+      selectedEvent: selectedEvent?.id,
+      equipment_name: newEquipment.equipment_name,
+      user: user?.id,
+      quantity: newEquipment.quantity,
+      status: newEquipment.status
+    });
+
     if (!selectedEvent || !newEquipment.equipment_name || !user) {
+      console.log('Validation failed:', {
+        hasSelectedEvent: !!selectedEvent,
+        hasEquipmentName: !!newEquipment.equipment_name,
+        hasUser: !!user
+      });
       toast({
         title: "Campos obrigatórios",
         description: "Preencha o nome do equipamento.",
@@ -211,8 +224,18 @@ export const EventEquipment = () => {
           assigned_by: user.id
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error details:', {
+          error,
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        throw error;
+      }
 
+      console.log('Equipment added successfully');
       await fetchEquipment(selectedEvent.id);
       setNewEquipment({
         equipment_name: '',
@@ -230,7 +253,7 @@ export const EventEquipment = () => {
       console.error('Error adding equipment:', error);
       toast({
         title: "Erro ao adicionar equipamento",
-        description: "Não foi possível adicionar o equipamento.",
+        description: `Não foi possível adicionar o equipamento. ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
         variant: "destructive"
       });
     }
