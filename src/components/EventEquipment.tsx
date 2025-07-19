@@ -949,6 +949,19 @@ export const EventEquipment = () => {
     fetchLogo();
   }, []);
 
+  // Fetch equipment and collaborators when dialogs open
+  useEffect(() => {
+    if (equipmentDialog) {
+      fetchAvailableEquipment();
+    }
+  }, [equipmentDialog]);
+
+  useEffect(() => {
+    if (collaboratorDialog) {
+      fetchAvailableCollaborators();
+    }
+  }, [collaboratorDialog]);
+
   if (loading) {
     return <div className="p-6">Carregando eventos...</div>;
   }
