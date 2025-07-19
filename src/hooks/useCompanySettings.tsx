@@ -23,10 +23,25 @@ export const useCompanySettings = () => {
         .from('company_settings')
         .select('*')
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      setSettings(data);
+      
+      if (data) {
+        setSettings(data);
+      } else {
+        // Se não houver configurações, criar uma default
+        setSettings({
+          id: '',
+          company_name: 'Luz Locação',
+          tagline: 'Controle de Estoque',
+          address: '',
+          phone: '',
+          email: '',
+          cnpj: '',
+          website: ''
+        });
+      }
     } catch (error) {
       console.error('Error fetching company settings:', error);
       // Se não houver configurações, criar uma default
@@ -47,9 +62,9 @@ export const useCompanySettings = () => {
         .from('company_settings')
         .select('id')
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (fetchError && fetchError.code !== 'PGRST116') {
+      if (fetchError) {
         throw fetchError;
       }
 
@@ -91,9 +106,9 @@ export const useCompanySettings = () => {
         .from('company_settings')
         .select('id')
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (fetchError && fetchError.code !== 'PGRST116') {
+      if (fetchError) {
         throw fetchError;
       }
 
