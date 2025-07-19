@@ -321,26 +321,103 @@ export const PersonalExpenseSpreadsheet = () => {
   };
 
   const exportToExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(
-      expenses.map(expense => ({
-        Data: expense.date,
-        Descrição: expense.description,
-        Categoria: expense.category,
-        Valor: expense.amount,
-        'Forma de Pagamento': expense.paymentMethod || '',
-        Observações: expense.notes || ''
-      }))
-    );
+    // Calcular totais por categoria
+    const totalsByCategory = categories.reduce((acc, cat) => {
+      acc[cat.name] = {
+        budget: cat.budget,
+        spent: cat.spent,
+        remaining: cat.budget - cat.spent
+      };
+      return acc;
+    }, {} as Record<string, { budget: number; spent: number; remaining: number }>);
 
+    // Totais por forma de pagamento
+    const paymentMethodTotals = expenses.reduce((acc, expense) => {
+      const method = expense.paymentMethod || 'Não informado';
+      acc[method] = (acc[method] || 0) + expense.amount;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const totalBudget = categories.reduce((sum, cat) => sum + cat.budget, 0);
+    const totalSpent = categories.reduce((sum, cat) => sum + cat.spent, 0);
+    const totalRemaining = totalBudget - totalSpent;
+
+    // Criar workbook
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Despesas Pessoais");
 
-    const fileName = `despesas_pessoais_${selectedMonth}_${selectedYear}.xlsx`;
+    // Dashboard sheet
+    const dashboardData = [
+      ['RELATÓRIO FINANCEIRO - DESPESAS PESSOAIS', '', '', ''],
+      [`Período: ${selectedMonth}/${selectedYear}`, '', '', ''],
+      ['', '', '', ''],
+      ['RESUMO GERAL', '', '', ''],
+      ['Total Orçado:', totalBudget.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), '', ''],
+      ['Total Gasto:', totalSpent.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), '', ''],
+      ['Saldo Restante:', totalRemaining.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), '', ''],
+      ['', '', '', ''],
+      ['RESUMO POR CATEGORIA', '', '', ''],
+      ['Categoria', 'Orçado', 'Gasto', 'Restante'],
+      ...Object.entries(totalsByCategory).map(([cat, data]) => [
+        cat,
+        data.budget.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+        data.spent.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+        data.remaining.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      ]),
+      ['', '', '', ''],
+      ['RESUMO POR FORMA DE PAGAMENTO', '', '', ''],
+      ['Forma de Pagamento', 'Total Gasto', '', ''],
+      ...Object.entries(paymentMethodTotals).map(([method, total]) => [
+        method,
+        total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+        '', ''
+      ])
+    ];
+
+    const dashboardSheet = XLSX.utils.aoa_to_sheet(dashboardData);
+    
+    // Formatar dashboard
+    dashboardSheet['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }, // Título
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } }  // Período
+    ];
+    
+    dashboardSheet['!cols'] = [
+      { width: 25 }, { width: 15 }, { width: 15 }, { width: 15 }
+    ];
+
+    // Despesas detalhadas sheet
+    const expensesData = [
+      ['Data', 'Descrição', 'Categoria', 'Valor', 'Forma de Pagamento', 'Observações'],
+      ...expenses.map(expense => [
+        expense.date,
+        expense.description,
+        expense.category,
+        expense.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+        expense.paymentMethod || '',
+        expense.notes || ''
+      ]),
+      ['', '', '', '', '', ''],
+      ['TOTAL:', '', '', expenses.reduce((sum, exp) => sum + exp.amount, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), '', '']
+    ];
+
+    const expensesSheet = XLSX.utils.aoa_to_sheet(expensesData);
+    
+    // Formatar planilha de despesas
+    expensesSheet['!cols'] = [
+      { width: 12 }, { width: 30 }, { width: 20 }, { width: 15 }, { width: 20 }, { width: 30 }
+    ];
+
+    // Adicionar sheets ao workbook
+    XLSX.utils.book_append_sheet(workbook, dashboardSheet, "Dashboard");
+    XLSX.utils.book_append_sheet(workbook, expensesSheet, "Despesas Detalhadas");
+
+    // Exportar arquivo
+    const fileName = `relatorio_despesas_pessoais_${selectedMonth}_${selectedYear}.xlsx`;
     XLSX.writeFile(workbook, fileName);
 
     toast({
       title: "Sucesso",
-      description: "Planilha de despesas pessoais exportada com sucesso.",
+      description: "Relatório financeiro pessoal exportado com sucesso.",
     });
   };
 
