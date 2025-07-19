@@ -29,6 +29,7 @@ interface MaintenanceRecord {
   problem_description?: string;
   solution_description?: string;
   cost: number;
+  quantity: number;
   technician_name?: string;
   technician_contact?: string;
   created_by: string;
@@ -70,6 +71,7 @@ export const Maintenance = () => {
     problem_description: string;
     solution_description: string;
     cost: number;
+    quantity: number;
     technician_name: string;
     technician_contact: string;
   }>({
@@ -83,6 +85,7 @@ export const Maintenance = () => {
     problem_description: '',
     solution_description: '',
     cost: 0,
+    quantity: 1,
     technician_name: '',
     technician_contact: ''
   });
@@ -202,6 +205,7 @@ export const Maintenance = () => {
           problem_description: newMaintenance.problem_description || null,
           solution_description: newMaintenance.solution_description || null,
           cost: newMaintenance.cost,
+          quantity: newMaintenance.quantity,
           technician_name: newMaintenance.technician_name || null,
           technician_contact: newMaintenance.technician_contact || null,
           created_by: user.id
@@ -250,6 +254,7 @@ export const Maintenance = () => {
         problem_description: newMaintenance.problem_description || null,
         solution_description: newMaintenance.solution_description || null,
         cost: newMaintenance.cost,
+        quantity: newMaintenance.quantity,
         technician_name: newMaintenance.technician_name || null,
         technician_contact: newMaintenance.technician_contact || null
       };
@@ -324,6 +329,7 @@ export const Maintenance = () => {
       problem_description: '',
       solution_description: '',
       cost: 0,
+      quantity: 1,
       technician_name: '',
       technician_contact: ''
     });
@@ -343,6 +349,7 @@ export const Maintenance = () => {
       problem_description: maintenance.problem_description || '',
       solution_description: maintenance.solution_description || '',
       cost: maintenance.cost,
+      quantity: maintenance.quantity,
       technician_name: maintenance.technician_name || '',
       technician_contact: maintenance.technician_contact || ''
     });
@@ -612,7 +619,18 @@ export const Maintenance = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-4 gap-4">
+                  <div>
+                    <Label htmlFor="quantity">Quantidade *</Label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      min="1"
+                      value={newMaintenance.quantity}
+                      onChange={(e) => setNewMaintenance(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+                      placeholder="1"
+                    />
+                  </div>
                   <div>
                     <Label htmlFor="cost">Custo (R$)</Label>
                     <Input
@@ -828,6 +846,7 @@ export const Maintenance = () => {
                       <TableHead>Tipo</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Prioridade</TableHead>
+                      <TableHead>Quantidade</TableHead>
                       <TableHead>Data Agendada</TableHead>
                       <TableHead>Técnico</TableHead>
                       <TableHead>Custo</TableHead>
@@ -859,6 +878,9 @@ export const Maintenance = () => {
                           <Badge className={getPriorityColor(record.priority)}>
                             {record.priority}
                           </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className="font-medium">{record.quantity}</span>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -895,7 +917,7 @@ export const Maintenance = () => {
                     ))}
                     {filteredMaintenanceRecords.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8">
+                        <TableCell colSpan={9} className="text-center py-8">
                           Nenhuma manutenção encontrada
                         </TableCell>
                       </TableRow>

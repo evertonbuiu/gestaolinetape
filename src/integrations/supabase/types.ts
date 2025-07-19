@@ -476,6 +476,7 @@ export type Database = {
           maintenance_type: string
           priority: string
           problem_description: string | null
+          quantity: number
           scheduled_date: string
           solution_description: string | null
           status: string
@@ -495,6 +496,7 @@ export type Database = {
           maintenance_type: string
           priority?: string
           problem_description?: string | null
+          quantity?: number
           scheduled_date: string
           solution_description?: string | null
           status?: string
@@ -514,6 +516,7 @@ export type Database = {
           maintenance_type?: string
           priority?: string
           problem_description?: string | null
+          quantity?: number
           scheduled_date?: string
           solution_description?: string | null
           status?: string
