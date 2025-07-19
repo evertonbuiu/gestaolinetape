@@ -168,6 +168,7 @@ export const EventEquipment = () => {
   // Fetch equipment for selected event
   const fetchEquipment = async (eventId: string) => {
     try {
+      console.log('Fetching equipment for event:', eventId);
       const { data, error } = await supabase
         .from('event_equipment')
         .select('*')
@@ -175,6 +176,7 @@ export const EventEquipment = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      console.log('Equipment data loaded:', data);
       setEquipment(data || []);
     } catch (error) {
       console.error('Error fetching equipment:', error);
@@ -1138,100 +1140,100 @@ export const EventEquipment = () => {
               {/* Add Equipment Button */}
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold">Controle de Equipamentos</h3>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={printEquipmentList}
-                    className="gap-2"
-                  >
-                    <Printer className="h-4 w-4" />
-                    Imprimir Lista
-                  </Button>
-                  {hasPermission('event_equipment_edit', 'edit') && (
-                    <Dialog open={equipmentDialog} onOpenChange={setEquipmentDialog}>
-                      <DialogTrigger asChild>
-                        <Button>
-                          <Plus className="h-4 w-4 mr-2" />
-                          Adicionar Equipamento
-                        </Button>
-                      </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Novo Equipamento</DialogTitle>
-                        <DialogDescription>
-                          Adicione um novo equipamento ao evento
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="equipment_name">Nome do Equipamento *</Label>
-                          <Select value={newEquipment.equipment_name} onValueChange={(value) => setNewEquipment(prev => ({ ...prev, equipment_name: value }))}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione um equipamento" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableEquipment.map((item) => (
-                                <SelectItem key={item.id} value={item.name}>
-                                  {item.name} - {item.category} ({item.available} disponíveis)
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-4">
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={printEquipmentList}
+                      className="gap-2"
+                    >
+                      <Printer className="h-4 w-4" />
+                      Imprimir Lista
+                    </Button>
+                    {hasPermission('event_equipment_edit', 'edit') && (
+                      <Dialog open={equipmentDialog} onOpenChange={setEquipmentDialog}>
+                        <DialogTrigger asChild>
+                          <Button>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Adicionar Equipamento
+                          </Button>
+                        </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Novo Equipamento</DialogTitle>
+                          <DialogDescription>
+                            Adicione um novo equipamento ao evento
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
                           <div>
-                            <Label htmlFor="quantity">Quantidade</Label>
-                            <Input
-                              id="quantity"
-                              type="number"
-                              min="1"
-                              value={newEquipment.quantity || 1}
-                              onChange={(e) => setNewEquipment(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
-                            />
-                          </div>
-                          
-                          <div>
-                            <Label htmlFor="status">Status</Label>
-                            <Select value={newEquipment.status} onValueChange={(value) => setNewEquipment(prev => ({ ...prev, status: value }))}>
+                            <Label htmlFor="equipment_name">Nome do Equipamento *</Label>
+                            <Select value={newEquipment.equipment_name} onValueChange={(value) => setNewEquipment(prev => ({ ...prev, equipment_name: value }))}>
                               <SelectTrigger>
-                                <SelectValue />
+                                <SelectValue placeholder="Selecione um equipamento" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="pending">Pendente</SelectItem>
-                                <SelectItem value="confirmed">Confirmado</SelectItem>
-                                <SelectItem value="allocated">Alocado</SelectItem>
-                                <SelectItem value="returned">Devolvido</SelectItem>
+                                {availableEquipment.map((item) => (
+                                  <SelectItem key={item.id} value={item.name}>
+                                    {item.name} - {item.category} ({item.available} disponíveis)
+                                  </SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                           </div>
-                        </div>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="quantity">Quantidade</Label>
+                              <Input
+                                id="quantity"
+                                type="number"
+                                min="1"
+                                value={newEquipment.quantity || 1}
+                                onChange={(e) => setNewEquipment(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
+                              />
+                            </div>
+                            
+                            <div>
+                              <Label htmlFor="status">Status</Label>
+                              <Select value={newEquipment.status} onValueChange={(value) => setNewEquipment(prev => ({ ...prev, status: value }))}>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="pending">Pendente</SelectItem>
+                                  <SelectItem value="confirmed">Confirmado</SelectItem>
+                                  <SelectItem value="allocated">Alocado</SelectItem>
+                                  <SelectItem value="returned">Devolvido</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
 
-                        <div>
-                          <Label htmlFor="description">Descrição</Label>
-                          <Textarea
-                            id="description"
-                            value={newEquipment.description || ''}
-                            onChange={(e) => setNewEquipment(prev => ({ ...prev, description: e.target.value }))}
-                            placeholder="Detalhes sobre o equipamento..."
-                          />
-                        </div>
+                          <div>
+                            <Label htmlFor="description">Descrição</Label>
+                            <Textarea
+                              id="description"
+                              value={newEquipment.description || ''}
+                              onChange={(e) => setNewEquipment(prev => ({ ...prev, description: e.target.value }))}
+                              placeholder="Detalhes sobre o equipamento..."
+                            />
+                          </div>
 
-                        <div className="flex justify-end gap-3">
-                          <Button variant="outline" onClick={() => setEquipmentDialog(false)}>
-                            Cancelar
-                          </Button>
-                          <Button onClick={addEquipment}>
-                            Adicionar
-                          </Button>
+                          <div className="flex justify-end gap-3">
+                            <Button variant="outline" onClick={() => setEquipmentDialog(false)}>
+                              Cancelar
+                            </Button>
+                            <Button onClick={addEquipment}>
+                              Adicionar
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                  )}
+                      </DialogContent>
+                    </Dialog>
+                    )}
+                  </div>
                 </div>
-              </div>
 
               {/* Equipment Lists - Separate Active and Returned */}
               <div className="space-y-6">
@@ -1254,15 +1256,23 @@ export const EventEquipment = () => {
                           <TableHead>Ações</TableHead>
                         </TableRow>
                       </TableHeader>
-                      <TableBody>
-                        {equipment.filter(item => item.status !== 'returned').length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={5} className="text-center text-muted-foreground">
-                              Nenhum equipamento ativo
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          equipment.filter(item => item.status !== 'returned').map((item) => (
+                       <TableBody>
+                         {(() => {
+                           const activeEquipment = equipment.filter(item => item.status !== 'returned');
+                           console.log('Active equipment:', activeEquipment);
+                           console.log('All equipment:', equipment);
+                           
+                           if (activeEquipment.length === 0) {
+                             return (
+                               <TableRow>
+                                 <TableCell colSpan={5} className="text-center text-muted-foreground">
+                                   Nenhum equipamento ativo
+                                 </TableCell>
+                               </TableRow>
+                             );
+                           }
+                           
+                           return activeEquipment.map((item) => (
                             <TableRow key={item.id}>
                               <TableCell className="font-medium">{item.equipment_name}</TableCell>
                               <TableCell>{item.quantity}</TableCell>
@@ -1272,42 +1282,44 @@ export const EventEquipment = () => {
                                 </Badge>
                               </TableCell>
                               <TableCell>{item.description || '-'}</TableCell>
-                               <TableCell>
-                                <div className="flex gap-2">
-                                  {hasPermission('event_equipment_edit', 'edit') && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => {
-                                        setSelectedEquipmentForEdit(item);
-                                        setNewEquipment({
-                                          equipment_name: item.equipment_name,
-                                          quantity: item.quantity,
-                                          description: item.description,
-                                          status: item.status
-                                        });
-                                        setEditEquipmentDialog(true);
-                                      }}
-                                      className="text-blue-600 hover:text-blue-800"
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                  )}
-                                  {hasPermission('event_equipment_edit', 'edit') && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => deleteEquipment(item.id)}
-                                      className="text-red-600 hover:text-red-800"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  )}
-                                </div>
-                               </TableCell>
-                            </TableRow>
-                          ))
-                        )}
+                                <TableCell>
+                                 <div className="flex gap-2">
+                                   {hasPermission('event_equipment_edit', 'edit') ? (
+                                     <>
+                                       <Button
+                                         variant="ghost"
+                                         size="sm"
+                                         onClick={() => {
+                                           setSelectedEquipmentForEdit(item);
+                                           setNewEquipment({
+                                             equipment_name: item.equipment_name,
+                                             quantity: item.quantity,
+                                             description: item.description,
+                                             status: item.status
+                                           });
+                                           setEditEquipmentDialog(true);
+                                         }}
+                                         className="text-blue-600 hover:text-blue-800"
+                                       >
+                                         <Edit className="h-4 w-4" />
+                                       </Button>
+                                       <Button
+                                         variant="ghost"
+                                         size="sm"
+                                         onClick={() => deleteEquipment(item.id)}
+                                         className="text-red-600 hover:text-red-800"
+                                       >
+                                         <Trash2 className="h-4 w-4" />
+                                       </Button>
+                                     </>
+                                   ) : (
+                                     <span className="text-sm text-muted-foreground">Visualização</span>
+                                   )}
+                                 </div>
+                                </TableCell>
+                             </TableRow>
+                           ));
+                         })()}
                       </TableBody>
                     </Table>
                   </div>
