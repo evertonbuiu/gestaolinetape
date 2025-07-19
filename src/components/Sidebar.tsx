@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { Package, Settings, BarChart3, Calendar, Home, Users, Wrench, LogOut, Cog, UserCheck, DollarSign, UserCog, FileSpreadsheet, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -12,17 +11,7 @@ interface SidebarProps {
 }
 
 export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
-  const { signOut, userRole, hasPermission } = useCustomAuth();
-  const [canAccessSettings, setCanAccessSettings] = useState(false);
-  
-  useEffect(() => {
-    const checkPermissions = async () => {
-      const canAccessSettingsResult = await hasPermission('settings_access', 'view');
-      setCanAccessSettings(canAccessSettingsResult);
-    };
-    
-    checkPermissions();
-  }, [hasPermission]);
+  const { signOut, userRole } = useCustomAuth();
   
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: Home },
@@ -37,7 +26,7 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
     ...(userRole === 'admin' || userRole === 'financeiro' ? [{ id: "personal-expenses", label: "Gastos Pessoais", icon: User }] : []),
     ...(userRole === 'admin' ? [{ id: "user-management", label: "Gerenciar Usuários", icon: UserCog }] : []),
     { id: "maintenance", label: "Manutenção", icon: Wrench },
-    ...(userRole === 'admin' && canAccessSettings ? [{ id: "settings", label: "Configurações", icon: Settings }] : []),
+    ...(userRole === 'admin' ? [{ id: "settings", label: "Configurações", icon: Settings }] : []),
   ];
 
   return (
