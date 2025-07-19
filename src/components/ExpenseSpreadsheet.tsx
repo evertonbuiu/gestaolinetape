@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
@@ -578,7 +578,7 @@ export const ExpenseSpreadsheet = () => {
       (cat.budget - cat.spent).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
     ]);
     
-    (doc as any).autoTable({
+    autoTable(doc, {
       head: [['Categoria', 'Orçado', 'Gasto', 'Restante']],
       body: categoryTableData,
       startY: yPosition,
@@ -608,7 +608,7 @@ export const ExpenseSpreadsheet = () => {
       expense.expense_bank_account || ''
     ]);
     
-    (doc as any).autoTable({
+    autoTable(doc, {
       head: [['Data', 'Descrição', 'Categoria', 'Valor', 'Conta']],
       body: expenseTableData,
       startY: yPosition,
