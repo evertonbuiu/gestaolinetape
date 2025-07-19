@@ -319,10 +319,14 @@ export const SettingsPage = () => {
     }
   };
 
-  // Load data on component mount
+  // Load data on component mount and when settings are first loaded
   useEffect(() => {
     fetchLogos();
-    if (companySettings) {
+  }, []);
+
+  // Separate effect to initialize company data only when first loaded
+  useEffect(() => {
+    if (companySettings && !isLoadingCompanySettings) {
       setCompanyName(companySettings.company_name);
       setCompanyTagline(companySettings.tagline || "");
       setCompanyData({
@@ -334,7 +338,7 @@ export const SettingsPage = () => {
         cnpj: companySettings.cnpj || "",
         website: companySettings.website || ""
       });
-    } else if (!isLoadingCompanySettings) {
+    } else if (!companySettings && !isLoadingCompanySettings) {
       // Se não há configurações e não está carregando, definir valores padrão
       setCompanyName("Luz Locação");
       setCompanyTagline("Controle de Estoque");
