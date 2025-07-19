@@ -50,13 +50,13 @@ const AppRoutes = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <ThemeProvider>
-        <CustomAuthProvider>
+      <CustomAuthProvider>
+        <ThemeProvider>
           <Toaster />
           <Sonner />
           <AppRoutes />
-        </CustomAuthProvider>
-      </ThemeProvider>
+        </ThemeProvider>
+      </CustomAuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
