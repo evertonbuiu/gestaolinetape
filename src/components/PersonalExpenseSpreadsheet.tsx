@@ -407,9 +407,67 @@ export const PersonalExpenseSpreadsheet = () => {
       { width: 12 }, { width: 30 }, { width: 20 }, { width: 15 }, { width: 20 }, { width: 30 }
     ];
 
+    // Tabela dinâmica sheet
+    const pivotData = [
+      ['TABELA DINÂMICA - ANÁLISE DE DESPESAS PESSOAIS', '', '', '', ''],
+      ['', '', '', '', ''],
+      ['DESPESAS POR CATEGORIA E FORMA DE PAGAMENTO', '', '', '', ''],
+      ['Categoria', 'Forma de Pagamento', 'Quantidade', 'Total (R$)', 'Média (R$)'],
+    ];
+
+    // Agrupar dados para tabela dinâmica
+    const pivotGroups = expenses.reduce((acc, expense) => {
+      const key = `${expense.category}_${expense.paymentMethod || 'Não informado'}`;
+      if (!acc[key]) {
+        acc[key] = {
+          category: expense.category,
+          payment_method: expense.paymentMethod || 'Não informado',
+          count: 0,
+          total: 0
+        };
+      }
+      acc[key].count++;
+      acc[key].total += expense.amount;
+      return acc;
+    }, {} as Record<string, { category: string; payment_method: string; count: number; total: number }>);
+
+    // Adicionar dados agrupados à tabela dinâmica
+    Object.values(pivotGroups).forEach(group => {
+      pivotData.push([
+        group.category,
+        group.payment_method,
+        group.count.toString(),
+        group.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+        (group.total / group.count).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      ]);
+    });
+
+    // Adicionar totais gerais
+    pivotData.push(['', '', '', '', '']);
+    pivotData.push([
+      'TOTAIS GERAIS',
+      '',
+      expenses.length.toString(),
+      expenses.reduce((sum, exp) => sum + exp.amount, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+      (expenses.reduce((sum, exp) => sum + exp.amount, 0) / expenses.length).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    ]);
+
+    const pivotSheet = XLSX.utils.aoa_to_sheet(pivotData);
+    
+    // Formatar tabela dinâmica
+    pivotSheet['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } }, // Título
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 4 } }  // Subtítulo
+    ];
+    
+    pivotSheet['!cols'] = [
+      { width: 20 }, { width: 20 }, { width: 12 }, { width: 15 }, { width: 15 }
+    ];
+
     // Adicionar sheets ao workbook
     XLSX.utils.book_append_sheet(workbook, dashboardSheet, "Dashboard");
     XLSX.utils.book_append_sheet(workbook, expensesSheet, "Despesas Detalhadas");
+    XLSX.utils.book_append_sheet(workbook, pivotSheet, "Tabela Dinâmica");
 
     // Exportar arquivo
     const fileName = `relatorio_despesas_pessoais_${selectedMonth}_${selectedYear}.xlsx`;
