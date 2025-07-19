@@ -604,6 +604,203 @@ export const PersonalExpenseSpreadsheet = () => {
     });
   };
 
+  const generateMonthlyPDF = () => {
+    const doc = new jsPDF();
+    let yPosition = 20;
+    
+    doc.setFontSize(16);
+    doc.text('VISÃO MENSAL - DESPESAS PESSOAIS', 105, yPosition, { align: 'center' });
+    yPosition += 10;
+    
+    doc.setFontSize(12);
+    doc.text(`Período: ${format(new Date(selectedYear, selectedMonth - 1), 'MMMM yyyy', { locale: ptBR })}`, 105, yPosition, { align: 'center' });
+    yPosition += 20;
+    
+    const totalBudgetMonthly = categories.reduce((sum, cat) => sum + cat.budget, 0);
+    const totalExpensesMonthly = categories.reduce((sum, cat) => sum + cat.spent, 0);
+    
+    doc.setFontSize(14);
+    doc.text('RESUMO GERAL', 20, yPosition);
+    yPosition += 10;
+    
+    doc.setFontSize(11);
+    doc.text(`Total Orçado: ${totalBudgetMonthly.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, 20, yPosition);
+    yPosition += 7;
+    doc.text(`Total Gasto: ${totalExpensesMonthly.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, 20, yPosition);
+    yPosition += 7;
+    doc.text(`Saldo: ${(totalBudgetMonthly - totalExpensesMonthly).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, 20, yPosition);
+    yPosition += 15;
+    
+    const dailyExpenses = expenses.reduce((acc, expense) => {
+      const day = new Date(expense.date).getDate();
+      acc[day] = (acc[day] || 0) + expense.amount;
+      return acc;
+    }, {} as Record<number, number>);
+    
+    const dailyData = Object.entries(dailyExpenses)
+      .sort(([a], [b]) => parseInt(a) - parseInt(b))
+      .map(([day, amount]) => [
+        `Dia ${day}`,
+        amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      ]);
+    
+    if (dailyData.length > 0) {
+      doc.setFontSize(14);
+      doc.text('DESPESAS POR DIA DO MÊS', 20, yPosition);
+      yPosition += 10;
+      
+      autoTable(doc, {
+        head: [['Dia', 'Total Gasto']],
+        body: dailyData,
+        startY: yPosition,
+        theme: 'grid',
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [63, 81, 181] }
+      });
+    }
+    
+    doc.save(`visao-mensal-pessoal-${selectedMonth}-${selectedYear}.pdf`);
+    toast({
+      title: "Sucesso",
+      description: "PDF da visão mensal gerado com sucesso.",
+    });
+  };
+
+  const generateDailyPDF = () => {
+    const doc = new jsPDF();
+    let yPosition = 20;
+    
+    doc.setFontSize(16);
+    doc.text('PLANILHA DIÁRIA - DESPESAS PESSOAIS', 105, yPosition, { align: 'center' });
+    yPosition += 10;
+    
+    doc.setFontSize(12);
+    const periodText = selectedDay 
+      ? `Data: ${format(new Date(selectedDay), 'dd/MM/yyyy', { locale: ptBR })}`
+      : `Período: ${format(new Date(selectedYear, selectedMonth - 1), 'MMMM yyyy', { locale: ptBR })}`;
+    doc.text(periodText, 105, yPosition, { align: 'center' });
+    yPosition += 20;
+    
+    doc.setFontSize(14);
+    doc.text('DESPESAS DETALHADAS', 20, yPosition);
+    yPosition += 10;
+    
+    const expenseTableData = expenses.map(expense => [
+      expense.date,
+      expense.description,
+      expense.category,
+      expense.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+      expense.paymentMethod || '',
+      expense.notes || ''
+    ]);
+    
+    autoTable(doc, {
+      head: [['Data', 'Descrição', 'Categoria', 'Valor', 'Pagamento', 'Observações']],
+      body: expenseTableData,
+      startY: yPosition,
+      theme: 'grid',
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [63, 81, 181] }
+    });
+    
+    yPosition = (doc as any).lastAutoTable.finalY + 15;
+    doc.setFontSize(12);
+    doc.text(`Total: ${expenses.reduce((sum, exp) => sum + exp.amount, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, 20, yPosition);
+    
+    const fileName = selectedDay 
+      ? `planilha-diaria-pessoal-${format(new Date(selectedDay), 'dd-MM-yyyy', { locale: ptBR })}.pdf`
+      : `planilha-diaria-pessoal-${selectedMonth}-${selectedYear}.pdf`;
+    
+    doc.save(fileName);
+    toast({
+      title: "Sucesso",
+      description: "PDF da planilha diária gerado com sucesso.",
+    });
+  };
+
+  const generateCategoryPDF = () => {
+    const doc = new jsPDF();
+    let yPosition = 20;
+    
+    doc.setFontSize(16);
+    doc.text('RELATÓRIO POR CATEGORIA - DESPESAS PESSOAIS', 105, yPosition, { align: 'center' });
+    yPosition += 10;
+    
+    doc.setFontSize(12);
+    doc.text(`Período: ${format(new Date(selectedYear, selectedMonth - 1), 'MMMM yyyy', { locale: ptBR })}`, 105, yPosition, { align: 'center' });
+    yPosition += 20;
+    
+    doc.setFontSize(14);
+    doc.text('RESUMO POR CATEGORIA', 20, yPosition);
+    yPosition += 10;
+    
+    const categoryTableData = categories.map(cat => {
+      const percentage = cat.budget > 0 ? (cat.spent / cat.budget) * 100 : 0;
+      return [
+        cat.name,
+        cat.budget.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+        cat.spent.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+        (cat.budget - cat.spent).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+        `${percentage.toFixed(1)}%`
+      ];
+    });
+    
+    autoTable(doc, {
+      head: [['Categoria', 'Orçado', 'Gasto', 'Restante', '% Usado']],
+      body: categoryTableData,
+      startY: yPosition,
+      theme: 'grid',
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [63, 81, 181] }
+    });
+    
+    yPosition = (doc as any).lastAutoTable.finalY + 15;
+    
+    categories.forEach((category) => {
+      if (yPosition > 250) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      const categoryExpenses = expenses.filter(exp => exp.category === category.name);
+      
+      if (categoryExpenses.length > 0) {
+        doc.setFontSize(12);
+        doc.text(`DETALHAMENTO - ${category.name.toUpperCase()}`, 20, yPosition);
+        yPosition += 8;
+        
+        const categoryData = categoryExpenses.map(expense => [
+          expense.date,
+          expense.description,
+          expense.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+          expense.paymentMethod || ''
+        ]);
+        
+        autoTable(doc, {
+          head: [['Data', 'Descrição', 'Valor', 'Pagamento']],
+          body: categoryData,
+          startY: yPosition,
+          theme: 'striped',
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [100, 100, 100] }
+        });
+        
+        yPosition = (doc as any).lastAutoTable.finalY + 10;
+        
+        const categoryTotal = categoryExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+        doc.setFontSize(10);
+        doc.text(`Subtotal ${category.name}: ${categoryTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, 20, yPosition);
+        yPosition += 15;
+      }
+    });
+    
+    doc.save(`por-categoria-pessoal-${selectedMonth}-${selectedYear}.pdf`);
+    toast({
+      title: "Sucesso",
+      description: "PDF por categoria gerado com sucesso.",
+    });
+  };
+
   const getDailySpreadsheetData = () => {
     const monthStart = startOfMonth(new Date(selectedYear, selectedMonth - 1));
     const monthEnd = endOfMonth(new Date(selectedYear, selectedMonth - 1));
@@ -876,7 +1073,7 @@ export const PersonalExpenseSpreadsheet = () => {
                     {format(new Date(selectedYear, selectedMonth - 1), 'MMMM yyyy', { locale: ptBR })}
                   </CardDescription>
                 </div>
-                <Button onClick={generatePDF} variant="outline" size="sm">
+                <Button onClick={generateMonthlyPDF} variant="outline" size="sm">
                   <FileText className="h-4 w-4 mr-2" />
                   Gerar PDF
                 </Button>
@@ -942,8 +1139,16 @@ export const PersonalExpenseSpreadsheet = () => {
         <TabsContent value="daily">
           <Card>
             <CardHeader>
-              <CardTitle>Planilha Diária</CardTitle>
-              <CardDescription>Despesas pessoais organizadas por dia do mês</CardDescription>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Planilha Diária</CardTitle>
+                  <CardDescription>Despesas pessoais organizadas por dia do mês</CardDescription>
+                </div>
+                <Button onClick={generateDailyPDF} variant="outline" size="sm">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Gerar PDF
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <Table>
@@ -975,8 +1180,16 @@ export const PersonalExpenseSpreadsheet = () => {
         <TabsContent value="categories">
           <Card>
             <CardHeader>
-              <CardTitle>Gastos por Categoria</CardTitle>
-              <CardDescription>Comparação entre orçado e gasto por categoria pessoal</CardDescription>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Gastos por Categoria</CardTitle>
+                  <CardDescription>Comparação entre orçado e gasto por categoria pessoal</CardDescription>
+                </div>
+                <Button onClick={generateCategoryPDF} variant="outline" size="sm">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Gerar PDF
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <Table>
