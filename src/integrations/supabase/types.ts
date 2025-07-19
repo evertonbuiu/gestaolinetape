@@ -160,6 +160,57 @@ export type Database = {
         }
         Relationships: []
       }
+      company_expenses: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string
+          description: string
+          expense_bank_account: string | null
+          expense_date: string | null
+          id: string
+          notes: string | null
+          quantity: number
+          receipt_url: string | null
+          supplier: string | null
+          total_price: number
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by: string
+          description: string
+          expense_bank_account?: string | null
+          expense_date?: string | null
+          id?: string
+          notes?: string | null
+          quantity?: number
+          receipt_url?: string | null
+          supplier?: string | null
+          total_price?: number
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string
+          expense_bank_account?: string | null
+          expense_date?: string | null
+          id?: string
+          notes?: string | null
+          quantity?: number
+          receipt_url?: string | null
+          supplier?: string | null
+          total_price?: number
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       company_settings: {
         Row: {
           company_name: string
