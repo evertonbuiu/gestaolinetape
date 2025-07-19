@@ -29,9 +29,6 @@ export const SettingsPage = () => {
   const { toast } = useToast();
   const { settings: companySettings, updateSettings: updateCompanySettings, updateCompanyData, isLoading: isLoadingCompanySettings } = useCompanySettings();
   
-  // Flag para evitar reset dos dados após save
-  const [justSaved, setJustSaved] = useState(false);
-  
   // States para dados completos da empresa
   const [companyData, setCompanyData] = useState({
     company_name: "",
@@ -154,7 +151,6 @@ export const SettingsPage = () => {
 
   const saveCompanyData = async () => {
     setSavingCompanyData(true);
-    setJustSaved(true);
     try {
       const success = await updateCompanyData(companyData);
       if (success) {
@@ -173,8 +169,6 @@ export const SettingsPage = () => {
       });
     } finally {
       setSavingCompanyData(false);
-      // Reset flag após um pequeno delay
-      setTimeout(() => setJustSaved(false), 1000);
     }
   };
 
@@ -331,36 +325,38 @@ export const SettingsPage = () => {
 
   // Separate effect to initialize company data only when first loaded
   useEffect(() => {
-    // Se acabou de salvar, não resetar os dados
-    if (justSaved) return;
-    
     if (companySettings && !isLoadingCompanySettings) {
-      setCompanyName(companySettings.company_name);
-      setCompanyTagline(companySettings.tagline || "");
-      setCompanyData({
-        company_name: companySettings.company_name || "",
-        tagline: companySettings.tagline || "",
-        address: companySettings.address || "",
-        phone: companySettings.phone || "",
-        email: companySettings.email || "",
-        cnpj: companySettings.cnpj || "",
-        website: companySettings.website || ""
-      });
+      // Só atualizar se os campos estão vazios (primeira carga)
+      if (!companyData.company_name) {
+        setCompanyName(companySettings.company_name);
+        setCompanyTagline(companySettings.tagline || "");
+        setCompanyData({
+          company_name: companySettings.company_name || "",
+          tagline: companySettings.tagline || "",
+          address: companySettings.address || "",
+          phone: companySettings.phone || "",
+          email: companySettings.email || "",
+          cnpj: companySettings.cnpj || "",
+          website: companySettings.website || ""
+        });
+      }
     } else if (!companySettings && !isLoadingCompanySettings) {
-      // Se não há configurações e não está carregando, definir valores padrão
-      setCompanyName("Luz Locação");
-      setCompanyTagline("Controle de Estoque");
-      setCompanyData({
-        company_name: "Luz Locação",
-        tagline: "Controle de Estoque",
-        address: "",
-        phone: "",
-        email: "",
-        cnpj: "",
-        website: ""
-      });
+      // Se não há configurações e não está carregando, definir valores padrão apenas se vazios
+      if (!companyData.company_name) {
+        setCompanyName("Luz Locação");
+        setCompanyTagline("Controle de Estoque");
+        setCompanyData({
+          company_name: "Luz Locação",
+          tagline: "Controle de Estoque",
+          address: "",
+          phone: "",
+          email: "",
+          cnpj: "",
+          website: ""
+        });
+      }
     }
-  }, [companySettings, isLoadingCompanySettings, justSaved]);
+  }, [companySettings, isLoadingCompanySettings]);
 
   if (userRole !== 'admin') {
     return (
