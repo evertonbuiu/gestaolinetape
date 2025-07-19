@@ -43,10 +43,6 @@ export const SettingsPage = () => {
   // State for managing active color property being edited
   const [activeColorProperty, setActiveColorProperty] = useState<string | null>(null);
   
-  // Company settings state
-  const [companyName, setCompanyName] = useState("");
-  const [companyTagline, setCompanyTagline] = useState("");
-  const [savingCompany, setSavingCompany] = useState(false);
 
   // Other state
   const [saving, setSaving] = useState(false);
@@ -125,29 +121,7 @@ export const SettingsPage = () => {
     }
   };
 
-  // Company settings handlers
-  const saveCompanySettings = async () => {
-    setSavingCompany(true);
-    try {
-      const success = await updateCompanySettings(companyName, companyTagline);
-      if (success) {
-        toast({
-          title: "Configurações salvas",
-          description: "As configurações da empresa foram atualizadas com sucesso.",
-        });
-      } else {
-        throw new Error("Falha ao salvar");
-      }
-    } catch (error) {
-      toast({
-        title: "Erro ao salvar",
-        description: "Não foi possível salvar as configurações da empresa.",
-        variant: "destructive"
-      });
-    } finally {
-      setSavingCompany(false);
-    }
-  };
+  // Save company data
 
   const saveCompanyData = async () => {
     setSavingCompanyData(true);
@@ -174,11 +148,16 @@ export const SettingsPage = () => {
 
   // Check if there are pending changes
   const hasChanges = Object.keys(changes).length > 0;
-  const hasCompanyChanges = companySettings && (
-    companyName !== companySettings.company_name || 
-    companyTagline !== companySettings.tagline
+  const hasCompanyDataChanges = companySettings && (
+    companyData.company_name !== companySettings.company_name || 
+    companyData.tagline !== companySettings.tagline ||
+    companyData.address !== companySettings.address ||
+    companyData.phone !== companySettings.phone ||
+    companyData.email !== companySettings.email ||
+    companyData.cnpj !== companySettings.cnpj ||
+    companyData.website !== companySettings.website
   );
-  const hasAnyChanges = hasChanges || hasCompanyChanges;
+  const hasAnyChanges = hasChanges || hasCompanyDataChanges;
 
   // Create new employee
   const createEmployee = async () => {
@@ -327,8 +306,6 @@ export const SettingsPage = () => {
   useEffect(() => {
     if (companySettings && !isLoadingCompanySettings) {
       console.log('Loading company settings into form:', companySettings);
-      setCompanyName(companySettings.company_name);
-      setCompanyTagline(companySettings.tagline || "");
       setCompanyData({
         company_name: companySettings.company_name || "",
         tagline: companySettings.tagline || "",
@@ -385,14 +362,14 @@ export const SettingsPage = () => {
               )}
               Salvar Permissões
             </Button>
-            {hasCompanyChanges && (
-              <Button onClick={saveCompanySettings} disabled={savingCompany} variant="outline">
-                {savingCompany ? (
+            {hasCompanyDataChanges && (
+              <Button onClick={saveCompanyData} disabled={savingCompanyData} variant="outline">
+                {savingCompanyData ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 ) : (
                   <Save className="h-4 w-4 mr-2" />
                 )}
-                Salvar Empresa
+                Salvar Dados Empresa
               </Button>
             )}
           </div>
