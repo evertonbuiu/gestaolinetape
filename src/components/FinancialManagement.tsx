@@ -2557,9 +2557,16 @@ export const FinancialManagement = () => {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text(settings?.tagline || 'Controle de Estoque', logoUrl ? 65 : 15, 35);
-    doc.text('Endereço: Rua Principal, 123 - Centro', logoUrl ? 65 : 15, 42);
-    doc.text('Tel: (11) 99999-9999', logoUrl ? 65 : 15, 49);
-    doc.text('Email: contato@luzlocacao.com.br', logoUrl ? 65 : 15, 56);
+    
+    if (settings?.address) {
+      doc.text(settings.address, logoUrl ? 65 : 15, 42);
+    }
+    if (settings?.phone) {
+      doc.text(`Tel: ${settings.phone}`, logoUrl ? 65 : 15, 49);
+    }
+    if (settings?.email) {
+      doc.text(`Email: ${settings.email}`, logoUrl ? 65 : 15, 56);
+    }
     
     // Linha separadora
     doc.setDrawColor(0, 0, 0);

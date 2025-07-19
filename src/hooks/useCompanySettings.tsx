@@ -5,6 +5,11 @@ interface CompanySettings {
   id: string;
   company_name: string;
   tagline: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  cnpj?: string;
+  website?: string;
 }
 
 export const useCompanySettings = () => {
@@ -79,9 +84,51 @@ export const useCompanySettings = () => {
     }
   };
 
+  const updateCompanyData = async (data: Partial<CompanySettings>) => {
+    try {
+      // Verificar se já existe uma configuração
+      const { data: existing, error: fetchError } = await supabase
+        .from('company_settings')
+        .select('id')
+        .limit(1)
+        .single();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        throw fetchError;
+      }
+
+      if (existing) {
+        // Atualizar existente
+        const { error } = await supabase
+          .from('company_settings')
+          .update(data)
+          .eq('id', existing.id);
+
+        if (error) throw error;
+      } else {
+        // Criar novo
+        const { error } = await supabase
+          .from('company_settings')
+          .insert({
+            company_name: data.company_name || 'Luz Locação',
+            tagline: data.tagline || 'Controle de Estoque',
+            ...data
+          });
+
+        if (error) throw error;
+      }
+
+      await fetchSettings();
+      return true;
+    } catch (error) {
+      console.error('Error updating company data:', error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchSettings();
   }, []);
 
-  return { settings, isLoading, updateSettings, refreshSettings: fetchSettings };
+  return { settings, isLoading, updateSettings, updateCompanyData, refreshSettings: fetchSettings };
 };

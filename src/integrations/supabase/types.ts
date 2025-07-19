@@ -213,25 +213,40 @@ export type Database = {
       }
       company_settings: {
         Row: {
+          address: string | null
+          cnpj: string | null
           company_name: string
           created_at: string
+          email: string | null
           id: string
+          phone: string | null
           tagline: string | null
           updated_at: string
+          website: string | null
         }
         Insert: {
+          address?: string | null
+          cnpj?: string | null
           company_name?: string
           created_at?: string
+          email?: string | null
           id?: string
+          phone?: string | null
           tagline?: string | null
           updated_at?: string
+          website?: string | null
         }
         Update: {
+          address?: string | null
+          cnpj?: string | null
           company_name?: string
           created_at?: string
+          email?: string | null
           id?: string
+          phone?: string | null
           tagline?: string | null
           updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }

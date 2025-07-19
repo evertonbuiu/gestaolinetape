@@ -27,8 +27,19 @@ export const SettingsPage = () => {
   const { onlineUsers, loading: loadingOnlineUsers } = useOnlineUsers();
   const { theme, colorScheme, setTheme, setColorScheme, availableColorSchemes, createCustomColorScheme, customColors, saveThemePreferences } = useTheme();
   const { toast } = useToast();
-  const { settings: companySettings, updateSettings: updateCompanySettings } = useCompanySettings();
+  const { settings: companySettings, updateSettings: updateCompanySettings, updateCompanyData } = useCompanySettings();
   
+  // States para dados completos da empresa
+  const [companyData, setCompanyData] = useState({
+    company_name: "",
+    tagline: "",
+    address: "",
+    phone: "",
+    email: "",
+    cnpj: "",
+    website: ""
+  });
+  const [savingCompanyData, setSavingCompanyData] = useState(false);
   // State for managing active color property being edited
   const [activeColorProperty, setActiveColorProperty] = useState<string | null>(null);
   
@@ -135,6 +146,30 @@ export const SettingsPage = () => {
       });
     } finally {
       setSavingCompany(false);
+    }
+  };
+
+  // Função para salvar dados completos da empresa
+  const saveCompanyData = async () => {
+    setSavingCompanyData(true);
+    try {
+      const success = await updateCompanyData(companyData);
+      if (success) {
+        toast({
+          title: "Dados salvos",
+          description: "Os dados da empresa foram atualizados com sucesso.",
+        });
+      } else {
+        throw new Error("Falha ao salvar");
+      }
+    } catch (error) {
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar os dados da empresa.",
+        variant: "destructive"
+      });
+    } finally {
+      setSavingCompanyData(false);
     }
   };
 
@@ -290,6 +325,15 @@ export const SettingsPage = () => {
     if (companySettings) {
       setCompanyName(companySettings.company_name);
       setCompanyTagline(companySettings.tagline || "");
+      setCompanyData({
+        company_name: companySettings.company_name || "",
+        tagline: companySettings.tagline || "",
+        address: companySettings.address || "",
+        phone: companySettings.phone || "",
+        email: companySettings.email || "",
+        cnpj: companySettings.cnpj || "",
+        website: companySettings.website || ""
+      });
     }
   }, [companySettings]);
 
@@ -323,7 +367,7 @@ export const SettingsPage = () => {
             Configurações
           </h2>
           <p className="text-muted-foreground">
-            Gerencie as permissões dos funcionários
+            Gerencie configurações do sistema e da empresa
           </p>
         </div>
         
@@ -351,465 +395,550 @@ export const SettingsPage = () => {
         )}
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Gerenciar Funcionários</CardTitle>
+      <Tabs defaultValue="empresa" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="empresa">Dados da Empresa</TabsTrigger>
+          <TabsTrigger value="funcionarios">Funcionários</TabsTrigger>
+          <TabsTrigger value="permissoes">Permissões</TabsTrigger>
+          <TabsTrigger value="logos">Logos</TabsTrigger>
+        </TabsList>
+
+        {/* Aba Dados da Empresa */}
+        <TabsContent value="empresa" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings2 className="h-5 w-5" />
+                Dados da Empresa para PDFs Timbrados
+              </CardTitle>
               <CardDescription>
-                Cadastre novos funcionários no sistema
+                Configure as informações da empresa que aparecerão nos documentos PDF
               </CardDescription>
-            </div>
-            <Dialog open={createUserDialog} onOpenChange={setCreateUserDialog}>
-              <DialogTrigger asChild>
-                <Button>
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Novo Funcionário
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="company-name-full">Nome da Empresa</Label>
+                  <Input
+                    id="company-name-full"
+                    value={companyData.company_name}
+                    onChange={(e) => setCompanyData(prev => ({ ...prev, company_name: e.target.value }))}
+                    placeholder="Nome da sua empresa"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="company-tagline-full">Slogan/Descrição</Label>
+                  <Input
+                    id="company-tagline-full"
+                    value={companyData.tagline}
+                    onChange={(e) => setCompanyData(prev => ({ ...prev, tagline: e.target.value }))}
+                    placeholder="Ex: Controle de Estoque"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="company-address">Endereço</Label>
+                  <Input
+                    id="company-address"
+                    value={companyData.address}
+                    onChange={(e) => setCompanyData(prev => ({ ...prev, address: e.target.value }))}
+                    placeholder="Rua, número, bairro, cidade"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="company-phone">Telefone</Label>
+                  <Input
+                    id="company-phone"
+                    value={companyData.phone}
+                    onChange={(e) => setCompanyData(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="(11) 99999-9999"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="company-email">E-mail</Label>
+                  <Input
+                    id="company-email"
+                    value={companyData.email}
+                    onChange={(e) => setCompanyData(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="contato@empresa.com.br"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="company-cnpj">CNPJ</Label>
+                  <Input
+                    id="company-cnpj"
+                    value={companyData.cnpj}
+                    onChange={(e) => setCompanyData(prev => ({ ...prev, cnpj: e.target.value }))}
+                    placeholder="12.345.678/0001-90"
+                  />
+                </div>
+                
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="company-website">Website</Label>
+                  <Input
+                    id="company-website"
+                    value={companyData.website}
+                    onChange={(e) => setCompanyData(prev => ({ ...prev, website: e.target.value }))}
+                    placeholder="www.empresa.com.br"
+                  />
+                </div>
+              </div>
+              
+              <div className="pt-4">
+                <Button 
+                  onClick={saveCompanyData}
+                  disabled={savingCompanyData}
+                  className="w-full"
+                >
+                  {savingCompanyData ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-2" />
+                      Salvar Dados da Empresa
+                    </>
+                  )}
                 </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Cadastrar Funcionário</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="name">Nome Completo</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="name"
-                        type="text"
-                        placeholder="Digite o nome do funcionário"
-                        value={newUser.name}
-                        onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
-                        className="pl-10"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="username">Nome de Usuário</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="username"
-                        type="text"
-                        placeholder="Digite o nome de usuário"
-                        value={newUser.username}
-                        onChange={(e) => setNewUser(prev => ({ ...prev, username: e.target.value }))}
-                        className="pl-10"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="password">Senha</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Digite a senha"
-                        value={newUser.password}
-                        onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
-                        className="pl-10 pr-10"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="role">Nível de Acesso</Label>
-                    <Select
-                      value={newUser.role}
-                      onValueChange={(value: 'admin' | 'funcionario' | 'financeiro' | 'deposito') => 
-                        setNewUser(prev => ({ ...prev, role: value }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="funcionario">
-                          <div className="flex flex-col items-start">
-                            <span>Funcionário</span>
-                            <span className="text-xs text-muted-foreground">
-                              Acesso básico conforme permissões
-                            </span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="deposito">
-                          <div className="flex flex-col items-start">
-                            <span>Depósito</span>
-                            <span className="text-xs text-muted-foreground">
-                              Acesso operacional sem valores
-                            </span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="financeiro">
-                          <div className="flex flex-col items-start">
-                            <span>Financeiro</span>
-                            <span className="text-xs text-muted-foreground">
-                              Acesso completo às áreas financeiras
-                            </span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="admin">
-                          <div className="flex flex-col items-start">
-                            <span>Administrador</span>
-                            <span className="text-xs text-muted-foreground">
-                              Acesso completo ao sistema
-                            </span>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex justify-end gap-3 pt-4">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setCreateUserDialog(false)}
-                      disabled={creatingUser}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button 
-                      onClick={createEmployee}
-                      disabled={creatingUser}
-                    >
-                      {creatingUser ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : (
-                        <UserPlus className="h-4 w-4 mr-2" />
-                      )}
-                      Criar Funcionário
-                    </Button>
-                  </div>
+              </div>
+              
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h4 className="font-medium text-blue-900 mb-2">Informações importantes:</h4>
+                <div className="space-y-1 text-sm text-blue-800">
+                  <p>• Estes dados serão utilizados nos cabeçalhos dos PDFs timbrados</p>
+                  <p>• O endereço e telefone aparecerão no cabeçalho dos relatórios</p>
+                  <p>• O CNPJ aparecerá no rodapé dos documentos</p>
+                  <p>• Deixe os campos em branco se não quiser que apareçam nos documentos</p>
                 </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <p>• Os funcionários criados terão acesso ao sistema com nome de usuário e senha</p>
-            <p>• Eles poderão fazer login com o usuário e senha fornecidos</p>
-            <p>• Por padrão, funcionários têm papel de "funcionario" no sistema</p>
-            <p>• As permissões podem ser ajustadas na seção abaixo</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Company Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Palette className="w-5 h-5" />
-            Configurações da Empresa
-          </CardTitle>
-          <CardDescription>
-            Personalize o nome e slogan da sua empresa
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="company-name">Nome da Empresa</Label>
-            <Input
-              id="company-name"
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="Nome da sua empresa"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="company-tagline">Slogan/Descrição</Label>
-            <Input
-              id="company-tagline"
-              value={companyTagline}
-              onChange={(e) => setCompanyTagline(e.target.value)}
-              placeholder="Ex: Controle de Estoque"
-            />
-          </div>
-          <Button 
-            onClick={saveCompanySettings}
-            disabled={savingCompany || (!companyName.trim())}
-            className="w-full"
-          >
-            {savingCompany ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Salvando...
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                Salvar Configurações
-              </>
-            )}
-          </Button>
-        </CardContent>
-      </Card>
-
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Image className="h-5 w-5" />
-            Gerenciar Logos
-          </CardTitle>
-          <CardDescription>
-            Gerencie as logos da empresa utilizadas no sistema e impressões
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div>
-            <Label htmlFor="logo-upload" className="text-sm font-medium mb-2 block">
-              Enviar Nova Logo
-            </Label>
-            <div className="flex items-center gap-4">
-              <Input
-                id="logo-upload"
-                type="file"
-                accept="image/*"
-                onChange={handleLogoUpload}
-                disabled={uploadingLogo}
-                className="flex-1"
-              />
-              <Button
-                onClick={() => document.getElementById('logo-upload')?.click()}
-                disabled={uploadingLogo}
-                variant="outline"
-              >
-                {uploadingLogo ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <Upload className="h-4 w-4 mr-2" />
-                )}
-                Selecionar Arquivo
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              Formatos aceitos: PNG, JPG, JPEG, GIF. Tamanho máximo: 5MB
-            </p>
-          </div>
-
-          <Separator />
-
-          <div>
-            <h3 className="text-sm font-medium mb-4">Logos Disponíveis</h3>
-            {loadingLogos ? (
-              <div className="flex items-center justify-center p-8">
-                <Loader2 className="h-6 w-6 animate-spin" />
               </div>
-            ) : logos.length === 0 ? (
-              <p className="text-center text-muted-foreground p-8">
-                Nenhuma logo encontrada. Envie uma logo acima.
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {logos.map((logo) => (
-                  <div key={logo.name} className="border rounded-lg p-4 space-y-3">
-                    <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-                      <img
-                        src={supabase.storage.from('logos').getPublicUrl(logo.name).data.publicUrl}
-                        alt={logo.name}
-                        className="max-w-full max-h-full object-contain"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium truncate">{logo.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(logo.created_at).toLocaleDateString('pt-BR')}
-                      </p>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            const url = supabase.storage.from('logos').getPublicUrl(logo.name).data.publicUrl;
-                            navigator.clipboard.writeText(url);
-                            toast({
-                              title: "URL copiada",
-                              description: "URL da logo copiada para a área de transferência.",
-                            });
-                          }}
-                          className="flex-1"
-                        >
-                          Copiar URL
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => deleteLogo(logo.name)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          <Separator />
-
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <p>• As logos enviadas ficam disponíveis publicamente</p>
-            <p>• Para usar uma logo, copie a URL e atualize o código de impressão</p>
-            <p>• Recomendamos logos em formato PNG com fundo transparente</p>
-            <p>• As logos são exibidas automaticamente nos documentos impressos</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Funcionários Online
-          </CardTitle>
-          <CardDescription>
-            Veja quais funcionários estão conectados ao sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loadingOnlineUsers ? (
-            <div className="flex items-center justify-center p-8">
-              <Loader2 className="h-6 w-6 animate-spin" />
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {onlineUsers.length === 0 ? (
-                <p className="text-center text-muted-foreground p-8">
-                  Nenhum funcionário online no momento
-                </p>
-              ) : (
-                <div className="grid gap-3">
-                  {onlineUsers.map((user) => (
-                    <div key={user.user_id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                      <div className="flex items-center gap-3">
+        {/* Aba Funcionários */}
+        <TabsContent value="funcionarios" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Gerenciar Funcionários</CardTitle>
+                  <CardDescription>
+                    Cadastre novos funcionários no sistema
+                  </CardDescription>
+                </div>
+                <Dialog open={createUserDialog} onOpenChange={setCreateUserDialog}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Novo Funcionário
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Cadastrar Funcionário</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="name">Nome Completo</Label>
                         <div className="relative">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <User className="h-5 w-5 text-primary" />
-                          </div>
-                          <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-                        </div>
-                        <div>
-                          <p className="font-medium">{user.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {user.role === 'admin' ? 'Administrador' : 'Funcionário'}
-                          </p>
+                          <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="name"
+                            type="text"
+                            placeholder="Digite o nome do funcionário"
+                            value={newUser.name}
+                            onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
+                            className="pl-10"
+                          />
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Circle className="h-2 w-2 fill-green-500 text-green-500" />
-                        <span className="text-sm text-muted-foreground">
-                          Online desde {new Date(user.online_at).toLocaleTimeString('pt-BR', { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
-                        </span>
+                      
+                      <div>
+                        <Label htmlFor="username">Nome de Usuário</Label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="username"
+                            type="text"
+                            placeholder="Digite o nome de usuário"
+                            value={newUser.username}
+                            onChange={(e) => setNewUser(prev => ({ ...prev, username: e.target.value }))}
+                            className="pl-10"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="password">Senha</Label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="password"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Digite a senha"
+                            value={newUser.password}
+                            onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                            className="pl-10 pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="role">Nível de Acesso</Label>
+                        <Select
+                          value={newUser.role}
+                          onValueChange={(value: 'admin' | 'funcionario' | 'financeiro' | 'deposito') => 
+                            setNewUser(prev => ({ ...prev, role: value }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="funcionario">
+                              <div className="flex flex-col items-start">
+                                <span>Funcionário</span>
+                                <span className="text-xs text-muted-foreground">
+                                  Acesso básico conforme permissões
+                                </span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="deposito">
+                              <div className="flex flex-col items-start">
+                                <span>Depósito</span>
+                                <span className="text-xs text-muted-foreground">
+                                  Acesso operacional sem valores
+                                </span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="financeiro">
+                              <div className="flex flex-col items-start">
+                                <span>Financeiro</span>
+                                <span className="text-xs text-muted-foreground">
+                                  Acesso completo às áreas financeiras
+                                </span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="admin">
+                              <div className="flex flex-col items-start">
+                                <span>Administrador</span>
+                                <span className="text-xs text-muted-foreground">
+                                  Acesso completo ao sistema
+                                </span>
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex justify-end gap-3 pt-4">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setCreateUserDialog(false)}
+                          disabled={creatingUser}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button 
+                          onClick={createEmployee}
+                          disabled={creatingUser}
+                        >
+                          {creatingUser ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <UserPlus className="h-4 w-4 mr-2" />
+                          )}
+                          Criar Funcionário
+                        </Button>
                       </div>
                     </div>
-                  ))}
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>• Os funcionários criados terão acesso ao sistema com nome de usuário e senha</p>
+                <p>• Eles poderão fazer login com o usuário e senha fornecidos</p>
+                <p>• Por padrão, funcionários têm papel de "funcionario" no sistema</p>
+                <p>• As permissões podem ser ajustadas na aba "Permissões"</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Funcionários Online
+              </CardTitle>
+              <CardDescription>
+                Veja quais funcionários estão conectados ao sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingOnlineUsers ? (
+                <div className="flex items-center justify-center p-8">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {onlineUsers.length === 0 ? (
+                    <p className="text-center text-muted-foreground p-8">
+                      Nenhum funcionário online no momento
+                    </p>
+                  ) : (
+                    <div className="grid gap-3">
+                      {onlineUsers.map((user) => (
+                        <div key={user.user_id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="relative">
+                              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                <User className="h-5 w-5 text-primary" />
+                              </div>
+                              <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                            </div>
+                            <div>
+                              <p className="font-medium">{user.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {user.role === 'admin' ? 'Administrador' : 'Funcionário'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Circle className="h-2 w-2 fill-green-500 text-green-500" />
+                            <span className="text-sm text-muted-foreground">
+                              Online desde {new Date(user.online_at).toLocaleTimeString('pt-BR', { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Permissões dos Funcionários</CardTitle>
-          <CardDescription>
-            Configure o que os funcionários podem visualizar e editar no sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {Object.entries(groupedPermissions).map(([category, permissions]) => (
-            <div key={category} className="space-y-4">
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-semibold">{category}</h3>
-                <Badge variant="outline">{permissions.length} permissões</Badge>
-              </div>
-              
-              <div className="grid gap-4">
-                {permissions
-                  .filter(rp => rp.role === 'funcionario')
-                  .map((rp) => (
-                    <Card key={rp.id} className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-medium">{rp.permission.description}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {rp.permission.name}
-                          </p>
-                        </div>
-                        
-                        <div className="flex items-center gap-6">
-                          <div className="flex items-center gap-2">
-                            <Eye className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm">Visualizar</span>
-                            <Switch
-                              checked={getCurrentValue(rp, 'can_view')}
-                              onCheckedChange={(checked) => 
-                                handlePermissionChange(rp.id, 'can_view', checked)
-                              }
-                            />
+        {/* Aba Permissões */}
+        <TabsContent value="permissoes" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Permissões dos Funcionários</CardTitle>
+              <CardDescription>
+                Configure o que os funcionários podem visualizar e editar no sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {Object.entries(groupedPermissions).map(([category, permissions]) => (
+                <div key={category} className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-semibold">{category}</h3>
+                    <Badge variant="outline">{permissions.length} permissões</Badge>
+                  </div>
+                  
+                  <div className="grid gap-4">
+                    {permissions
+                      .filter(rp => rp.role === 'funcionario')
+                      .map((rp) => (
+                        <Card key={rp.id} className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-medium">{rp.permission.description}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {rp.permission.name}
+                              </p>
+                            </div>
+                            
+                            <div className="flex items-center gap-6">
+                              <div className="flex items-center gap-2">
+                                <Eye className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm">Visualizar</span>
+                                <Switch
+                                  checked={getCurrentValue(rp, 'can_view')}
+                                  onCheckedChange={(checked) => 
+                                    handlePermissionChange(rp.id, 'can_view', checked)
+                                  }
+                                />
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                <Edit3 className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm">Editar</span>
+                                <Switch
+                                  checked={getCurrentValue(rp, 'can_edit')}
+                                  onCheckedChange={(checked) => 
+                                    handlePermissionChange(rp.id, 'can_edit', checked)
+                                  }
+                                  disabled={!getCurrentValue(rp, 'can_view')}
+                                />
+                              </div>
+                            </div>
                           </div>
-                          
-                          <div className="flex items-center gap-2">
-                            <Edit3 className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm">Editar</span>
-                            <Switch
-                              checked={getCurrentValue(rp, 'can_edit')}
-                              onCheckedChange={(checked) => 
-                                handlePermissionChange(rp.id, 'can_edit', checked)
-                              }
-                              disabled={!getCurrentValue(rp, 'can_view')}
-                            />
+                        </Card>
+                      ))}
+                  </div>
+                  
+                  {category !== Object.keys(groupedPermissions)[Object.keys(groupedPermissions).length - 1] && (
+                    <Separator />
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Informações</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>• Administradores sempre têm acesso total a todas as funcionalidades</p>
+                <p>• Para editar, o funcionário precisa ter permissão de visualização</p>
+                <p>• As alterações entram em vigor imediatamente após salvar</p>
+                <p>• Funcionários precisam fazer logout/login para ver as novas permissões</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Aba Logos */}
+        <TabsContent value="logos" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Image className="h-5 w-5" />
+                Gerenciar Logos
+              </CardTitle>
+              <CardDescription>
+                Gerencie as logos da empresa utilizadas no sistema e impressões
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <Label htmlFor="logo-upload" className="text-sm font-medium mb-2 block">
+                  Enviar Nova Logo
+                </Label>
+                <div className="flex items-center gap-4">
+                  <Input
+                    id="logo-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    disabled={uploadingLogo}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={() => document.getElementById('logo-upload')?.click()}
+                    disabled={uploadingLogo}
+                    variant="outline"
+                  >
+                    {uploadingLogo ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Upload className="h-4 w-4 mr-2" />
+                    )}
+                    Selecionar Arquivo
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Formatos aceitos: PNG, JPG, JPEG, GIF. Tamanho máximo: 5MB
+                </p>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h3 className="text-sm font-medium mb-4">Logos Disponíveis</h3>
+                {loadingLogos ? (
+                  <div className="flex items-center justify-center p-8">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : logos.length === 0 ? (
+                  <p className="text-center text-muted-foreground p-8">
+                    Nenhuma logo encontrada. Envie uma logo acima.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {logos.map((logo) => (
+                      <div key={logo.name} className="border rounded-lg p-4 space-y-3">
+                        <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                          <img
+                            src={supabase.storage.from('logos').getPublicUrl(logo.name).data.publicUrl}
+                            alt={logo.name}
+                            className="max-w-full max-h-full object-contain"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium truncate">{logo.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(logo.created_at).toLocaleDateString('pt-BR')}
+                          </p>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const url = supabase.storage.from('logos').getPublicUrl(logo.name).data.publicUrl;
+                                navigator.clipboard.writeText(url);
+                                toast({
+                                  title: "URL copiada",
+                                  description: "URL da logo copiada para a área de transferência.",
+                                });
+                              }}
+                              className="flex-1"
+                            >
+                              Copiar URL
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteLogo(logo.name)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
                       </div>
-                    </Card>
-                  ))}
+                    ))}
+                  </div>
+                )}
               </div>
-              
-              {category !== Object.keys(groupedPermissions)[Object.keys(groupedPermissions).length - 1] && (
-                <Separator />
-              )}
-            </div>
-          ))}
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Informações</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <p>• Administradores sempre têm acesso total a todas as funcionalidades</p>
-            <p>• Para editar, o funcionário precisa ter permissão de visualização</p>
-            <p>• As alterações entram em vigor imediatamente após salvar</p>
-            <p>• Funcionários precisam fazer logout/login para ver as novas permissões</p>
-          </div>
-        </CardContent>
-      </Card>
+              <Separator />
+
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>• As logos enviadas ficam disponíveis publicamente</p>
+                <p>• Para usar uma logo, copie a URL e atualize o código de impressão</p>
+                <p>• Recomendamos logos em formato PNG com fundo transparente</p>
+                <p>• As logos são exibidas automaticamente nos documentos impressos</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
