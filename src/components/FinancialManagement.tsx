@@ -2542,6 +2542,303 @@ export const FinancialManagement = () => {
     });
   };
 
+  // PDF generation functions for each report type
+  const generateIncomeStatementPDF = () => {
+    if (!reportData || reportData.type !== 'income-statement') return;
+
+    const doc = new jsPDF();
+    let yPos = 20;
+
+    // Header
+    if (logoUrl) {
+      doc.addImage(logoUrl, 'PNG', 15, 10, 30, 30);
+    }
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text(reportData.title, logoUrl ? 55 : 15, 25);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Período: ${reportData.period}`, logoUrl ? 55 : 15, 35);
+    yPos = 50;
+
+    // Resumo financeiro
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Resumo Financeiro', 15, yPos);
+    yPos += 15;
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Receita Total: ${formatCurrency(reportData.data.revenue.total)}`, 15, yPos);
+    yPos += 8;
+    doc.text(`Despesas Totais: ${formatCurrency(reportData.data.expenses.total)}`, 15, yPos);
+    yPos += 8;
+    doc.text(`Lucro Líquido: ${formatCurrency(reportData.data.netIncome)}`, 15, yPos);
+    yPos += 8;
+    doc.text(`Margem de Lucro: ${reportData.data.netMargin.toFixed(1)}%`, 15, yPos);
+    yPos += 20;
+
+    // Despesas por categoria
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Despesas por Categoria', 15, yPos);
+    yPos += 15;
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    Object.entries(reportData.data.expenses.byCategory).forEach(([category, amount]) => {
+      const percentage = ((amount as number / reportData.data.expenses.total) * 100).toFixed(1);
+      doc.text(`${category}: ${formatCurrency(amount as number)} (${percentage}%)`, 15, yPos);
+      yPos += 8;
+    });
+
+    doc.save(`demonstrativo-resultados-${new Date().toISOString().split('T')[0]}.pdf`);
+    
+    toast({
+      title: "PDF baixado",
+      description: "Demonstrativo de Resultados exportado com sucesso!",
+    });
+  };
+
+  const generateCashFlowProjectionPDF = () => {
+    if (!reportData || reportData.type !== 'cash-flow-projection') return;
+
+    const doc = new jsPDF();
+    let yPos = 20;
+
+    // Header
+    if (logoUrl) {
+      doc.addImage(logoUrl, 'PNG', 15, 10, 30, 30);
+    }
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text(reportData.title, logoUrl ? 55 : 15, 25);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Período: ${reportData.period}`, logoUrl ? 55 : 15, 35);
+    yPos = 50;
+
+    // Projeção mensal
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Projeção de Fluxo de Caixa', 15, yPos);
+    yPos += 15;
+
+    reportData.data.forEach((month: any) => {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text(month.month, 15, yPos);
+      yPos += 8;
+      
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Receitas: ${formatCurrency(month.income)}`, 20, yPos);
+      yPos += 6;
+      doc.text(`Despesas: ${formatCurrency(month.expenses)}`, 20, yPos);
+      yPos += 6;
+      doc.text(`Fluxo Líquido: ${formatCurrency(month.netFlow)}`, 20, yPos);
+      yPos += 12;
+    });
+
+    doc.save(`projecao-fluxo-caixa-${new Date().toISOString().split('T')[0]}.pdf`);
+    
+    toast({
+      title: "PDF baixado",
+      description: "Projeção de Fluxo de Caixa exportada com sucesso!",
+    });
+  };
+
+  const generateProfitabilityAnalysisPDF = () => {
+    if (!reportData || reportData.type !== 'profitability-analysis') return;
+
+    const doc = new jsPDF();
+    let yPos = 20;
+
+    // Header
+    if (logoUrl) {
+      doc.addImage(logoUrl, 'PNG', 15, 10, 30, 30);
+    }
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text(reportData.title, logoUrl ? 55 : 15, 25);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Período: ${reportData.period}`, logoUrl ? 55 : 15, 35);
+    yPos = 50;
+
+    // Análise de lucratividade
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Resumo Financeiro', 15, yPos);
+    yPos += 15;
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Receita Total: ${formatCurrency(reportData.data.totalRevenue)}`, 15, yPos);
+    yPos += 8;
+    doc.text(`Custos Totais: ${formatCurrency(reportData.data.totalCosts)}`, 15, yPos);
+    yPos += 8;
+    doc.text(`Lucro Bruto: ${formatCurrency(reportData.data.grossProfit)}`, 15, yPos);
+    yPos += 8;
+    doc.text(`Margem Bruta: ${reportData.data.grossMargin.toFixed(1)}%`, 15, yPos);
+    yPos += 8;
+    doc.text(`ROI: ${reportData.data.roi.toFixed(1)}%`, 15, yPos);
+    yPos += 20;
+
+    // Análise por evento
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Análise por Evento', 15, yPos);
+    yPos += 15;
+
+    reportData.data.eventAnalysis.forEach((event: any) => {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text(event.name, 15, yPos);
+      yPos += 8;
+      
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Receita: ${formatCurrency(event.revenue)}`, 20, yPos);
+      yPos += 6;
+      doc.text(`Custos: ${formatCurrency(event.costs)}`, 20, yPos);
+      yPos += 6;
+      doc.text(`Lucro: ${formatCurrency(event.profit)}`, 20, yPos);
+      yPos += 6;
+      doc.text(`Margem: ${event.margin.toFixed(1)}%`, 20, yPos);
+      yPos += 12;
+    });
+
+    doc.save(`analise-lucratividade-${new Date().toISOString().split('T')[0]}.pdf`);
+    
+    toast({
+      title: "PDF baixado",
+      description: "Análise de Lucratividade exportada com sucesso!",
+    });
+  };
+
+  const generateTaxReportPDF = () => {
+    if (!reportData || reportData.type !== 'tax-report') return;
+
+    const doc = new jsPDF();
+    let yPos = 20;
+
+    // Header
+    if (logoUrl) {
+      doc.addImage(logoUrl, 'PNG', 15, 10, 30, 30);
+    }
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text(reportData.title, logoUrl ? 55 : 15, 25);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Período: ${reportData.period}`, logoUrl ? 55 : 15, 35);
+    yPos = 50;
+
+    // Informações fiscais
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Resumo Fiscal', 15, yPos);
+    yPos += 15;
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Receita Bruta: ${formatCurrency(reportData.data.grossRevenue)}`, 15, yPos);
+    yPos += 8;
+    doc.text(`Despesas Dedutíveis: ${formatCurrency(reportData.data.deductibleExpenses)}`, 15, yPos);
+    yPos += 8;
+    doc.text(`Base de Cálculo: ${formatCurrency(reportData.data.taxableIncome)}`, 15, yPos);
+    yPos += 8;
+    doc.text(`Impostos Estimados: ${formatCurrency(reportData.data.estimatedTaxes)}`, 15, yPos);
+    yPos += 20;
+
+    // Tributos por regime
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Tributos por Regime', 15, yPos);
+    yPos += 15;
+
+    Object.entries(reportData.data.taxRegimes).forEach(([regime, data]: [string, any]) => {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text(regime.toUpperCase(), 15, yPos);
+      yPos += 8;
+      
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Alíquota: ${data.rate}%`, 20, yPos);
+      yPos += 6;
+      doc.text(`Valor: ${formatCurrency(data.amount)}`, 20, yPos);
+      yPos += 12;
+    });
+
+    doc.save(`relatorio-fiscal-${new Date().toISOString().split('T')[0]}.pdf`);
+    
+    toast({
+      title: "PDF baixado",
+      description: "Relatório Fiscal exportado com sucesso!",
+    });
+  };
+
+  const generateDeductibleExpensesPDF = () => {
+    if (!reportData || reportData.type !== 'deductible-expenses') return;
+
+    const doc = new jsPDF();
+    let yPos = 20;
+
+    // Header
+    if (logoUrl) {
+      doc.addImage(logoUrl, 'PNG', 15, 10, 30, 30);
+    }
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text(reportData.title, logoUrl ? 55 : 15, 25);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Período: ${reportData.period}`, logoUrl ? 55 : 15, 35);
+    yPos = 50;
+
+    // Resumo das despesas dedutíveis
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Resumo das Despesas Dedutíveis', 15, yPos);
+    yPos += 15;
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total Dedutível: ${formatCurrency(reportData.data.totalDeductible)}`, 15, yPos);
+    yPos += 8;
+    doc.text(`Economia Tributária: ${formatCurrency(reportData.data.taxSavings)}`, 15, yPos);
+    yPos += 8;
+    doc.text(`Percentual de Dedução: ${reportData.data.deductionPercentage.toFixed(1)}%`, 15, yPos);
+    yPos += 20;
+
+    // Despesas por categoria
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Despesas por Categoria', 15, yPos);
+    yPos += 15;
+
+    reportData.data.byCategory.forEach((category: any) => {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text(category.name, 15, yPos);
+      yPos += 8;
+      
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Valor: ${formatCurrency(category.amount)}`, 20, yPos);
+      yPos += 6;
+      doc.text(`Percentual: ${category.percentage.toFixed(1)}%`, 20, yPos);
+      yPos += 6;
+      doc.text(`Dedutível: ${category.deductible ? 'Sim' : 'Não'}`, 20, yPos);
+      yPos += 12;
+    });
+
+    doc.save(`despesas-dedutiveis-${new Date().toISOString().split('T')[0]}.pdf`);
+    
+    toast({
+      title: "PDF baixado",
+      description: "Relatório de Despesas Dedutíveis exportado com sucesso!",
+    });
+  };
+
   if (loading) {
     return (
       <div className="p-6">
@@ -3721,8 +4018,38 @@ export const FinancialManagement = () => {
               {reportData && (
                 <Card className="mt-6">
                   <CardHeader>
-                    <CardTitle>{reportData.title}</CardTitle>
-                    <CardDescription>Período: {reportData.period}</CardDescription>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>{reportData.title}</CardTitle>
+                        <CardDescription>Período: {reportData.period}</CardDescription>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          switch (reportData.type) {
+                            case 'income-statement':
+                              generateIncomeStatementPDF();
+                              break;
+                            case 'cash-flow-projection':
+                              generateCashFlowProjectionPDF();
+                              break;
+                            case 'profitability-analysis':
+                              generateProfitabilityAnalysisPDF();
+                              break;
+                            case 'tax-report':
+                              generateTaxReportPDF();
+                              break;
+                            case 'deductible-expenses':
+                              generateDeductibleExpensesPDF();
+                              break;
+                          }
+                        }}
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Baixar PDF
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     {renderReportContent()}
