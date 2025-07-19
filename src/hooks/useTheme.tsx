@@ -30,6 +30,7 @@ interface ThemeContextType {
   availableColorSchemes: ColorScheme[];
   applyColorScheme: (scheme: ColorScheme) => void;
   createCustomColorScheme: (colorKey: string, colorValue: string) => void;
+  updateAllCustomColors: (colors: { primary: string; secondary: string; accent: string; background: string }) => void;
   saveThemePreferences: () => Promise<void>;
   customColors: {
     primary: string;
@@ -497,11 +498,33 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         : [...prev, customScheme]
     );
 
-    if (colorScheme === 'custom') {
-      applyColorScheme(customScheme);
-    }
+    // Always apply the custom scheme when updating colors
+    applyColorScheme(customScheme);
+    
+    // Save changes immediately for real-time persistence
+    setTimeout(() => {
+      saveThemePreferences();
+    }, 100);
+  };
 
-    await saveThemePreferences();
+  // Update all custom colors at once (more efficient)
+  const updateAllCustomColors = async (colors: { primary: string; secondary: string; accent: string; background: string }) => {
+    setCustomColors(colors);
+    
+    const customScheme = generateCustomScheme(colors, theme);
+    setCustomSchemes(prev => 
+      prev.some(s => s.id === 'custom') 
+        ? prev.map(s => s.id === 'custom' ? customScheme : s)
+        : [...prev, customScheme]
+    );
+
+    // Always apply the custom scheme when updating colors
+    applyColorScheme(customScheme);
+    
+    // Save changes immediately for real-time persistence
+    setTimeout(() => {
+      saveThemePreferences();
+    }, 100);
   };
 
   // Load preferences on mount
@@ -519,6 +542,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         availableColorSchemes: getActiveSchemes(),
         applyColorScheme,
         createCustomColorScheme,
+        updateAllCustomColors,
         saveThemePreferences,
         customColors
       }}

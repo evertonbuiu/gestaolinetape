@@ -106,13 +106,18 @@ export const UserThemeSettings = () => {
     setColorScheme, 
     availableColorSchemes,
     customColors,
-    createCustomColorScheme,
+    updateAllCustomColors,
     saveThemePreferences
   } = useTheme();
   
   const { toast } = useToast();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [tempCustomColors, setTempCustomColors] = useState(customColors);
+
+  // Sync temp colors with actual custom colors when they change
+  React.useEffect(() => {
+    setTempCustomColors(customColors);
+  }, [customColors]);
 
   const handleSaveTheme = async () => {
     try {
@@ -131,20 +136,21 @@ export const UserThemeSettings = () => {
   };
 
   const handleCustomColorChange = (colorKey: string, colorValue: string) => {
-    setTempCustomColors(prev => ({
-      ...prev,
+    const updatedColors = {
+      ...tempCustomColors,
       [colorKey]: colorValue
-    }));
+    };
+    
+    setTempCustomColors(updatedColors);
+    
+    // Apply all custom colors at once for real-time preview
+    updateAllCustomColors(updatedColors);
+    
+    // Automatically switch to custom scheme
+    setColorScheme('custom');
   };
 
   const applyCustomColors = () => {
-    Object.entries(tempCustomColors).forEach(([key, value]) => {
-      createCustomColorScheme(key, value);
-    });
-    
-    // Switch to custom color scheme
-    setColorScheme('custom');
-    
     toast({
       title: "Cores Aplicadas",
       description: "Suas cores personalizadas foram aplicadas!",
@@ -154,12 +160,16 @@ export const UserThemeSettings = () => {
   const resetToDefaults = () => {
     setTheme('dark');
     setColorScheme('blue');
-    setTempCustomColors({
+    
+    const defaultColors = {
       primary: '220 60% 50%',
       secondary: '220 40% 80%',
       accent: '220 40% 70%',
       background: '220 60% 15%'
-    });
+    };
+    
+    setTempCustomColors(defaultColors);
+    updateAllCustomColors(defaultColors);
     
     toast({
       title: "Tema Resetado",
