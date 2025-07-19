@@ -22,6 +22,7 @@ export const usePermissions = () => {
   const { user, userRole } = useCustomAuth();
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [rolePermissions, setRolePermissions] = useState<RolePermission[]>([]);
+  const [userPermissions, setUserPermissions] = useState<Record<string, { view: boolean; edit: boolean }>>({});
   const [loading, setLoading] = useState(true);
 
   // Fetch all permissions
@@ -80,8 +81,48 @@ export const usePermissions = () => {
     }
   };
 
-  // Check if user has specific permission - usando useCustomAuth diretamente
-  const hasPermission = async (permissionName: string, accessType: 'view' | 'edit' = 'view') => {
+  // Fetch user permissions
+  const fetchUserPermissions = async () => {
+    if (!user || !userRole) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('role_permissions')
+        .select(`
+          can_view,
+          can_edit,
+          permission:permissions(name)
+        `)
+        .eq('role', userRole);
+
+      if (error) throw error;
+      
+      const permissionsMap: Record<string, { view: boolean; edit: boolean }> = {};
+      data?.forEach(rp => {
+        if (rp.permission?.name) {
+          permissionsMap[rp.permission.name] = {
+            view: rp.can_view,
+            edit: rp.can_edit
+          };
+        }
+      });
+      
+      setUserPermissions(permissionsMap);
+    } catch (error) {
+      console.error('Error fetching user permissions:', error);
+    }
+  };
+
+  // Check if user has specific permission - função síncrona
+  const hasPermission = (permissionName: string, accessType: 'view' | 'edit' = 'view') => {
+    if (!userPermissions[permissionName]) return false;
+    return accessType === 'edit' 
+      ? userPermissions[permissionName].edit 
+      : userPermissions[permissionName].view;
+  };
+
+  // Check if user has specific permission - usando useCustomAuth diretamente (versão assíncrona)
+  const hasPermissionAsync = async (permissionName: string, accessType: 'view' | 'edit' = 'view') => {
     if (!user) return false;
     
     try {
@@ -104,7 +145,9 @@ export const usePermissions = () => {
     const loadData = async () => {
       setLoading(true);
       if (userRole === 'admin') {
-        await Promise.all([fetchPermissions(), fetchRolePermissions()]);
+        await Promise.all([fetchPermissions(), fetchRolePermissions(), fetchUserPermissions()]);
+      } else {
+        await fetchUserPermissions();
       }
       setLoading(false);
     };
@@ -117,10 +160,13 @@ export const usePermissions = () => {
   return {
     permissions,
     rolePermissions,
+    userPermissions,
     loading,
     updateRolePermission,
     hasPermission,
+    hasPermissionAsync,
     fetchPermissions,
-    fetchRolePermissions
+    fetchRolePermissions,
+    fetchUserPermissions
   };
 };
