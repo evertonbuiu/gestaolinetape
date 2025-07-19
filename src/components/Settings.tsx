@@ -50,7 +50,7 @@ export const SettingsPage = () => {
     name: '',
     username: '',
     password: '',
-    role: 'funcionario' as 'admin' | 'funcionario' | 'financeiro'
+    role: 'funcionario' as 'admin' | 'funcionario' | 'financeiro' | 'deposito'
   });
 
   // Group permissions by category
@@ -173,7 +173,8 @@ export const SettingsPage = () => {
       }
 
       const roleLabel = newUser.role === 'admin' ? 'Administrador' : 
-                       newUser.role === 'financeiro' ? 'Financeiro' : 'Funcionário';
+                       newUser.role === 'financeiro' ? 'Financeiro' : 
+                       newUser.role === 'deposito' ? 'Depósito' : 'Funcionário';
 
       setNewUser({ name: '', username: '', password: '', role: 'funcionario' });
       setCreateUserDialog(false);
@@ -431,7 +432,7 @@ export const SettingsPage = () => {
                     <Label htmlFor="role">Nível de Acesso</Label>
                     <Select
                       value={newUser.role}
-                      onValueChange={(value: 'admin' | 'funcionario' | 'financeiro') => 
+                      onValueChange={(value: 'admin' | 'funcionario' | 'financeiro' | 'deposito') => 
                         setNewUser(prev => ({ ...prev, role: value }))
                       }
                     >
@@ -444,6 +445,14 @@ export const SettingsPage = () => {
                             <span>Funcionário</span>
                             <span className="text-xs text-muted-foreground">
                               Acesso básico conforme permissões
+                            </span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="deposito">
+                          <div className="flex flex-col items-start">
+                            <span>Depósito</span>
+                            <span className="text-xs text-muted-foreground">
+                              Acesso operacional sem valores
                             </span>
                           </div>
                         </SelectItem>
