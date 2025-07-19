@@ -29,9 +29,6 @@ export const SettingsPage = () => {
   const { toast } = useToast();
   const { settings: companySettings, updateSettings: updateCompanySettings, updateCompanyData, isLoading: isLoadingCompanySettings } = useCompanySettings();
   
-  // Ref para controlar se já inicializou os dados
-  const initializedRef = useRef(false);
-  
   // States para dados completos da empresa
   const [companyData, setCompanyData] = useState({
     company_name: "",
@@ -326,17 +323,10 @@ export const SettingsPage = () => {
     fetchLogos();
   }, []);
 
-  // Separate effect to initialize company data only when first loaded
+  // Load company data when available
   useEffect(() => {
-    console.log('Settings useEffect triggered:', { 
-      companySettings, 
-      isLoadingCompanySettings, 
-      initialized: initializedRef.current 
-    });
-    
-    if (companySettings && !isLoadingCompanySettings && !initializedRef.current) {
-      console.log('Initializing with company settings:', companySettings);
-      initializedRef.current = true;
+    if (companySettings && !isLoadingCompanySettings) {
+      console.log('Loading company settings into form:', companySettings);
       setCompanyName(companySettings.company_name);
       setCompanyTagline(companySettings.tagline || "");
       setCompanyData({
@@ -347,20 +337,6 @@ export const SettingsPage = () => {
         email: companySettings.email || "",
         cnpj: companySettings.cnpj || "",
         website: companySettings.website || ""
-      });
-    } else if (!companySettings && !isLoadingCompanySettings && !initializedRef.current) {
-      console.log('Initializing with default values');
-      initializedRef.current = true;
-      setCompanyName("Luz Locação");
-      setCompanyTagline("Controle de Estoque");
-      setCompanyData({
-        company_name: "Luz Locação",
-        tagline: "Controle de Estoque",
-        address: "",
-        phone: "",
-        email: "",
-        cnpj: "",
-        website: ""
       });
     }
   }, [companySettings, isLoadingCompanySettings]);
