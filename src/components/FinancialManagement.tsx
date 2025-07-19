@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLogo } from "@/hooks/useLogo";
@@ -2422,13 +2423,18 @@ export const FinancialManagement = () => {
       entry.status
     ]);
     
-    (doc as any).autoTable({
-      head: [['Data', 'Descrição', 'Categoria', 'Tipo', 'Valor', 'Status']],
-      body: tableData,
-      startY: 60,
-      theme: 'grid',
-      styles: { fontSize: 8 }
-    });
+    // Verificar se existem dados
+    if (tableData.length === 0) {
+      doc.text('Nenhum dado encontrado para o período selecionado.', 20, 70);
+    } else {
+      (doc as any).autoTable({
+        head: [['Data', 'Descrição', 'Categoria', 'Tipo', 'Valor', 'Status']],
+        body: tableData,
+        startY: 60,
+        theme: 'grid',
+        styles: { fontSize: 8 }
+      });
+    }
     
     doc.save(`fluxo_caixa_${new Date().toISOString().split('T')[0]}.pdf`);
     
@@ -2838,18 +2844,25 @@ export const FinancialManagement = () => {
     doc.text('Tributos por Regime', 15, yPos);
     yPos += 15;
 
-    Object.entries(reportData.data.taxRegimes).forEach(([regime, data]: [string, any]) => {
+    if (reportData.data.taxRegimes && typeof reportData.data.taxRegimes === 'object') {
+      Object.entries(reportData.data.taxRegimes).forEach(([regime, data]: [string, any]) => {
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(regime.toUpperCase(), 15, yPos);
+        yPos += 8;
+        
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Alíquota: ${data?.rate || 0}%`, 20, yPos);
+        yPos += 6;
+        doc.text(`Valor: ${formatCurrency(data?.amount || 0)}`, 20, yPos);
+        yPos += 12;
+      });
+    } else {
       doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text(regime.toUpperCase(), 15, yPos);
-      yPos += 8;
-      
       doc.setFont('helvetica', 'normal');
-      doc.text(`Alíquota: ${data.rate}%`, 20, yPos);
-      yPos += 6;
-      doc.text(`Valor: ${formatCurrency(data.amount)}`, 20, yPos);
-      yPos += 12;
-    });
+      doc.text('Nenhum dado de regime tributário disponível.', 15, yPos);
+      yPos += 15;
+    }
 
     // Adicionar rodapé
     addFooter(doc);
@@ -2885,11 +2898,11 @@ export const FinancialManagement = () => {
 
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Total Dedutível: ${formatCurrency(reportData.data.totalDeductible)}`, 15, yPos);
+    doc.text(`Total Dedutível: ${formatCurrency(reportData.data.totalDeductible || 0)}`, 15, yPos);
     yPos += 8;
-    doc.text(`Economia Tributária: ${formatCurrency(reportData.data.taxSavings)}`, 15, yPos);
+    doc.text(`Total Não Dedutível: ${formatCurrency(reportData.data.totalNonDeductible || 0)}`, 15, yPos);
     yPos += 8;
-    doc.text(`Percentual de Dedução: ${reportData.data.deductionPercentage.toFixed(1)}%`, 15, yPos);
+    doc.text(`Percentual Dedutível: ${(reportData.data.deductiblePercentage || 0).toFixed(1)}%`, 15, yPos);
     yPos += 20;
 
     // Despesas por categoria
@@ -2898,20 +2911,25 @@ export const FinancialManagement = () => {
     doc.text('Despesas por Categoria', 15, yPos);
     yPos += 15;
 
-    reportData.data.byCategory.forEach((category: any) => {
+    if (reportData.data.categoryTotals && reportData.data.categoryTotals.length > 0) {
+      reportData.data.categoryTotals.forEach((category: any) => {
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(category.category, 15, yPos);
+        yPos += 8;
+        
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Valor: ${formatCurrency(category.total || 0)}`, 20, yPos);
+        yPos += 6;
+        doc.text(`Quantidade: ${category.count || 0} despesas`, 20, yPos);
+        yPos += 12;
+      });
+    } else {
       doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text(category.name, 15, yPos);
-      yPos += 8;
-      
       doc.setFont('helvetica', 'normal');
-      doc.text(`Valor: ${formatCurrency(category.amount)}`, 20, yPos);
-      yPos += 6;
-      doc.text(`Percentual: ${category.percentage.toFixed(1)}%`, 20, yPos);
-      yPos += 6;
-      doc.text(`Dedutível: ${category.deductible ? 'Sim' : 'Não'}`, 20, yPos);
-      yPos += 12;
-    });
+      doc.text('Nenhuma categoria de despesa encontrada.', 15, yPos);
+      yPos += 15;
+    }
 
     // Adicionar rodapé
     addFooter(doc);
