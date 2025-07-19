@@ -126,22 +126,58 @@ export const FinancialManagement = () => {
 
   const loadBankAccounts = async () => {
     try {
+      // Buscar contas bancárias com saldos calculados em tempo real
       const { data: bankAccountsData, error: bankAccountsError } = await supabase
         .from('bank_accounts')
-        .select('*')
+        .select(`
+          id,
+          name,
+          balance,
+          account_type,
+          created_at
+        `)
         .order('created_at', { ascending: true });
 
       if (bankAccountsError) throw bankAccountsError;
 
       if (bankAccountsData) {
-        const accountBalances = bankAccountsData.map(account => ({
-          id: account.id,
-          name: account.name,
-          balance: account.balance || 0,
-          type: account.account_type as 'checking' | 'savings' | 'cash'
-        }));
+        // Para cada conta, calcular o saldo baseado nas transações (extrato)
+        const accountsWithCalculatedBalances = await Promise.all(
+          bankAccountsData.map(async (account) => {
+            // Buscar todas as transações da conta
+            const { data: transactions, error: transError } = await supabase
+              .from('bank_transactions')
+              .select('amount, transaction_type')
+              .eq('bank_account_id', account.id);
 
-        setAccounts(accountBalances);
+            if (transError) {
+              console.error(`Error loading transactions for account ${account.name}:`, transError);
+              // Se houve erro, usar o saldo armazenado
+              return {
+                id: account.id,
+                name: account.name,
+                balance: account.balance || 0,
+                type: account.account_type as 'checking' | 'savings' | 'cash'
+              };
+            }
+
+            // Calcular saldo baseado no extrato
+            const calculatedBalance = transactions?.reduce((sum, transaction) => {
+              return transaction.transaction_type === 'income' 
+                ? sum + transaction.amount 
+                : sum - transaction.amount;
+            }, 0) || 0;
+
+            return {
+              id: account.id,
+              name: account.name,
+              balance: calculatedBalance, // Usar saldo calculado do extrato
+              type: account.account_type as 'checking' | 'savings' | 'cash'
+            };
+          })
+        );
+
+        setAccounts(accountsWithCalculatedBalances);
         setLastUpdate(Date.now()); // Forçar re-render do saldo total
       }
     } catch (error) {
@@ -587,15 +623,23 @@ export const FinancialManagement = () => {
     try {
       setIsRecalculatingBalances(true);
       
-      // Sincronizar transações bancárias
+      // Primeiro, sincronizar transações bancárias
       await supabase.rpc('sync_bank_transactions');
+      
+      // Depois, atualizar saldos baseados nos extratos
+      const { data: updateResult, error: updateError } = await supabase.rpc('update_account_balances_from_statements');
+      
+      if (updateError) {
+        console.error("Error updating balances:", updateError);
+        throw updateError;
+      }
       
       // Recarregar contas bancárias para mostrar saldos atualizados
       await loadBankAccounts();
       
       toast({
         title: "Sucesso",
-        description: "Saldos das contas sincronizados com sucesso.",
+        description: "Saldos das contas sincronizados com os extratos.",
       });
       
     } catch (error) {

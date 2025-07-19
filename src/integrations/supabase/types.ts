@@ -832,6 +832,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      update_account_balances_from_statements: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          account_name: string
+          old_balance: number
+          new_balance: number
+          transaction_count: number
+        }[]
+      }
       update_all_account_balances_from_transactions: {
         Args: Record<PropertyKey, never>
         Returns: {
