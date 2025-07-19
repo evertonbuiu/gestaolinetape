@@ -8,10 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Download, Calendar, Edit, Trash2, FileSpreadsheet, User } from "lucide-react";
+import { Plus, Download, Calendar, Edit, Trash2, FileSpreadsheet, User, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
@@ -479,6 +481,129 @@ export const PersonalExpenseSpreadsheet = () => {
     });
   };
 
+  const generatePDF = () => {
+    const doc = new jsPDF();
+    
+    // Configurar fonte e título
+    doc.setFontSize(18);
+    doc.text('RELATÓRIO DE DESPESAS PESSOAIS', 105, 20, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.text(`Período: ${selectedMonth}/${selectedYear}`, 105, 30, { align: 'center' });
+    
+    // Resumo geral
+    const totalBudget = categories.reduce((sum, cat) => sum + cat.budget, 0);
+    const totalSpent = categories.reduce((sum, cat) => sum + cat.spent, 0);
+    const totalRemaining = totalBudget - totalSpent;
+    
+    let yPosition = 45;
+    
+    doc.setFontSize(14);
+    doc.text('RESUMO GERAL', 20, yPosition);
+    yPosition += 10;
+    
+    doc.setFontSize(11);
+    doc.text(`Total Orçado: ${totalBudget.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, 20, yPosition);
+    yPosition += 7;
+    doc.text(`Total Gasto: ${totalSpent.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, 20, yPosition);
+    yPosition += 7;
+    doc.text(`Saldo Restante: ${totalRemaining.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, 20, yPosition);
+    yPosition += 15;
+    
+    // Tabela de categorias
+    doc.setFontSize(14);
+    doc.text('RESUMO POR CATEGORIA', 20, yPosition);
+    yPosition += 10;
+    
+    const categoryTableData = categories.map(cat => [
+      cat.name,
+      cat.budget.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+      cat.spent.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+      (cat.budget - cat.spent).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    ]);
+    
+    (doc as any).autoTable({
+      head: [['Categoria', 'Orçado', 'Gasto', 'Restante']],
+      body: categoryTableData,
+      startY: yPosition,
+      theme: 'grid',
+      headStyles: { fillColor: [63, 81, 181] },
+      styles: { fontSize: 10 }
+    });
+    
+    yPosition = (doc as any).lastAutoTable.finalY + 15;
+    
+    // Totais por forma de pagamento
+    const paymentMethodTotals = expenses.reduce((acc, expense) => {
+      const method = expense.paymentMethod || 'Não informado';
+      acc[method] = (acc[method] || 0) + expense.amount;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    if (Object.keys(paymentMethodTotals).length > 0) {
+      doc.setFontSize(14);
+      doc.text('RESUMO POR FORMA DE PAGAMENTO', 20, yPosition);
+      yPosition += 10;
+      
+      const paymentTableData = Object.entries(paymentMethodTotals).map(([method, total]) => [
+        method,
+        total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      ]);
+      
+      (doc as any).autoTable({
+        head: [['Forma de Pagamento', 'Total Gasto']],
+        body: paymentTableData,
+        startY: yPosition,
+        theme: 'grid',
+        headStyles: { fillColor: [63, 81, 181] },
+        styles: { fontSize: 10 }
+      });
+      
+      yPosition = (doc as any).lastAutoTable.finalY + 15;
+    }
+    
+    // Nova página se necessário
+    if (yPosition > 250) {
+      doc.addPage();
+      yPosition = 20;
+    }
+    
+    // Tabela de despesas detalhadas
+    doc.setFontSize(14);
+    doc.text('DESPESAS DETALHADAS', 20, yPosition);
+    yPosition += 10;
+    
+    const expenseTableData = expenses.map(expense => [
+      expense.date,
+      expense.description,
+      expense.category,
+      expense.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+      expense.paymentMethod || ''
+    ]);
+    
+    (doc as any).autoTable({
+      head: [['Data', 'Descrição', 'Categoria', 'Valor', 'Pagamento']],
+      body: expenseTableData,
+      startY: yPosition,
+      theme: 'grid',
+      headStyles: { fillColor: [63, 81, 181] },
+      styles: { fontSize: 9 },
+      columnStyles: {
+        1: { cellWidth: 50 },
+        3: { cellWidth: 25 }
+      }
+    });
+    
+    // Salvar o PDF
+    const fileName = `relatorio_despesas_pessoais_${selectedMonth}_${selectedYear}.pdf`;
+    doc.save(fileName);
+    
+    toast({
+      title: "Sucesso",
+      description: "Relatório PDF pessoal gerado com sucesso.",
+    });
+  };
+
   const getDailySpreadsheetData = () => {
     const monthStart = startOfMonth(new Date(selectedYear, selectedMonth - 1));
     const monthEnd = endOfMonth(new Date(selectedYear, selectedMonth - 1));
@@ -616,10 +741,16 @@ export const PersonalExpenseSpreadsheet = () => {
               </div>
             </DialogContent>
           </Dialog>
-          <Button variant="outline" onClick={exportToExcel}>
-            <Download className="h-4 w-4 mr-2" />
-            Exportar Excel
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={exportToExcel}>
+              <Download className="h-4 w-4 mr-2" />
+              Exportar Excel
+            </Button>
+            <Button onClick={generatePDF} className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Gerar PDF
+            </Button>
+          </div>
         </div>
       </div>
 
