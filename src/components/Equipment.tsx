@@ -17,6 +17,36 @@ import { useCustomAuth } from "@/hooks/useCustomAuth";
 export const Equipment = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { equipment, loading, fetchEquipment } = useEquipment();
+  const { hasPermission } = usePermissions();
+  const { toast } = useToast();
+  const { user } = useCustomAuth();
+  const [canView, setCanView] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
+  const [equipmentDialog, setEquipmentDialog] = useState(false);
+  const [editingEquipment, setEditingEquipment] = useState<any>(null);
+  const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([]);
+  const [newEquipment, setNewEquipment] = useState({
+    name: '',
+    category: '',
+    description: '',
+    total_stock: 0,
+    price_per_day: 0
+  });
+
+  // Fetch maintenance records
+  const fetchMaintenanceRecords = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('maintenance_records')
+        .select('*')
+        .in('status', ['agendada', 'em_andamento']);
+
+      if (error) throw error;
+      setMaintenanceRecords(data || []);
+    } catch (error) {
+      console.error('Error fetching maintenance records:', error);
+    }
+  };
 
   // Add realtime updates for equipment
   useEffect(() => {
@@ -57,43 +87,13 @@ export const Equipment = () => {
       supabase.removeChannel(maintenanceChannel);
     };
   }, [fetchEquipment]);
-  const { hasPermission } = usePermissions();
-  const { toast } = useToast();
-  const { user } = useCustomAuth();
-  const [canViewPrices, setCanViewPrices] = useState(false);
-  const [canEdit, setCanEdit] = useState(false);
-  const [equipmentDialog, setEquipmentDialog] = useState(false);
-  const [editingEquipment, setEditingEquipment] = useState<any>(null);
-  const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([]);
-  const [newEquipment, setNewEquipment] = useState({
-    name: '',
-    category: '',
-    description: '',
-    total_stock: 0,
-    price_per_day: 0
-  });
-
-  // Fetch maintenance records
-  const fetchMaintenanceRecords = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('maintenance_records')
-        .select('*')
-        .in('status', ['agendada', 'em_andamento']);
-
-      if (error) throw error;
-      setMaintenanceRecords(data || []);
-    } catch (error) {
-      console.error('Error fetching maintenance records:', error);
-    }
-  };
 
   // Check permissions on mount
   useEffect(() => {
     const checkPermissions = async () => {
-      const canViewPricesResult = await hasPermission('inventory_view', 'view');
-      const canEditResult = await hasPermission('inventory_edit', 'edit');
-      setCanViewPrices(canViewPricesResult);
+      const canViewResult = await hasPermission('equipment_view', 'view');
+      const canEditResult = await hasPermission('equipment_edit', 'edit');
+      setCanView(canViewResult);
       setCanEdit(canEditResult);
     };
     checkPermissions();
@@ -281,7 +281,7 @@ export const Equipment = () => {
   }
 
   // Show permission warning if user has no view access
-  if (!canViewPrices) {
+  if (!canView) {
     return (
       <div className="p-6">
         <div className="flex items-center justify-center min-h-[400px]">
@@ -499,7 +499,7 @@ export const Equipment = () => {
                   <p className="text-muted-foreground">Locado</p>
                   <p className="font-medium text-orange-600">{item.rented}</p>
                 </div>
-                {canViewPrices && (
+                {canEdit && (
                   <div>
                     <p className="text-muted-foreground">Preço/Dia</p>
                     <p className="font-medium">R$ {item.price_per_day.toFixed(2)}</p>
