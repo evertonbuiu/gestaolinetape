@@ -13,6 +13,7 @@ import { Maintenance } from "@/components/Maintenance";
 import { SettingsPage } from "@/components/Settings";
 import { ExpenseSpreadsheet } from "@/components/ExpenseSpreadsheet";
 import { PersonalExpenseSpreadsheet } from "@/components/PersonalExpenseSpreadsheet";
+import { UserThemeSettings } from "@/components/UserThemeSettings";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -49,6 +50,8 @@ const Index = () => {
         return <ExpenseSpreadsheet key="expense-spreadsheet" />;
       case "personal-expenses":
         return <PersonalExpenseSpreadsheet key="personal-expenses" />;
+      case "theme-settings":
+        return <UserThemeSettings key="theme-settings" />;
       case "settings":
         return <SettingsPage key="settings" />;
       default:
