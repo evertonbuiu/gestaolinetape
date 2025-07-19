@@ -2542,24 +2542,72 @@ export const FinancialManagement = () => {
     });
   };
 
-  // PDF generation functions for each report type
+  // PDF generation functions for each report type with letterhead
+  const addLetterhead = (doc: jsPDF) => {
+    // Cabeçalho com logo e informações da empresa
+    if (logoUrl) {
+      doc.addImage(logoUrl, 'PNG', 15, 15, 40, 40);
+    }
+    
+    // Informações da empresa
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(settings?.company_name || 'Luz Locação', logoUrl ? 65 : 15, 25);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(settings?.tagline || 'Controle de Estoque', logoUrl ? 65 : 15, 35);
+    doc.text('Endereço: Rua Principal, 123 - Centro', logoUrl ? 65 : 15, 42);
+    doc.text('Tel: (11) 99999-9999', logoUrl ? 65 : 15, 49);
+    doc.text('Email: contato@luzlocacao.com.br', logoUrl ? 65 : 15, 56);
+    
+    // Linha separadora
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.5);
+    doc.line(15, 65, 195, 65);
+    
+    return 75; // Retorna a posição Y após o cabeçalho
+  };
+
+  const addFooter = (doc: jsPDF) => {
+    const pageHeight = doc.internal.pageSize.height;
+    
+    // Linha separadora do rodapé
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.3);
+    doc.line(15, pageHeight - 25, 195, pageHeight - 25);
+    
+    // Informações do rodapé
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(settings?.company_name || 'Luz Locação', 15, pageHeight - 18);
+    doc.text('CNPJ: 12.345.678/0001-90', 15, pageHeight - 12);
+    
+    // Data de geração
+    const currentDate = new Date().toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    doc.text(`Gerado em: ${currentDate}`, 130, pageHeight - 15);
+  };
+
   const generateIncomeStatementPDF = () => {
     if (!reportData || reportData.type !== 'income-statement') return;
 
     const doc = new jsPDF();
-    let yPos = 20;
+    let yPos = addLetterhead(doc);
 
-    // Header
-    if (logoUrl) {
-      doc.addImage(logoUrl, 'PNG', 15, 10, 30, 30);
-    }
+    // Título do documento
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text(reportData.title, logoUrl ? 55 : 15, 25);
+    doc.text(reportData.title, 15, yPos);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Período: ${reportData.period}`, logoUrl ? 55 : 15, 35);
-    yPos = 50;
+    doc.text(`Período: ${reportData.period}`, 15, yPos + 8);
+    yPos += 25;
 
     // Resumo financeiro
     doc.setFontSize(14);
@@ -2592,6 +2640,9 @@ export const FinancialManagement = () => {
       yPos += 8;
     });
 
+    // Adicionar rodapé
+    addFooter(doc);
+
     doc.save(`demonstrativo-resultados-${new Date().toISOString().split('T')[0]}.pdf`);
     
     toast({
@@ -2604,19 +2655,16 @@ export const FinancialManagement = () => {
     if (!reportData || reportData.type !== 'cash-flow-projection') return;
 
     const doc = new jsPDF();
-    let yPos = 20;
+    let yPos = addLetterhead(doc);
 
-    // Header
-    if (logoUrl) {
-      doc.addImage(logoUrl, 'PNG', 15, 10, 30, 30);
-    }
+    // Título do documento
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text(reportData.title, logoUrl ? 55 : 15, 25);
+    doc.text(reportData.title, 15, yPos);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Período: ${reportData.period}`, logoUrl ? 55 : 15, 35);
-    yPos = 50;
+    doc.text(`Período: ${reportData.period}`, 15, yPos + 8);
+    yPos += 25;
 
     // Projeção mensal
     doc.setFontSize(14);
@@ -2639,6 +2687,9 @@ export const FinancialManagement = () => {
       yPos += 12;
     });
 
+    // Adicionar rodapé
+    addFooter(doc);
+
     doc.save(`projecao-fluxo-caixa-${new Date().toISOString().split('T')[0]}.pdf`);
     
     toast({
@@ -2651,19 +2702,16 @@ export const FinancialManagement = () => {
     if (!reportData || reportData.type !== 'profitability-analysis') return;
 
     const doc = new jsPDF();
-    let yPos = 20;
+    let yPos = addLetterhead(doc);
 
-    // Header
-    if (logoUrl) {
-      doc.addImage(logoUrl, 'PNG', 15, 10, 30, 30);
-    }
+    // Título do documento
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text(reportData.title, logoUrl ? 55 : 15, 25);
+    doc.text(reportData.title, 15, yPos);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Período: ${reportData.period}`, logoUrl ? 55 : 15, 35);
-    yPos = 50;
+    doc.text(`Período: ${reportData.period}`, 15, yPos + 8);
+    yPos += 25;
 
     // Análise de lucratividade
     doc.setFontSize(14);
@@ -2707,6 +2755,9 @@ export const FinancialManagement = () => {
       yPos += 12;
     });
 
+    // Adicionar rodapé
+    addFooter(doc);
+
     doc.save(`analise-lucratividade-${new Date().toISOString().split('T')[0]}.pdf`);
     
     toast({
@@ -2719,19 +2770,16 @@ export const FinancialManagement = () => {
     if (!reportData || reportData.type !== 'tax-report') return;
 
     const doc = new jsPDF();
-    let yPos = 20;
+    let yPos = addLetterhead(doc);
 
-    // Header
-    if (logoUrl) {
-      doc.addImage(logoUrl, 'PNG', 15, 10, 30, 30);
-    }
+    // Título do documento
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text(reportData.title, logoUrl ? 55 : 15, 25);
+    doc.text(reportData.title, 15, yPos);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Período: ${reportData.period}`, logoUrl ? 55 : 15, 35);
-    yPos = 50;
+    doc.text(`Período: ${reportData.period}`, 15, yPos + 8);
+    yPos += 25;
 
     // Informações fiscais
     doc.setFontSize(14);
@@ -2769,6 +2817,9 @@ export const FinancialManagement = () => {
       yPos += 12;
     });
 
+    // Adicionar rodapé
+    addFooter(doc);
+
     doc.save(`relatorio-fiscal-${new Date().toISOString().split('T')[0]}.pdf`);
     
     toast({
@@ -2781,19 +2832,16 @@ export const FinancialManagement = () => {
     if (!reportData || reportData.type !== 'deductible-expenses') return;
 
     const doc = new jsPDF();
-    let yPos = 20;
+    let yPos = addLetterhead(doc);
 
-    // Header
-    if (logoUrl) {
-      doc.addImage(logoUrl, 'PNG', 15, 10, 30, 30);
-    }
+    // Título do documento
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text(reportData.title, logoUrl ? 55 : 15, 25);
+    doc.text(reportData.title, 15, yPos);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Período: ${reportData.period}`, logoUrl ? 55 : 15, 35);
-    yPos = 50;
+    doc.text(`Período: ${reportData.period}`, 15, yPos + 8);
+    yPos += 25;
 
     // Resumo das despesas dedutíveis
     doc.setFontSize(14);
@@ -2830,6 +2878,9 @@ export const FinancialManagement = () => {
       doc.text(`Dedutível: ${category.deductible ? 'Sim' : 'Não'}`, 20, yPos);
       yPos += 12;
     });
+
+    // Adicionar rodapé
+    addFooter(doc);
 
     doc.save(`despesas-dedutiveis-${new Date().toISOString().split('T')[0]}.pdf`);
     
