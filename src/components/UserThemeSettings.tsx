@@ -10,6 +10,7 @@ import { Palette, Sun, Moon, Save, RotateCcw, Eye, Check } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { HslColorPicker } from "react-colorful";
 
 interface ColorInputProps {
   label: string;
@@ -20,10 +21,34 @@ interface ColorInputProps {
 
 const ColorInput = ({ label, value, onChange, description }: ColorInputProps) => {
   const [hslValue, setHslValue] = useState(value);
+  const [showPicker, setShowPicker] = useState(false);
 
   const handleChange = (newValue: string) => {
     setHslValue(newValue);
     onChange(newValue);
+  };
+
+  // Convert HSL string to HSL object for color picker
+  const hslToObject = (hslString: string) => {
+    const match = hslString.match(/(\d+)\s+(\d+)%\s+(\d+)%/);
+    if (match) {
+      return {
+        h: parseInt(match[1]),
+        s: parseInt(match[2]),
+        l: parseInt(match[3])
+      };
+    }
+    return { h: 220, s: 60, l: 50 };
+  };
+
+  // Convert HSL object to HSL string
+  const objectToHsl = (hsl: { h: number; s: number; l: number }) => {
+    return `${Math.round(hsl.h)} ${Math.round(hsl.s)}% ${Math.round(hsl.l)}%`;
+  };
+
+  const handlePickerChange = (hsl: { h: number; s: number; l: number }) => {
+    const hslString = objectToHsl(hsl);
+    handleChange(hslString);
   };
 
   return (
@@ -32,17 +57,42 @@ const ColorInput = ({ label, value, onChange, description }: ColorInputProps) =>
       {description && (
         <p className="text-xs text-muted-foreground">{description}</p>
       )}
-      <div className="flex items-center gap-2">
-        <Input
-          value={hslValue}
-          onChange={(e) => handleChange(e.target.value)}
-          placeholder="Ex: 220 60% 50%"
-          className="flex-1"
-        />
-        <div 
-          className="w-8 h-8 rounded border border-border"
-          style={{ backgroundColor: `hsl(${hslValue})` }}
-        />
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Input
+            value={hslValue}
+            onChange={(e) => handleChange(e.target.value)}
+            placeholder="Ex: 220 60% 50%"
+            className="flex-1"
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowPicker(!showPicker)}
+            className="w-12 h-8 p-0"
+            style={{ backgroundColor: `hsl(${hslValue})` }}
+          >
+            <Palette className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        {showPicker && (
+          <div className="p-4 border rounded-lg bg-background">
+            <HslColorPicker
+              color={hslToObject(hslValue)}
+              onChange={handlePickerChange}
+            />
+            <div className="mt-3 flex justify-end">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowPicker(false)}
+              >
+                Fechar
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
