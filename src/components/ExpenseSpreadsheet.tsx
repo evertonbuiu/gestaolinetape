@@ -42,6 +42,7 @@ export const ExpenseSpreadsheet = () => {
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedDay, setSelectedDay] = useState<string>('');
   const [isAddingExpense, setIsAddingExpense] = useState(false);
   const [editingExpense, setEditingExpense] = useState<DailyExpense | null>(null);
   const { toast } = useToast();
@@ -77,7 +78,7 @@ export const ExpenseSpreadsheet = () => {
   useEffect(() => {
     loadExpenses();
     loadBankAccounts();
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear, selectedDay]);
 
   const loadBankAccounts = async () => {
     try {
@@ -103,12 +104,21 @@ export const ExpenseSpreadsheet = () => {
       const endDate = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}-${lastDay}`;
 
       // Buscar despesas do período
-      const { data: expensesData, error } = await supabase
+      let query = supabase
         .from('event_expenses')
-        .select('*')
-        .gte('expense_date', startDate)
-        .lte('expense_date', endDate)
-        .order('expense_date', { ascending: false });
+        .select('*');
+
+      if (selectedDay) {
+        // Filtrar por dia específico
+        query = query.eq('expense_date', selectedDay);
+      } else {
+        // Filtrar por mês/ano
+        query = query
+          .gte('expense_date', startDate)
+          .lte('expense_date', endDate);
+      }
+
+      const { data: expensesData, error } = await query.order('expense_date', { ascending: false });
 
       if (error) throw error;
 
@@ -496,10 +506,24 @@ export const ExpenseSpreadsheet = () => {
           <CardTitle>Filtros</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4 items-end">
+          <div className="flex gap-4 items-end flex-wrap">
+            <div className="space-y-2">
+              <Label>Filtro por Dia Específico</Label>
+              <Input
+                type="date"
+                value={selectedDay}
+                onChange={(e) => setSelectedDay(e.target.value)}
+                placeholder="Filtrar por dia"
+                className="w-40"
+              />
+            </div>
             <div className="space-y-2">
               <Label>Mês</Label>
-              <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
+              <Select 
+                value={selectedMonth.toString()} 
+                onValueChange={(value) => setSelectedMonth(parseInt(value))}
+                disabled={!!selectedDay}
+              >
                 <SelectTrigger className="w-32">
                   <SelectValue />
                 </SelectTrigger>
@@ -514,7 +538,11 @@ export const ExpenseSpreadsheet = () => {
             </div>
             <div className="space-y-2">
               <Label>Ano</Label>
-              <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+              <Select 
+                value={selectedYear.toString()} 
+                onValueChange={(value) => setSelectedYear(parseInt(value))}
+                disabled={!!selectedDay}
+              >
                 <SelectTrigger className="w-24">
                   <SelectValue />
                 </SelectTrigger>
@@ -530,6 +558,15 @@ export const ExpenseSpreadsheet = () => {
                 </SelectContent>
               </Select>
             </div>
+            {selectedDay && (
+              <Button 
+                variant="outline" 
+                onClick={() => setSelectedDay('')}
+                className="h-10"
+              >
+                Limpar Filtro
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

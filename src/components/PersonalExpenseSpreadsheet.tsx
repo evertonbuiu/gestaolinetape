@@ -40,6 +40,7 @@ export const PersonalExpenseSpreadsheet = () => {
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedDay, setSelectedDay] = useState<string>('');
   const [isAddingExpense, setIsAddingExpense] = useState(false);
   const [editingExpense, setEditingExpense] = useState<PersonalExpense | null>(null);
   const { toast } = useToast();
@@ -83,7 +84,7 @@ export const PersonalExpenseSpreadsheet = () => {
 
   useEffect(() => {
     loadPersonalExpenses();
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear, selectedDay]);
 
   const loadPersonalExpenses = async () => {
     try {
@@ -91,12 +92,23 @@ export const PersonalExpenseSpreadsheet = () => {
       
       // Para gastos pessoais, vamos usar localStorage por enquanto
       // já que não temos uma tabela específica no Supabase para isso
-      const storageKey = `personal_expenses_${selectedMonth}_${selectedYear}`;
-      const storedExpenses = localStorage.getItem(storageKey);
-      
       let mappedExpenses: PersonalExpense[] = [];
-      if (storedExpenses) {
-        mappedExpenses = JSON.parse(storedExpenses);
+      
+      if (selectedDay) {
+        // Filtrar por dia específico - buscar em todos os meses salvos
+        const allKeys = Object.keys(localStorage).filter(key => key.startsWith('personal_expenses_'));
+        for (const key of allKeys) {
+          const expenses = JSON.parse(localStorage.getItem(key) || '[]');
+          const dayExpenses = expenses.filter((exp: PersonalExpense) => exp.date === selectedDay);
+          mappedExpenses.push(...dayExpenses);
+        }
+      } else {
+        // Filtrar por mês/ano
+        const storageKey = `personal_expenses_${selectedMonth}_${selectedYear}`;
+        const storedExpenses = localStorage.getItem(storageKey);
+        if (storedExpenses) {
+          mappedExpenses = JSON.parse(storedExpenses);
+        }
       }
 
       setExpenses(mappedExpenses);
@@ -462,10 +474,24 @@ export const PersonalExpenseSpreadsheet = () => {
           <CardTitle>Filtros</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4 items-end">
+          <div className="flex gap-4 items-end flex-wrap">
+            <div className="space-y-2">
+              <Label>Filtro por Dia Específico</Label>
+              <Input
+                type="date"
+                value={selectedDay}
+                onChange={(e) => setSelectedDay(e.target.value)}
+                placeholder="Filtrar por dia"
+                className="w-40"
+              />
+            </div>
             <div className="space-y-2">
               <Label>Mês</Label>
-              <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
+              <Select 
+                value={selectedMonth.toString()} 
+                onValueChange={(value) => setSelectedMonth(parseInt(value))}
+                disabled={!!selectedDay}
+              >
                 <SelectTrigger className="w-32">
                   <SelectValue />
                 </SelectTrigger>
@@ -480,7 +506,11 @@ export const PersonalExpenseSpreadsheet = () => {
             </div>
             <div className="space-y-2">
               <Label>Ano</Label>
-              <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+              <Select 
+                value={selectedYear.toString()} 
+                onValueChange={(value) => setSelectedYear(parseInt(value))}
+                disabled={!!selectedDay}
+              >
                 <SelectTrigger className="w-24">
                   <SelectValue />
                 </SelectTrigger>
@@ -496,6 +526,15 @@ export const PersonalExpenseSpreadsheet = () => {
                 </SelectContent>
               </Select>
             </div>
+            {selectedDay && (
+              <Button 
+                variant="outline" 
+                onClick={() => setSelectedDay('')}
+                className="h-10"
+              >
+                Limpar Filtro
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
