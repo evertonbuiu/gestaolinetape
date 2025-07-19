@@ -155,12 +155,12 @@ export const CreateEmployee = ({ onSuccess, onCancel }: CreateEmployeeProps) => 
               }
             >
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Selecione uma função" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="funcionario">
                   <div className="flex flex-col items-start">
-                    <span>Funcionário</span>
+                    <span className="font-medium">Funcionário</span>
                     <span className="text-xs text-muted-foreground">
                       Acesso básico conforme permissões
                     </span>
@@ -168,7 +168,7 @@ export const CreateEmployee = ({ onSuccess, onCancel }: CreateEmployeeProps) => 
                 </SelectItem>
                 <SelectItem value="deposito">
                   <div className="flex flex-col items-start">
-                    <span>Depósito</span>
+                    <span className="font-medium">Depósito</span>
                     <span className="text-xs text-muted-foreground">
                       Acesso operacional sem valores
                     </span>
@@ -176,7 +176,7 @@ export const CreateEmployee = ({ onSuccess, onCancel }: CreateEmployeeProps) => 
                 </SelectItem>
                 <SelectItem value="financeiro">
                   <div className="flex flex-col items-start">
-                    <span>Financeiro</span>
+                    <span className="font-medium">Financeiro</span>
                     <span className="text-xs text-muted-foreground">
                       Acesso completo às áreas financeiras
                     </span>
@@ -184,7 +184,7 @@ export const CreateEmployee = ({ onSuccess, onCancel }: CreateEmployeeProps) => 
                 </SelectItem>
                 <SelectItem value="admin">
                   <div className="flex flex-col items-start">
-                    <span>Administrador</span>
+                    <span className="font-medium">Administrador</span>
                     <span className="text-xs text-muted-foreground">
                       Acesso completo ao sistema
                     </span>
