@@ -2210,41 +2210,73 @@ export const FinancialManagement = () => {
       return;
     }
     
+    // Calcular dados do resumo baseado no tipo de relatório
+    let summaryData = {
+      totalIncome: 0,
+      totalExpenses: 0,
+      netProfit: 0,
+      profitMargin: 0
+    };
+
+    if (reportData.type === 'income-statement') {
+      summaryData = {
+        totalIncome: reportData.data?.revenue?.total || 0,
+        totalExpenses: reportData.data?.expenses?.total || 0,
+        netProfit: reportData.data?.netIncome || 0,
+        profitMargin: reportData.data?.netMargin || 0
+      };
+    } else if (reportData.summary) {
+      summaryData = reportData.summary;
+    } else {
+      // Fallback para outros tipos de relatório
+      summaryData = {
+        totalIncome: getTotalIncome(),
+        totalExpenses: getTotalExpenses(),
+        netProfit: getTotalIncome() - getTotalExpenses(),
+        profitMargin: getTotalIncome() > 0 ? ((getTotalIncome() - getTotalExpenses()) / getTotalIncome()) * 100 : 0
+      };
+    }
+    
     if (format === 'excel') {
       // Criar workbook do Excel
       const wb = XLSX.utils.book_new();
       
       // Dados do resumo
-      const summaryData = [
+      const excelData = [
         ['RELATÓRIO FINANCEIRO'],
         ['Data de Geração:', new Date().toLocaleDateString('pt-BR')],
         [''],
         ['RESUMO GERAL'],
-        ['Total de Receitas:', `R$ ${reportData.summary.totalIncome.toFixed(2).replace('.', ',')}`],
-        ['Total de Despesas:', `R$ ${reportData.summary.totalExpenses.toFixed(2).replace('.', ',')}`],
-        ['Lucro Líquido:', `R$ ${reportData.summary.netProfit.toFixed(2).replace('.', ',')}`],
-        ['Margem de Lucro:', `${reportData.summary.profitMargin.toFixed(1)}%`],
+        ['Total de Receitas:', `R$ ${summaryData.totalIncome.toFixed(2).replace('.', ',')}`],
+        ['Total de Despesas:', `R$ ${summaryData.totalExpenses.toFixed(2).replace('.', ',')}`],
+        ['Lucro Líquido:', `R$ ${summaryData.netProfit.toFixed(2).replace('.', ',')}`],
+        ['Margem de Lucro:', `${summaryData.profitMargin.toFixed(1)}%`],
         ['']
       ];
 
       // Adicionar receitas por categoria se disponível
       if (reportData.incomeByCategory && Object.keys(reportData.incomeByCategory).length > 0) {
-        summaryData.push(['RECEITAS POR CATEGORIA']);
+        excelData.push(['RECEITAS POR CATEGORIA']);
         Object.entries(reportData.incomeByCategory).forEach(([category, amount]) => {
-          summaryData.push([category, `R$ ${Number(amount).toFixed(2).replace('.', ',')}`]);
+          excelData.push([category, `R$ ${Number(amount).toFixed(2).replace('.', ',')}`]);
         });
-        summaryData.push(['']);
+        excelData.push(['']);
       }
 
       // Adicionar despesas por categoria se disponível
       if (reportData.expensesByCategory && Object.keys(reportData.expensesByCategory).length > 0) {
-        summaryData.push(['DESPESAS POR CATEGORIA']);
+        excelData.push(['DESPESAS POR CATEGORIA']);
         Object.entries(reportData.expensesByCategory).forEach(([category, amount]) => {
-          summaryData.push([category, `R$ ${Number(amount).toFixed(2).replace('.', ',')}`]);
+          excelData.push([category, `R$ ${Number(amount).toFixed(2).replace('.', ',')}`]);
+        });
+      } else if (reportData.data?.expenses?.byCategory) {
+        excelData.push(['DESPESAS POR CATEGORIA']);
+        Object.entries(reportData.data.expenses.byCategory).forEach(([category, amount]) => {
+          excelData.push([category, `R$ ${Number(amount).toFixed(2).replace('.', ',')}`]);
         });
       }
 
-      const ws = XLSX.utils.aoa_to_sheet(summaryData);
+      const ws = XLSX.utils.aoa_to_sheet(excelData);
       XLSX.utils.book_append_sheet(wb, ws, 'Relatório');
       
       // Download do arquivo
@@ -2277,13 +2309,13 @@ export const FinancialManagement = () => {
       y += 15;
       
       doc.setFontSize(12);
-      doc.text(`Total de Receitas: R$ ${Number(reportData.summary.totalIncome).toFixed(2).replace('.', ',')}`, 20, y);
+      doc.text(`Total de Receitas: R$ ${Number(summaryData.totalIncome).toFixed(2).replace('.', ',')}`, 20, y);
       y += 10;
-      doc.text(`Total de Despesas: R$ ${Number(reportData.summary.totalExpenses).toFixed(2).replace('.', ',')}`, 20, y);
+      doc.text(`Total de Despesas: R$ ${Number(summaryData.totalExpenses).toFixed(2).replace('.', ',')}`, 20, y);
       y += 10;
-      doc.text(`Lucro Líquido: R$ ${Number(reportData.summary.netProfit).toFixed(2).replace('.', ',')}`, 20, y);
+      doc.text(`Lucro Líquido: R$ ${Number(summaryData.netProfit).toFixed(2).replace('.', ',')}`, 20, y);
       y += 10;
-      doc.text(`Margem de Lucro: ${Number(reportData.summary.profitMargin).toFixed(1)}%`, 20, y);
+      doc.text(`Margem de Lucro: ${Number(summaryData.profitMargin).toFixed(1)}%`, 20, y);
       y += 20;
 
       // Receitas por categoria
@@ -2325,6 +2357,189 @@ export const FinancialManagement = () => {
         description: "Relatório baixado em formato PDF com sucesso!",
       });
     }
+  };
+
+  // Funções de exportação para planilhas individuais
+  const exportCashFlowToExcel = () => {
+    const wb = XLSX.utils.book_new();
+    
+    const data = [
+      ['FLUXO DE CAIXA'],
+      ['Data de Geração:', new Date().toLocaleDateString('pt-BR')],
+      [''],
+      ['Data', 'Descrição', 'Categoria', 'Tipo', 'Valor', 'Conta', 'Status'],
+      ...cashFlow.map(entry => [
+        entry.date,
+        entry.description,
+        entry.category,
+        entry.type === 'income' ? 'Receita' : 'Despesa',
+        `R$ ${entry.amount.toFixed(2).replace('.', ',')}`,
+        entry.account,
+        entry.status === 'confirmed' ? 'Confirmado' : entry.status === 'pending' ? 'Pendente' : 'Cancelado'
+      ])
+    ];
+    
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    XLSX.utils.book_append_sheet(wb, ws, 'Fluxo de Caixa');
+    XLSX.writeFile(wb, `fluxo_caixa_${new Date().toISOString().split('T')[0]}.xlsx`);
+    
+    toast({
+      title: "Excel baixado",
+      description: "Fluxo de caixa exportado com sucesso!",
+    });
+  };
+
+  const exportCashFlowToPDF = () => {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(20);
+    doc.text('FLUXO DE CAIXA', 20, 30);
+    doc.setFontSize(12);
+    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 20, 45);
+    
+    const tableData = cashFlow.map(entry => [
+      entry.date,
+      entry.description.substring(0, 20),
+      entry.category,
+      entry.type === 'income' ? 'Receita' : 'Despesa',
+      `R$ ${entry.amount.toFixed(2).replace('.', ',')}`,
+      entry.status
+    ]);
+    
+    (doc as any).autoTable({
+      head: [['Data', 'Descrição', 'Categoria', 'Tipo', 'Valor', 'Status']],
+      body: tableData,
+      startY: 60,
+      theme: 'grid',
+      styles: { fontSize: 8 }
+    });
+    
+    doc.save(`fluxo_caixa_${new Date().toISOString().split('T')[0]}.pdf`);
+    
+    toast({
+      title: "PDF baixado",
+      description: "Fluxo de caixa exportado com sucesso!",
+    });
+  };
+
+  const exportBudgetToExcel = () => {
+    const wb = XLSX.utils.book_new();
+    
+    const data = [
+      ['CONTROLE ORÇAMENTÁRIO'],
+      ['Data de Geração:', new Date().toLocaleDateString('pt-BR')],
+      [''],
+      ['Categoria', 'Orçado', 'Realizado', 'Restante', 'Percentual'],
+      ...budget.map(item => [
+        item.category,
+        `R$ ${item.budgeted.toFixed(2).replace('.', ',')}`,
+        `R$ ${item.spent.toFixed(2).replace('.', ',')}`,
+        `R$ ${item.remaining.toFixed(2).replace('.', ',')}`,
+        `${item.percentage.toFixed(1)}%`
+      ])
+    ];
+    
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    XLSX.utils.book_append_sheet(wb, ws, 'Orçamento');
+    XLSX.writeFile(wb, `orcamento_${new Date().toISOString().split('T')[0]}.xlsx`);
+    
+    toast({
+      title: "Excel baixado",
+      description: "Orçamento exportado com sucesso!",
+    });
+  };
+
+  const exportBudgetToPDF = () => {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(20);
+    doc.text('CONTROLE ORÇAMENTÁRIO', 20, 30);
+    doc.setFontSize(12);
+    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 20, 45);
+    
+    const tableData = budget.map(item => [
+      item.category,
+      `R$ ${item.budgeted.toFixed(2).replace('.', ',')}`,
+      `R$ ${item.spent.toFixed(2).replace('.', ',')}`,
+      `R$ ${item.remaining.toFixed(2).replace('.', ',')}`,
+      `${item.percentage.toFixed(1)}%`
+    ]);
+    
+    (doc as any).autoTable({
+      head: [['Categoria', 'Orçado', 'Realizado', 'Restante', 'Percentual']],
+      body: tableData,
+      startY: 60,
+      theme: 'grid',
+      styles: { fontSize: 10 }
+    });
+    
+    doc.save(`orcamento_${new Date().toISOString().split('T')[0]}.pdf`);
+    
+    toast({
+      title: "PDF baixado",
+      description: "Orçamento exportado com sucesso!",
+    });
+  };
+
+  const exportAccountsToExcel = () => {
+    const wb = XLSX.utils.book_new();
+    
+    const data = [
+      ['CONTAS BANCÁRIAS'],
+      ['Data de Geração:', new Date().toLocaleDateString('pt-BR')],
+      [''],
+      ['Nome da Conta', 'Tipo', 'Saldo'],
+      ...accounts.map(account => [
+        account.name,
+        account.type === 'checking' ? 'Conta Corrente' : account.type === 'savings' ? 'Poupança' : 'Dinheiro',
+        `R$ ${account.balance.toFixed(2).replace('.', ',')}`
+      ])
+    ];
+    
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    XLSX.utils.book_append_sheet(wb, ws, 'Contas');
+    XLSX.writeFile(wb, `contas_bancarias_${new Date().toISOString().split('T')[0]}.xlsx`);
+    
+    toast({
+      title: "Excel baixado",
+      description: "Contas bancárias exportadas com sucesso!",
+    });
+  };
+
+  const exportAccountsToPDF = () => {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(20);
+    doc.text('CONTAS BANCÁRIAS', 20, 30);
+    doc.setFontSize(12);
+    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 20, 45);
+    
+    const tableData = accounts.map(account => [
+      account.name,
+      account.type === 'checking' ? 'Conta Corrente' : account.type === 'savings' ? 'Poupança' : 'Dinheiro',
+      `R$ ${account.balance.toFixed(2).replace('.', ',')}`
+    ]);
+    
+    (doc as any).autoTable({
+      head: [['Nome da Conta', 'Tipo', 'Saldo']],
+      body: tableData,
+      startY: 60,
+      theme: 'grid',
+      styles: { fontSize: 12 }
+    });
+    
+    const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
+    const finalY = (doc as any).lastAutoTable.finalY || 60;
+    
+    doc.setFontSize(14);
+    doc.text(`Total Geral: R$ ${totalBalance.toFixed(2).replace('.', ',')}`, 20, finalY + 20);
+    
+    doc.save(`contas_bancarias_${new Date().toISOString().split('T')[0]}.pdf`);
+    
+    toast({
+      title: "PDF baixado",
+      description: "Contas bancárias exportadas com sucesso!",
+    });
   };
 
   if (loading) {
@@ -2471,9 +2686,24 @@ export const FinancialManagement = () => {
                   <CardDescription>Controle detalhado de entradas e saídas</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
-                  {/* Filtro de Data */}
-                  <div className="flex items-center gap-2">
-                    <div className="text-sm text-muted-foreground">Filtrar:</div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={exportCashFlowToPDF}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    PDF
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={exportCashFlowToExcel}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Excel
+                  </Button>
+                   {/* Filtro de Data */}
+                   <div className="text-sm text-muted-foreground">Filtrar:</div>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -2630,10 +2860,11 @@ export const FinancialManagement = () => {
                       </div>
                     </DialogContent>
                   </Dialog>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
+              </CardHeader>
+              <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -2770,6 +3001,22 @@ export const FinancialManagement = () => {
                   <CardDescription>Saldos e movimentações das contas</CardDescription>
                 </div>
                 <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={exportAccountsToPDF}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    PDF
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={exportAccountsToExcel}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Excel
+                  </Button>
                   <Button 
                     variant="outline" 
                     onClick={handleRecalculateBalances}
@@ -3396,7 +3643,7 @@ export const FinancialManagement = () => {
                       size="sm"
                       onClick={() => downloadReport('pdf')}
                     >
-                      <Download className="h-4 w-4 mr-2" />
+                      <FileText className="h-4 w-4 mr-2" />
                       PDF
                     </Button>
                     <Button 
