@@ -2775,37 +2775,31 @@ export const FinancialManagement = () => {
 
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Receita Total: ${formatCurrency(reportData.data.totalRevenue)}`, 15, yPos);
+    doc.text(`Receita Total: ${formatCurrency(reportData.data.revenue)}`, 15, yPos);
     yPos += 8;
-    doc.text(`Custos Totais: ${formatCurrency(reportData.data.totalCosts)}`, 15, yPos);
+    doc.text(`Despesas Totais: ${formatCurrency(reportData.data.expenses)}`, 15, yPos);
     yPos += 8;
-    doc.text(`Lucro Bruto: ${formatCurrency(reportData.data.grossProfit)}`, 15, yPos);
+    doc.text(`Lucro: ${formatCurrency(reportData.data.profit)}`, 15, yPos);
     yPos += 8;
-    doc.text(`Margem Bruta: ${reportData.data.grossMargin.toFixed(1)}%`, 15, yPos);
-    yPos += 8;
-    doc.text(`ROI: ${reportData.data.roi.toFixed(1)}%`, 15, yPos);
+    doc.text(`Margem de Lucro: ${reportData.data.profitMargin.toFixed(1)}%`, 15, yPos);
     yPos += 20;
 
-    // Análise por evento
+    // Análise por categoria
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('Análise por Evento', 15, yPos);
+    doc.text('Análise por Categoria', 15, yPos);
     yPos += 15;
 
-    reportData.data.eventAnalysis.forEach((event: any) => {
+    reportData.data.categoryAnalysis.forEach((category: any) => {
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text(event.name, 15, yPos);
+      doc.text(category.category, 15, yPos);
       yPos += 8;
       
       doc.setFont('helvetica', 'normal');
-      doc.text(`Receita: ${formatCurrency(event.revenue)}`, 20, yPos);
+      doc.text(`Valor: ${formatCurrency(category.amount)}`, 20, yPos);
       yPos += 6;
-      doc.text(`Custos: ${formatCurrency(event.costs)}`, 20, yPos);
-      yPos += 6;
-      doc.text(`Lucro: ${formatCurrency(event.profit)}`, 20, yPos);
-      yPos += 6;
-      doc.text(`Margem: ${event.margin.toFixed(1)}%`, 20, yPos);
+      doc.text(`Percentual: ${category.percentage.toFixed(1)}%`, 20, yPos);
       yPos += 12;
     });
 
