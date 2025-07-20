@@ -1193,7 +1193,6 @@ export const FinancialManagement = () => {
       const companyInfo = [
         `${settings?.company_name || 'Luz Locação'} - ${settings?.tagline || 'Controle de Estoque e Patrimônio'}`,
         settings?.address ? `Endereço: ${settings.address}` : '',
-        'Documento gerado automaticamente pelo sistema de gestão patrimonial',
         `Data de emissão: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`
       ].filter(Boolean); // Remove linhas vazias
       
