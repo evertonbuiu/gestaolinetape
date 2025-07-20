@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLogo } from "@/hooks/useLogo";
@@ -2430,7 +2430,7 @@ export const FinancialManagement = () => {
     if (tableData.length === 0) {
       doc.text('Nenhum dado encontrado para o período selecionado.', 15, yPos);
     } else {
-      (doc as any).autoTable({
+      autoTable(doc, {
         head: [['Data', 'Descrição', 'Categoria', 'Tipo', 'Valor', 'Status']],
         body: tableData,
         startY: yPos,
@@ -2495,7 +2495,7 @@ export const FinancialManagement = () => {
       `${item.percentage.toFixed(1)}%`
     ]);
     
-    (doc as any).autoTable({
+    autoTable(doc, {
       head: [['Categoria', 'Orçado', 'Realizado', 'Restante', 'Percentual']],
       body: tableData,
       startY: yPos,
@@ -2555,7 +2555,7 @@ export const FinancialManagement = () => {
       `R$ ${account.balance.toFixed(2).replace('.', ',')}`
     ]);
     
-    (doc as any).autoTable({
+    autoTable(doc, {
       head: [['Nome da Conta', 'Tipo', 'Saldo']],
       body: tableData,
       startY: yPos,
