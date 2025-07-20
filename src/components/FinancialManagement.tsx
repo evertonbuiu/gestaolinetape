@@ -1229,8 +1229,8 @@ export const FinancialManagement = () => {
     // Título principal
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 51, 102);
-    doc.text('RELATÓRIO PATRIMONIAL', pageWidth / 2, 45, { align: 'center' });
+    doc.setTextColor(0, 51, 50);
+    doc.text('RELATÓRIO PATRIMONIAL', pageWidth / 2, 65, { align: 'center' });
     
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
