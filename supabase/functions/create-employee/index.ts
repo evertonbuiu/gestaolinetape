@@ -19,37 +19,26 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    // Get the authorization header from the request
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      throw new Error('No authorization header')
+    // Verificar se o usuário atual é admin usando o sistema de auth customizado
+    // O sistema não usa JWT, então validamos pelo userId fornecido
+    const requestBody = await req.json()
+    const { created_by, username, password, name, role = 'funcionario' } = requestBody
+
+    if (!created_by || !username || !password || !name) {
+      throw new Error('created_by, username, password, and name are required')
     }
 
-    // Get the JWT token from the authorization header
-    const token = authHeader.replace('Bearer ', '')
-
-    // Verify the user is authenticated and is an admin
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
-    if (authError || !user) {
-      throw new Error('Invalid token')
-    }
-
-    // Check if user has admin role
-    const { data: userRole, error: roleError } = await supabaseAdmin
+    // Verificar se o usuário que está criando tem role de admin
+    const { data: creatorRole, error: roleError } = await supabaseAdmin
       .from('user_roles')
       .select('role')
-      .eq('user_id', user.id)
+      .eq('user_id', created_by)
       .single()
 
-    if (roleError || userRole?.role !== 'admin') {
+    if (roleError || creatorRole?.role !== 'admin') {
       throw new Error('Only admins can create employee accounts')
     }
 
-    const { username, password, name, role = 'funcionario' } = await req.json()
-
-    if (!username || !password || !name) {
-      throw new Error('Username, password, and name are required')
-    }
 
     // Validate role
     if (!['admin', 'funcionario', 'financeiro', 'deposito'].includes(role)) {

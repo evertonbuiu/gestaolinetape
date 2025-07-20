@@ -22,7 +22,7 @@ import { HexColorPicker, HexColorInput } from 'react-colorful';
 import { hslToHex, hexToHsl } from '@/utils/colorConversion';
 
 export const SettingsPage = () => {
-  const { userRole } = useCustomAuth();
+  const { userRole, user } = useCustomAuth();
   const { rolePermissions, loading, updateRolePermission } = usePermissions();
   const { onlineUsers, loading: loadingOnlineUsers } = useOnlineUsers();
   const { theme, colorScheme, setTheme, setColorScheme, availableColorSchemes, createCustomColorScheme, customColors, saveThemePreferences } = useTheme();
@@ -174,6 +174,7 @@ export const SettingsPage = () => {
     try {
       const { data, error } = await supabase.functions.invoke('create-employee', {
         body: {
+          created_by: user?.id,
           name: newUser.name,
           username: newUser.username,
           password: newUser.password,
