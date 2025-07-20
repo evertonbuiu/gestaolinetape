@@ -105,13 +105,14 @@ export const useCompanySettings = () => {
 
       if (existing) {
         console.log('Updating existing company settings:', existing.id);
+        console.log('Data to update:', data);
         // Atualizar existente
         const { data: updateResult, error } = await supabase
           .from('company_settings')
           .update(data)
           .eq('id', existing.id)
           .select()
-          .maybeSingle();
+          .single();
 
         if (error) {
           console.error('Update error:', error);
