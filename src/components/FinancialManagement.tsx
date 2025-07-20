@@ -1204,7 +1204,7 @@ export const FinancialManagement = () => {
     // Função para adicionar marca d'água
     const addWatermark = () => {
       doc.saveGraphicsState();
-      doc.setTextColor(220, 220, 220);
+      doc.setTextColor(300, 300, 300);
       doc.setFontSize(50);
       doc.setFont('helvetica', 'bold');
       
@@ -1229,7 +1229,7 @@ export const FinancialManagement = () => {
     // Título principal
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 51, 50);
+    doc.setTextColor(0, 51, 102);
     doc.text('RELATÓRIO PATRIMONIAL', pageWidth / 2, 65, { align: 'center' });
     
     doc.setFontSize(12);
