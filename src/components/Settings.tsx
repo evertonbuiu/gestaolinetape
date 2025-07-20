@@ -489,9 +489,9 @@ export const SettingsPage = () => {
                 </Button>
               </div>
               
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h4 className="font-medium text-blue-900 mb-2">Informações importantes:</h4>
-                <div className="space-y-1 text-sm text-blue-800">
+              <div className="bg-accent/20 p-4 rounded-lg border border-accent/30">
+                <h4 className="font-medium text-accent-foreground mb-2">Informações importantes:</h4>
+                <div className="space-y-1 text-sm text-muted-foreground">
                   <p>• Estes dados serão utilizados nos cabeçalhos dos PDFs timbrados</p>
                   <p>• O endereço e telefone aparecerão no cabeçalho dos relatórios</p>
                   <p>• O CNPJ aparecerá no rodapé dos documentos</p>
