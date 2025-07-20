@@ -1354,8 +1354,7 @@ export const FinancialManagement = () => {
     doc.text('Item', 20, yPosition);
     doc.text('Qtd', 80, yPosition);
     doc.text('Aquisição', 100, yPosition);
-    doc.text('Valor Atual', 140, yPosition);
-    doc.text('Localização', 180, yPosition);
+    doc.text('Localização', 140, yPosition);
     yPosition += 8;
     
     doc.setFont('helvetica', 'normal');
@@ -1380,8 +1379,7 @@ export const FinancialManagement = () => {
       doc.text(itemName, 20, yPosition);
       doc.text(item.quantity.toString(), 80, yPosition);
       doc.text(`R$ ${(item.acquisitionValue * item.quantity).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 100, yPosition);
-      doc.text(`R$ ${(currentItemValue * item.quantity).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 140, yPosition);
-      doc.text(location, 180, yPosition);
+      doc.text(location, 140, yPosition);
       yPosition += 6;
     });
     
