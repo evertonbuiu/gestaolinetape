@@ -53,6 +53,8 @@ export const SettingsPage = () => {
   const [logos, setLogos] = useState<any[]>([]);
   const [loadingLogos, setLoadingLogos] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
   const [newUser, setNewUser] = useState({
     name: '',
     username: '',
@@ -193,6 +195,9 @@ export const SettingsPage = () => {
       setNewUser({ name: '', username: '', password: '', role: 'funcionario' });
       setCreateUserDialog(false);
       
+      // Recarregar a lista de funcionários
+      await fetchEmployees();
+      
       toast({
         title: "Funcionário criado",
         description: `${newUser.name} foi criado como ${roleLabel} e pode fazer login.`,
@@ -230,7 +235,39 @@ export const SettingsPage = () => {
     }
   };
 
-  // Upload logo
+  // Fetch all employees
+  const fetchEmployees = async () => {
+    setLoadingEmployees(true);
+    try {
+      const { data: credentials, error: credentialsError } = await supabase
+        .from('user_credentials')
+        .select('*')
+        .eq('is_active', true);
+
+      if (credentialsError) throw credentialsError;
+
+      const { data: roles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('*');
+
+      if (rolesError) throw rolesError;
+
+      // Combine credentials with roles
+      const employeesWithRoles = credentials.map(credential => {
+        const userRole = roles.find(role => role.user_id === credential.id);
+        return {
+          ...credential,
+          role: userRole?.role || 'funcionario'
+        };
+      });
+
+      setEmployees(employeesWithRoles);
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+    } finally {
+      setLoadingEmployees(false);
+    }
+  };
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -301,6 +338,7 @@ export const SettingsPage = () => {
   // Load data on component mount
   useEffect(() => {
     fetchLogos();
+    fetchEmployees();
   }, []);
 
   // Load company data when available
@@ -662,6 +700,63 @@ export const SettingsPage = () => {
                 <p>• Por padrão, funcionários têm papel de "funcionario" no sistema</p>
                 <p>• As permissões podem ser ajustadas na aba "Permissões"</p>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Funcionários Cadastrados
+              </CardTitle>
+              <CardDescription>
+                Lista de todos os funcionários cadastrados no sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingEmployees ? (
+                <div className="flex items-center justify-center p-8">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {employees.length === 0 ? (
+                    <p className="text-center text-muted-foreground p-8">
+                      Nenhum funcionário cadastrado
+                    </p>
+                  ) : (
+                    <div className="grid gap-3">
+                      {employees.map((employee) => (
+                        <div key={employee.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                              <User className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium">{employee.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                @{employee.username} • {
+                                  employee.role === 'admin' ? 'Administrador' : 
+                                  employee.role === 'financeiro' ? 'Financeiro' : 
+                                  employee.role === 'deposito' ? 'Depósito' : 'Funcionário'
+                                }
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={employee.is_active ? "default" : "secondary"}>
+                              {employee.is_active ? "Ativo" : "Inativo"}
+                            </Badge>
+                            <span className="text-sm text-muted-foreground">
+                              Criado em {new Date(employee.created_at).toLocaleDateString('pt-BR')}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
