@@ -106,19 +106,17 @@ export const useCompanySettings = () => {
       if (existing) {
         console.log('Updating existing company settings:', existing.id);
         console.log('Data to update:', data);
-        // Atualizar existente
-        const { data: updateResult, error } = await supabase
+        // Atualizar existente - não retornar dados para evitar erro
+        const { error } = await supabase
           .from('company_settings')
           .update(data)
-          .eq('id', existing.id)
-          .select()
-          .maybeSingle();
+          .eq('id', existing.id);
 
         if (error) {
           console.error('Update error:', error);
           throw error;
         }
-        console.log('Company settings updated successfully:', updateResult);
+        console.log('Company settings updated successfully (no data returned)');
       } else {
         console.log('Creating new company settings');
         // Criar novo
