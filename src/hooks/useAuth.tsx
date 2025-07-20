@@ -11,6 +11,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, name: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   hasPermission: (permissionName: string, accessType?: 'view' | 'edit') => Promise<boolean>;
+  refreshUserRole: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -166,6 +167,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Refresh user role
+  const refreshUserRole = async () => {
+    if (!user) return;
+    await fetchUserRole(user.id);
+  };
+
   // Check if user has specific permission
   const hasPermission = async (permissionName: string, accessType: 'view' | 'edit' = 'view') => {
     if (!user) return false;
@@ -198,7 +205,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       signIn,
       signUp,
       signOut,
-      hasPermission
+      hasPermission,
+      refreshUserRole
     }}>
       {children}
     </AuthContext.Provider>

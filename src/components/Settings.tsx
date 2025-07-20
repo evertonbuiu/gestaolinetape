@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useCustomAuth } from '@/hooks/useCustomAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useOnlineUsers } from '@/hooks/useOnlineUsers';
 import { useTheme } from '@/hooks/useTheme';
@@ -23,6 +24,7 @@ import { hslToHex, hexToHsl } from '@/utils/colorConversion';
 
 export const SettingsPage = () => {
   const { userRole } = useCustomAuth();
+  const { refreshUserRole } = useAuth();
   const { rolePermissions, loading, updateRolePermission } = usePermissions();
   const { onlineUsers, loading: loadingOnlineUsers } = useOnlineUsers();
   const { theme, colorScheme, setTheme, setColorScheme, availableColorSchemes, createCustomColorScheme, customColors, saveThemePreferences } = useTheme();
@@ -300,7 +302,9 @@ export const SettingsPage = () => {
   // Load data on component mount and when settings are first loaded
   useEffect(() => {
     fetchLogos();
-  }, []);
+    // Recarregar o role do usuário para garantir que esteja atualizado
+    refreshUserRole();
+  }, [refreshUserRole]);
 
   // Load company data when available
   useEffect(() => {
