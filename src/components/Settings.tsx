@@ -237,6 +237,7 @@ export const SettingsPage = () => {
 
   // Fetch all employees
   const fetchEmployees = async () => {
+    console.log('Fetching employees...');
     setLoadingEmployees(true);
     try {
       const { data: credentials, error: credentialsError } = await supabase
@@ -244,11 +245,15 @@ export const SettingsPage = () => {
         .select('*')
         .eq('is_active', true);
 
+      console.log('Credentials fetched:', credentials, credentialsError);
+
       if (credentialsError) throw credentialsError;
 
       const { data: roles, error: rolesError } = await supabase
         .from('user_roles')
         .select('*');
+
+      console.log('Roles fetched:', roles, rolesError);
 
       if (rolesError) throw rolesError;
 
@@ -261,6 +266,7 @@ export const SettingsPage = () => {
         };
       });
 
+      console.log('Employees with roles:', employeesWithRoles);
       setEmployees(employeesWithRoles);
     } catch (error) {
       console.error('Error fetching employees:', error);
